@@ -1,7 +1,6 @@
 {
   "name": "punta-medica-strategic-platform",
   "version": "1.0.0",
-  "description": "Hospital Punta Médica — Plataforma Estratégica Integral BSC + Hoshin + OKR",
   "private": true,
   "type": "module",
   "scripts": {
