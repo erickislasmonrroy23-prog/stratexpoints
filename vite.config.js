@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [react()],
   base: '/stratexpoints/',
   resolve: {
-    alias: { '@': '/src' }
+    alias: { '@': '/' }
   },
   build: {
     outDir: 'dist',
@@ -13,9 +13,9 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor:   ['react', 'react-dom', 'react-router-dom'],
-          charts:   ['recharts'],
-          icons:    ['lucide-react'],
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          charts: ['recharts'],
+          icons:  ['lucide-react'],
         }
       }
     }
