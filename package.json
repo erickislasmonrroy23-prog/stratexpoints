@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "description": "Hospital Punta Médica — Plataforma Estratégica Integral BSC + Hoshin + OKR",
   "private": true,
-  "scripts": {
+  "scripts": {"scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
+  },
   },
     "dev": "vite",
     "build": "vite build",
