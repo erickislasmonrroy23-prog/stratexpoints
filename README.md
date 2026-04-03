@@ -1,5 +1,5 @@
-# StratexPoints v2.0
-## AI Strategic Intelligence Platform
+# StratexPoints v3.0 (Enterprise SaaS Release)
+## Plataforma Multi-Tenant de Inteligencia Estratégica
 
 ### Instalación
 
@@ -65,3 +65,17 @@ npm run dev
 - Modo oscuro/claro automático
 - Sidebar colapsable
 - Diseño responsive
+
+### Novedades en v3.0 (SaaS Multi-Tenant)
+- 🏢 **Arquitectura Multi-Tenant:** Segregación total de datos. Múltiples empresas pueden usar la plataforma de forma independiente con sus propios subdominios y logos.
+- 💳 **Motor de Facturación:** Control de licencias, precios por plan y emisión automática de estados de cuenta vía email (Resend).
+- 🔒 **Gobernanza y RBAC:** Sistema de roles (Super Admin, Admin de Empresa, Editor, Viewer) y aislamiento de datos por Departamento/Área.
+- 👔 **Executive Summary (CSO):** Dashboard de alto nivel basado en la Pirámide de Minto para toma de decisiones ejecutivas en menos de 5 minutos.
+- 💅 **Soft UI Premium:** Rediseño completo de interfaces, modales unificados, botones redondeados y micro-interacciones.
+
+### Versiones Anteriores (v2.x)
+- Matriz Anual Enterprise interactiva (52 semanas).
+- IA Avanzada (Groq Llama 3.3 70B) con modo JSON estricto.
+- Mapa Estratégico (BSC) exportable a PDF de alta resolución.
+- Importador Mágico (DocAnalyzer) desde PDF, Word y Excel.
+- Generador automático de Presentaciones PowerPoint (.pptx).
