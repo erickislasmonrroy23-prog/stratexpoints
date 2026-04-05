@@ -169,14 +169,93 @@ objectivesService.backfillObjectiveCodes = async () => {
 
 export const perspectiveService = {
   ...createService('perspectives'),
+  // FIX: initDefaults ahora persiste las perspectivas reales en Supabase.
+  // Devuelve los registros creados (con IDs reales) para que el store los use.
   initDefaults: async (orgId) => {
-    // Aquí podrías insertar las perspectivas por defecto en la tabla 'perspectives' vinculadas a orgId
-    return [{ id: 1, name: 'Financiera' }, { id: 2, name: 'Clientes' }, { id: 3, name: 'Procesos' }, { id: 4, name: 'Aprendizaje y Crecimiento' }];
+    if (!orgId) {
+      console.warn('initDefaults: No orgId provided, returning in-memory defaults.');
+      return [
+        { id: 'default-1', name: 'Financiera',               prefix: 'FIN', order: 1 },
+        { id: 'default-2', name: 'Clientes',                 prefix: 'CLI', order: 2 },
+        { id: 'default-3', name: 'Procesos Internos',        prefix: 'PRO', order: 3 },
+        { id: 'default-4', name: 'Aprendizaje y Crecimiento',prefix: 'APR', order: 4 },
+      ];
+    }
+    try {
+      const defaults = [
+        { name: 'Financiera',                prefix: 'FIN', order: 1, organization_id: orgId },
+        { name: 'Clientes',                  prefix: 'CLI', order: 2, organization_id: orgId },
+        { name: 'Procesos Internos',         prefix: 'PRO', order: 3, organization_id: orgId },
+        { name: 'Aprendizaje y Crecimiento', prefix: 'APR', order: 4, organization_id: orgId },
+      ];
+      const { data, error } = await supabase.from('perspectives').insert(defaults).select();
+      if (error) throw error;
+      console.log('✅ Perspectivas BSC por defecto creadas en la BD.');
+      return data || [];
+    } catch (e) {
+      console.error('Error creando perspectivas por defecto:', e);
+      // Fallback seguro para no romper la app si la tabla no existe aún
+      return [
+        { id: 'default-1', name: 'Financiera',               prefix: 'FIN', order: 1 },
+        { id: 'default-2', name: 'Clientes',                 prefix: 'CLI', order: 2 },
+        { id: 'default-3', name: 'Procesos Internos',        prefix: 'PRO', order: 3 },
+        { id: 'default-4', name: 'Aprendizaje y Crecimiento',prefix: 'APR', order: 4 },
+      ];
+    }
   }
 };
 
 export const autoAlertService = {
-  checkKPIs: async (orgId) => { console.log("Checking KPIs automatically"); }
+  checkKPIs: async (orgId) => {
+    if (!orgId) return;
+    try {
+      // 1. Obtener KPIs críticos (pct < 80%) de esta organización
+      const { data: kpis, error: kpiErr } = await supabase
+        .from('kpis')
+        .select('id, name, value, target, owner, organization_id')
+        .eq('organization_id', orgId);
+      if (kpiErr) throw kpiErr;
+
+      const criticalKpis = (kpis || []).filter(kpi => {
+        if (!kpi.target || kpi.target === 0) return false;
+        const pct = Math.round((kpi.value || 0) / kpi.target * 100);
+        return pct < 80;
+      });
+      if (criticalKpis.length === 0) return;
+
+      // 2. Obtener alertas existentes para no duplicar
+      const { data: existing } = await supabase
+        .from('alerts')
+        .select('title')
+        .eq('organization_id', orgId)
+        .eq('is_read', false);
+
+      const existingTitles = new Set((existing || []).map(a => a.title));
+
+      // 3. Insertar alertas solo para KPIs sin alerta activa
+      const toInsert = criticalKpis
+        .map(kpi => {
+          const pct = Math.round((kpi.value || 0) / kpi.target * 100);
+          const title = `KPI en riesgo: ${kpi.name}`;
+          if (existingTitles.has(title)) return null;
+          return {
+            title,
+            message: `Avance: ${pct}% (Meta: ${kpi.target}). Responsable: ${kpi.owner || 'Sin asignar'}.`,
+            severity: pct < 60 ? 'critical' : 'warning',
+            is_read: false,
+            organization_id: orgId,
+          };
+        })
+        .filter(Boolean);
+
+      if (toInsert.length > 0) {
+        await supabase.from('alerts').insert(toInsert);
+        console.log(`✅ AutoAlert: ${toInsert.length} alertas KPI generadas.`);
+      }
+    } catch (e) {
+      console.error('Error en autoAlertService.checkKPIs:', e);
+    }
+  }
 };
 
 // --- Notification Service ---
