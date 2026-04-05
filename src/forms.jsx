@@ -53,7 +53,8 @@ export function OKRForm({ onSave, onCancel, objectives = [], initialData = null 
       return null;
     }
     const linkedObjective = objectives.find(o => String(o.id) === String(form.objective_id));
-    return linkedObjective ? linkedObjective.perspective_id : null; // Devolver como número para consistencia
+    // FIX: Convertir a Number para que coincida con el tipo esperado por el select de perspectivas
+    return linkedObjective ? Number(linkedObjective.perspective_id) : null;
   }, [form.objective_id, objectives]);
 
   // La perspectiva final que se muestra en la UI es la que el usuario seleccionó manualmente,
@@ -116,22 +117,44 @@ export function OKRForm({ onSave, onCancel, objectives = [], initialData = null 
             </div>
             <div>
               <label className="sp-label" style={{ color: selectedPerspectiveId ? 'var(--primary)' : 'var(--text3)' }}>2. Vincula Objetivo</label>
-              <select className="sp-input" style={{ fontWeight: 600 }} value={form.objective_id || ''} onChange={e => setForm({...form, objective_id: e.target.value || null})} disabled={selectedPerspectiveId === null}>
-                <option value="">-- Sin vincular --</option>
-                {objectives
-                  .filter(obj => {
-                    // Solo mostrar objetivos si una perspectiva está seleccionada Y su perspective_id coincide
-                    if (selectedPerspectiveId === null) return false;
-                    return obj.perspective_id === selectedPerspectiveId; // Comparación numérica robusta
-                  })
-                  .sort((a, b) => {
-                      const codeA = a.code || '';
-                      const codeB = b.code || '';
-                      return codeA.localeCompare(codeB, undefined, { numeric: true, sensitivity: 'base' });
-                  })
-                  .map(obj => <option key={obj.id} value={String(obj.id)}>[{obj.code || '?'}] {obj.name}</option>)
-                }
-              </select>
+              {(() => {
+                // FIX: Comparación robusta convirtiendo ambos lados a String para evitar fallos
+                // cuando Supabase devuelve perspective_id como string y selectedPerspectiveId es Number.
+                const filteredObjs = selectedPerspectiveId === null ? [] : objectives
+                  .filter(obj => String(obj.perspective_id) === String(selectedPerspectiveId))
+                  .sort((a, b) => (a.code || '').localeCompare(b.code || '', undefined, { numeric: true, sensitivity: 'base' }));
+
+                const noObjectivesForPerspective = selectedPerspectiveId !== null && filteredObjs.length === 0;
+
+                return (
+                  <>
+                    <select
+                      className="sp-input"
+                      style={{ fontWeight: 600, borderColor: noObjectivesForPerspective ? 'var(--gold)' : undefined }}
+                      value={form.objective_id || ''}
+                      onChange={e => setForm({...form, objective_id: e.target.value || null})}
+                      disabled={selectedPerspectiveId === null}
+                    >
+                      <option value="">-- Sin vincular --</option>
+                      {filteredObjs.map(obj => (
+                        <option key={obj.id} value={String(obj.id)}>
+                          [{obj.code || '?'}] {obj.name}
+                        </option>
+                      ))}
+                    </select>
+                    {noObjectivesForPerspective && (
+                      <div style={{ fontSize: 11, color: 'var(--gold)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        ⚠️ Sin objetivos para esta perspectiva. Créalos primero en Mapa Estratégico.
+                      </div>
+                    )}
+                    {selectedPerspectiveId === null && objectives.length === 0 && (
+                      <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
+                        Selecciona una perspectiva para ver los objetivos disponibles.
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
             <div>
               <label className="sp-label">Período (Trimestre / Semestre)</label>
