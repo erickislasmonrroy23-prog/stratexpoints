@@ -23,6 +23,7 @@ import IntelligentCore from "./IntelligentCore.jsx";
 import { useStore } from "./store.js";
 import { shallow } from 'zustand/shallow';
 import { deepEqual } from 'fast-equals';
+import { Analytics } from '@vercel/analytics/react';
 
 // Lazy loaded heavy modules para optimizar el bundle (Performance)
 const BowlingChart = lazy(() => import("./BowlingChart.jsx"));
@@ -842,13 +843,28 @@ export default function App(){
     setSuperAdminCodeInput('');
   };
 
-  if (loading) return <LoadingScreen />;
+  if (loading) return (
+    <>
+      <LoadingScreen />
+      <Analytics />
+    </>
+  );
   // **MEJORA DE ROBUSTEZ**: No renderizar la app principal si el usuario está logueado
   // pero su perfil no se pudo cargar. Esto previene todos los errores de 'null' posteriores.
-  if (!user || !profile) return <Login onLogin={(u, p) => setAuth(u, p)} />;
+  if (!user || !profile) return (
+    <>
+      <Login onLogin={(u, p) => setAuth(u, p)} />
+      <Analytics />
+    </>
+  );
 
   // If superAdminActive is true, render SuperAdmin component
-  if (superAdminActive) return <SuperAdmin user={user} profile={profile} onBack={() => setSuperAdminActive(false)} isCodeActivated={true} />;
+  if (superAdminActive) return (
+    <>
+      <SuperAdmin user={user} profile={profile} onBack={() => setSuperAdminActive(false)} isCodeActivated={true} />
+      <Analytics />
+    </>
+  );
 
   // Otherwise, render MainApp and the potential code input modal
   return (
@@ -876,6 +892,7 @@ export default function App(){
           </div>
         </Modal>
       )}
+      <Analytics />
     </>
   );
 }
