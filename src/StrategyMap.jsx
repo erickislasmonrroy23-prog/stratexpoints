@@ -89,14 +89,15 @@ export default function StrategyMap({ onCreateObjective, onDeleteObjective, onUp
     const selectedPerspective = perspectives.find(p => p.id === selectedPersp);
     const prefix = selectedPerspective ? selectedPerspective.prefix : 'OBJ';
     
-    const objectivesInPerspective = (objectives || []).filter(o => o.perspective_id === selectedPersp && o.code?.startsWith(prefix));
+    const objectivesInPerspective = (objectives || []).filter(o => o.code?.startsWith(prefix));
     const existingNumbers = objectivesInPerspective
       .map(o => parseInt(o.code.substring(prefix.length), 10))
       .filter(n => !isNaN(n));
     const maxNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) : 0;
     const newCode = `${prefix}${maxNumber + 1}`;
 
-    onCreateObjective({ name: newObj, perspective_id: selectedPersp, status: 'on_track', theme: selectedTheme === 'auto' ? null : selectedTheme, code: newCode });
+    const PERSP_UUID = {'F':'3662b306-fc59-44c6-b750-db0d0469efdd','C':'fea4ce16-5a76-48fd-8bc3-40f7c826baa3','P':'8871fae0-5b92-49b7-8050-21fc1c9903cd','A':'deebed6d-7e58-42f5-92d5-928096e6a1da'};
+    onCreateObjective({ name: newObj, perspective_id: PERSP_UUID[prefix] || selectedPersp, status: 'on_track', theme: selectedTheme === 'auto' ? null : selectedTheme, code: newCode });
     setNewObj('');
   };
 
@@ -218,7 +219,7 @@ export default function StrategyMap({ onCreateObjective, onDeleteObjective, onUp
             </div>
           </div>
           {perspectives.map((persp, index) => {
-            const objs = objectives?.filter(o => o.perspective_id === persp.id) || [];
+            const objs = objectives?.filter(o => (o.code || "").startsWith(persp.prefix)) || [];
             
             const getStrategicTheme = (obj, perspId) => {
               if (perspId === 4) {
