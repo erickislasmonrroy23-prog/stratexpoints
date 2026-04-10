@@ -60,12 +60,8 @@ export default function Login({ onLogin }) {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', background: 'var(--bg)' }}>
       <div style={{ flex: 1, background: 'linear-gradient(135deg, var(--bg2), var(--primary-light))', padding: 60, display: 'flex', flexDirection: 'column', justifyContent: 'center', borderRight: '1px solid var(--border)' }} className="hide-on-mobile">
-        <img src={tenant && tenant.logo_url ? tenant.logo_url : '/xtratia-logo.jpg'} alt='Xtratia' style={{ maxHeight: 80, maxWidth: 220, objectFit: 'contain', marginBottom: 32, filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.15))' }} />
-        {false && tenant && tenant.logo_url ? (
-          <img src={tenant.logo_url} alt={tenant.name} style={{ maxHeight: 80, maxWidth: 200, objectFit: 'contain', marginBottom: 32, filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))' }} />
-        ) : (
-          <div style={{ width: 80, height: 80, borderRadius: 20, background: 'linear-gradient(135deg, var(--primary), var(--teal))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, marginBottom: 32, boxShadow: '0 12px 24px rgba(0,0,0,0.1)' }}>🎯</div>
-        )}
+        <img src={tenant && tenant.logo_url ? tenant.logo_url : '/xtratia-logo.jpg'} alt='Xtratia' style={{ maxHeight: 80, maxWidth: 220, objectFit: 'contain', marginBottom: 32, filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.15))' }} onError={e => { e.target.style.display='none'; }} />
+        
         <h1 className="scale-in" style={{ fontSize: 48, fontWeight: 800, marginBottom: 24, lineHeight: 1.1, color: 'var(--text)', letterSpacing: '-1px' }}>
           {tenant ? <>Bóveda estratégica de<br/><span style={{ color: 'var(--primary)' }}>{tenant.name}.</span></> : <>El motor de tu<br/><span style={{ color: 'var(--primary)' }}>estrategia AI.</span></>}
         </h1>
