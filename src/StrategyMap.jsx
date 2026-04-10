@@ -222,7 +222,7 @@ export default function StrategyMap({ onCreateObjective, onDeleteObjective, onUp
             const objs = objectives?.filter(o => (o.code || "").startsWith(persp.prefix)) || [];
             
             const getStrategicTheme = (obj, perspId) => {
-              if (perspId === 4) {
+              if (perspId === 4 || perspId === "deebed6d-7e58-42f5-92d5-928096e6a1da" || String(perspId).startsWith("deeb") || index === 3) {
                 if (obj.theme && ['human_capital', 'it', 'infrastructure'].includes(obj.theme)) return obj.theme;
                 if (!obj.name) return 'human_capital';
                 const lowerName = obj.name.toLowerCase();
