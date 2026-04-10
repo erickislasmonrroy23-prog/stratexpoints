@@ -449,7 +449,7 @@ function MainApp({ onLogout, onSuperAdmin }){
   };
 
   useEffect(function(){
-    if (profile?.organization_id || realProfile?.is_super_admin) { loadAllData(profile?.organization_id); }
+    loadAllData();
     setupSubscriptions(); // Iniciamos la conexión por WebSockets
 
     // Solicitar permiso de notificaciones si no se ha hecho antes
