@@ -42,10 +42,6 @@ export function useTenants(isSystemOwner, profile) {
         maxUsers: org.max_users,
         language: org.language,
         modules: org.modules,
-        billingEmail: org.billing_email,
-        priceBasic: org.price_basic,
-        pricePremium: org.price_premium,
-        isPaid: org.is_paid,
         users: org.profiles.map(p => ({
           id: p.id,
           name: p.full_name,
