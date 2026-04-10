@@ -449,7 +449,7 @@ function MainApp({ onLogout, onSuperAdmin }){
   };
 
   useEffect(function(){
-    loadAllData();
+    if (profile?.organization_id || realProfile?.is_super_admin) { loadAllData(profile?.organization_id); }
     setupSubscriptions(); // Iniciamos la conexión por WebSockets
 
     // Solicitar permiso de notificaciones si no se ha hecho antes
@@ -529,7 +529,7 @@ function MainApp({ onLogout, onSuperAdmin }){
   var org=profile&&profile.organizations;
   var isPaidThisMonth = org?.modules?.lastPaymentMonth === currentMonthStr;
   var isInGracePeriod = !isPaidThisMonth && todayObj.getDate() <= 10;
-  var isBlocked = !isGlobalView && !isPaidThisMonth && todayObj.getDate() > 10;
+  var isBlocked = !isGlobalView && !isPaidThisMonth && todayObj.getDate() > 10 && !realProfile?.is_super_admin;
 
   var unreadAlerts=(alerts || []).filter(function(a){return !a.is_read;}).length;
   var criticalToasts=(alerts || []).filter(function(a){return a.severity==="critical"&&!a.is_read&&!dismissedToasts.includes(a.id);});
