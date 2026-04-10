@@ -7,7 +7,7 @@ import { useAuditLogs } from './useAuditLogs.jsx';
 import jsPDF from 'jspdf'; // Importar jsPDF
 import * as XLSX from 'xlsx';
 import UserEditModal from './UserEditModal.jsx';
-import TenantCard from './TenantCard.jsx';
+import TenantCard from './TenantCard.jsx'
 import UserDirectory from './UserDirectory.jsx';
 import BrandingSettings from './BrandingSettings.jsx';
 import ModuleProvisioning from './ModuleProvisioning.jsx';
@@ -81,7 +81,7 @@ export default function SuperAdmin({ user, profile, onBack }) {
     let isMounted = true;
     async function fetchMetrics() {
       try {
-        const { data: orgs } = await supabase.from('organizations').select('id, modules, price_basic, price_premium');
+        const { data: orgs } = await supabase.from('organizations').select('id, modules');
         const { data: profs } = await supabase.from('profiles').select('id, organization_id');
 
         let mrr = 0; let active = 0; let atRisk = 0;
@@ -95,7 +95,7 @@ export default function SuperAdmin({ user, profile, onBack }) {
         orgs?.forEach(t => {
            const isPaidThisMonth = t.modules?.lastPaymentMonth === currentMonthStr;
            const isGracePeriod = !isPaidThisMonth && currentDay <= 10;
-           const activePrice = t.modules?.ai ? (t.price_premium || 29) : (t.price_basic || 12);
+           const activePrice = t.modules?.ai ? 29 : 12;
            const usersCount = usersPerOrg[t.id] || 0;
 
            if (isPaidThisMonth || isGracePeriod) {
@@ -150,7 +150,7 @@ export default function SuperAdmin({ user, profile, onBack }) {
         name: currentTenant.name, subdomain: currentTenant.subdomain, industry: currentTenant.industry,
         size: currentTenant.size, logo_url: currentTenant.logoUrl, theme_color: currentTenant.themeColor,
         max_users: currentTenant.maxUsers, modules: currentTenant.modules,
-        billing_email: currentTenant.billingEmail, price_basic: currentTenant.priceBasic, price_premium: currentTenant.pricePremium, is_paid: currentTenant.isPaid
+        
       };
       try {
         await organizationService.update(currentTenant.id, payload);
@@ -158,7 +158,7 @@ export default function SuperAdmin({ user, profile, onBack }) {
       } catch (err) {
         // PLAN B: Si la caché de Supabase falla, guardamos todo menos la facturación para no perder el trabajo
         if (err.message?.includes('schema cache') || err.message?.includes('Could not find')) {
-          const { billing_email, price_basic, price_premium, is_paid, ...safePayload } = payload;
+          const safePayload = payload;
           await organizationService.update(currentTenant.id, safePayload);
           notificationService.success("✅ Datos base e Identidad guardados con éxito.");
           notificationService.error("⚠️ Nota: Los datos de facturación no se guardaron porque la base de datos está actualizando su memoria (caché). Por favor, espera unos minutos e intenta guardarlos nuevamente.");
