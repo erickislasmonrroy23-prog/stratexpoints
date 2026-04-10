@@ -5,6 +5,7 @@ import { notificationService } from './services.js';
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [tenant, setTenant] = useState(null);
   const [resetting, setResetting] = useState(false);
 
@@ -59,7 +60,8 @@ export default function Login({ onLogin }) {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', background: 'var(--bg)' }}>
       <div style={{ flex: 1, background: 'linear-gradient(135deg, var(--bg2), var(--primary-light))', padding: 60, display: 'flex', flexDirection: 'column', justifyContent: 'center', borderRight: '1px solid var(--border)' }} className="hide-on-mobile">
-        {tenant && tenant.logo_url ? (
+        <img src={tenant && tenant.logo_url ? tenant.logo_url : '/xtratia-logo.jpg'} alt='Xtratia' style={{ maxHeight: 80, maxWidth: 220, objectFit: 'contain', marginBottom: 32, filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.15))' }} />
+        {false && tenant && tenant.logo_url ? (
           <img src={tenant.logo_url} alt={tenant.name} style={{ maxHeight: 80, maxWidth: 200, objectFit: 'contain', marginBottom: 32, filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))' }} />
         ) : (
           <div style={{ width: 80, height: 80, borderRadius: 20, background: 'linear-gradient(135deg, var(--primary), var(--teal))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, marginBottom: 32, boxShadow: '0 12px 24px rgba(0,0,0,0.1)' }}>🎯</div>
@@ -81,7 +83,12 @@ export default function Login({ onLogin }) {
             <label className="sp-label" style={{ fontSize: 12, margin: 0 }}>Contraseña</label>
             <button type="button" onClick={handleResetPassword} disabled={resetting} style={{ background: 'transparent', border: 'none', color: 'var(--primary)', fontSize: 12, cursor: 'pointer', fontWeight: 600, padding: 0 }}>{resetting ? 'Enviando...' : '¿Olvidaste tu contraseña?'}</button>
           </div>
-          <input className="sp-input scale-in" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} style={{ marginBottom: 32, padding: '14px 16px', borderRadius: 14, fontSize: 14 }} required />
+          <div style={{ position: 'relative', marginBottom: 32 }}>
+            <input className="sp-input scale-in" type={showPassword ? 'text' : 'password'} placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" value={password} onChange={e => setPassword(e.target.value)} style={{ padding: '14px 16px', borderRadius: 14, fontSize: 14, paddingRight: 48, width: '100%', boxSizing: 'border-box' }} required />
+            <button type="button" onClick={() => setShowPassword(function(v){ return !v; })} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', fontSize: 18, padding: 0, lineHeight: 1 }}>
+              {showPassword ? '\ud83d\ude48' : '\ud83d\udc41\ufe0f'}
+            </button>
+          </div>
           <button type="submit" className="sp-btn scale-in" style={{ width: '100%', justifyContent: 'center', fontSize: 15, fontWeight: 800, padding: '16px', background: 'var(--primary)', color: '#fff', borderRadius: 99, border: '2px solid transparent', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', display: 'flex', alignItems: 'center', gap: 8, animationDelay: '0.1s' }} onMouseEnter={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--primary)'; e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.1)'; e.currentTarget.querySelector('span').style.transform = 'translateX(4px)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'var(--primary)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.querySelector('span').style.transform = 'translateX(0)'; }}>
             Acceder a la Plataforma <span style={{ fontSize: 18, transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>→</span>
           </button>
