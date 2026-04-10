@@ -84,7 +84,7 @@ export default function Login({ onLogin }) {
             <button type="button" onClick={handleResetPassword} disabled={resetting} style={{ background: 'transparent', border: 'none', color: 'var(--primary)', fontSize: 12, cursor: 'pointer', fontWeight: 600, padding: 0 }}>{resetting ? 'Enviando...' : '¿Olvidaste tu contraseña?'}</button>
           </div>
           <div style={{ position: 'relative', marginBottom: 32 }}>
-            <input className="sp-input scale-in" type={showPassword ? 'text' : 'password'} placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" value={password} onChange={e => setPassword(e.target.value)} style={{ padding: '14px 16px', borderRadius: 14, fontSize: 14, paddingRight: 48, width: '100%', boxSizing: 'border-box' }} required />
+            <input className="sp-input scale-in" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} style={{ padding: '14px 16px', borderRadius: 14, fontSize: 14, paddingRight: 48, width: '100%', boxSizing: 'border-box' }} required />
             <button type="button" onClick={() => setShowPassword(function(v){ return !v; })} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', fontSize: 18, padding: 0, lineHeight: 1 }}>
               {showPassword ? '🙈' : '👁️'}
             </button>
