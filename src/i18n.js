@@ -7,7 +7,7 @@ i18n
   .use(initReactI18next)
   .init({ 
   showSupportNotice: false, // Desactiva el mensaje de soporte de Locize
-  lng: 'es-MX', // Idioma de seguridad por defecto
+  lng: "es-MX",
   fallbackLng: 'en-US',
   interpolation: { escapeValue: false },
   backend: {
