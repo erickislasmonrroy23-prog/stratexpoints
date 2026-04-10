@@ -59,7 +59,7 @@ export default function SuperAdmin({ user, profile, onBack }) {
   const [loadingMfa, setLoadingMfa] = useState(false);
   
   // Estado para el PIN de la Bóveda
-  const [vaultPin, setVaultPin] = useState(() => localStorage.getItem('sp-vault-pin') || '8888');
+  const [vaultPin, setVaultPin] = useState(() => localStorage.getItem('sp-vault-pin') || '2315');
   const [pinForm, setPinForm] = useState({ newPin: '', confirmPin: '' });
   
   const [systemTotalUsers, setSystemTotalUsers] = useState(0);
