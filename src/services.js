@@ -176,7 +176,52 @@ export const perspectiveService = {
 };
 
 export const autoAlertService = {
-  checkKPIs: async (orgId) => { console.log("Checking KPIs automatically"); }
+  checkKPIs: async (orgId) => {
+    if (!orgId) return;
+    try {
+      const { data: kpis } = await supabase
+        .from('kpis')
+        .select('id, name, value, target, owner, organization_id')
+        .eq('organization_id', orgId);
+      if (!kpis || kpis.length === 0) return;
+
+      const criticalKpis = kpis.filter(k => {
+        const pct = k.target > 0 ? (k.value / k.target) * 100 : 0;
+        return pct < 70;
+      });
+
+      if (criticalKpis.length === 0) return;
+
+      const { data: existing } = await supabase
+        .from('alerts')
+        .select('title')
+        .eq('organization_id', orgId)
+        .eq('is_read', false);
+
+      const existingTitles = new Set((existing || []).map(a => a.title));
+
+      const toInsert = criticalKpis
+        .map(kpi => {
+          const pct = kpi.target > 0 ? Math.round((kpi.value / kpi.target) * 100) : 0;
+          const title = 'KPI en riesgo: ' + kpi.name;
+          if (existingTitles.has(title)) return null;
+          return {
+            title,
+            message: 'Avance: ' + pct + '% (Meta: ' + kpi.target + '). Responsable: ' + (kpi.owner || 'Sin asignar') + '.',
+            severity: pct < 50 ? 'critical' : 'warning',
+            is_read: false,
+            organization_id: orgId,
+          };
+        })
+        .filter(Boolean);
+
+      if (toInsert.length > 0) {
+        await supabase.from('alerts').insert(toInsert);
+      }
+    } catch (e) {
+      console.error('autoAlertService.checkKPIs error:', e.message);
+    }
+  }
 };
 
 // --- Notification Service ---
@@ -196,27 +241,38 @@ export const notificationService = {
 };
 
 export const groqService = {
-  ask: async (messages, jsonMode = false) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('groq-ia', {
-        body: { messages, jsonMode }
-      });
-      
-      if (error) {
-        // This could be a network error, or a 5xx error from the function
-        throw new Error(`Error en la función de IA: ${error.message}`);
-      }
-      if (data?.error) {
-        // This is a custom error returned from the function logic
-        throw new Error(`Error del motor de IA: ${data.error}`);
-      }
-      
-      return data?.response || "La IA no devolvió una respuesta válida.";
-    } catch (err) {
-      console.error("Error en groqService.ask:", err);
-      // Re-throw the specific error for the UI to handle, instead of a generic one.
-      throw err;
+  chat: async (messages, model = 'llama3-8b-8192') => {
+    const apiKey = import.meta.env.VITE_GROQ_API_KEY;
+    if (!apiKey) throw new Error('Groq API key no configurada. Agrega VITE_GROQ_API_KEY en Vercel.');
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+      body: JSON.stringify({ model, messages, max_tokens: 2048, temperature: 0.7 }),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e?.error?.message || 'Error Groq HTTP ' + res.status);
     }
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || '';
+  },
+  analyzeOKRs: async (okrs, kpis) => {
+    return groqService.chat([
+      { role: 'system', content: 'Eres consultor experto en OKRs y KPIs. Analiza y entrega: 1) Salud general 2) Top 3 riesgos 3) Top 3 recomendaciones. Español, máximo 400 palabras.' },
+      { role: 'user', content: 'OKRs: ' + JSON.stringify((okrs||[]).slice(0,10)) + ' | KPIs: ' + JSON.stringify((kpis||[]).slice(0,10)) }
+    ]);
+  },
+  flashInsight: async (data) => {
+    return groqService.chat([
+      { role: 'system', content: 'Asesor ejecutivo. Da 3 insights estratégicos accionables en máximo 5 oraciones. Español.' },
+      { role: 'user', content: 'Datos: ' + JSON.stringify(data) }
+    ]);
+  },
+  analyzeDocument: async (text, question) => {
+    return groqService.chat([
+      { role: 'system', content: 'Analista experto. Responde de forma concisa y estructurada. Español.' },
+      { role: 'user', content: 'Documento:\n' + text.substring(0,8000) + '\n\nPregunta: ' + (question || 'Puntos principales del documento') }
+    ]);
   }
 };
 
