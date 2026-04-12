@@ -16,6 +16,40 @@ export default function ModuloOKRs({onModal,onEdit, onDelete}){
   const profile = useStore.use.profile();
   const can = useStore.use.can();
   const [tab,setTab]=useState("list");
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createForm, setCreateForm] = useState({ title: '', description: '', owner: '', dueDate: '', progress: 0, status: 'active' });
+  const [creating, setCreating] = useState(false);
+
+  const handleCreateOKR = async (e) => {
+    e.preventDefault();
+    if (!createForm.title.trim()) return notificationService.error('El título es requerido.');
+    setCreating(true);
+    try {
+      const { data, error } = await (await import('./supabase.js')).supabase
+        .from('okrs')
+        .insert({
+          title: createForm.title,
+          description: createForm.description,
+          owner: createForm.owner,
+          due_date: createForm.dueDate || null,
+          progress: parseInt(createForm.progress) || 0,
+          status: createForm.status,
+          organization_id: profile?.organization_id,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      notificationService.success('✅ OKR creado correctamente.');
+      setShowCreateModal(false);
+      setCreateForm({ title: '', description: '', owner: '', dueDate: '', progress: 0, status: 'active' });
+      // Recargar OKRs en el store
+      const { okrService } = await import('./services.js');
+      const newOKRs = await okrService.getAll(profile?.organization_id);
+      useStore.getState().setOKRs(newOKRs || []);
+    } catch (err) { notificationService.error('Error: ' + err.message); }
+    finally { setCreating(false); }
+  };
+
   const [filterDept, setFilterDept] = useState("");
   const [filterOwner, setFilterOwner] = useState("");
   const [filterPersp, setFilterPersp] = useState("");
@@ -351,6 +385,57 @@ export default function ModuloOKRs({onModal,onEdit, onDelete}){
         )}
         {tab==="gen"&&<OKRGenerator />}
       </div>
-    </div>
+    
+      {/* Modal Crear OKR */}
+      {showCreateModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div className="sp-card" style={{ width: '100%', maxWidth: 520, padding: 32, borderRadius: 20, boxShadow: '0 24px 48px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ marginBottom: 20, fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>🎯 Nuevo OKR</h3>
+            <form onSubmit={handleCreateOKR} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>Objetivo *</label>
+                <input className="sp-input" required placeholder="Ej: Aumentar ingresos en un 30% este trimestre" value={createForm.title} onChange={e => setCreateForm(f => ({...f, title: e.target.value}))} style={{ padding: '10px 12px', borderRadius: 8, fontSize: 14, width: '100%', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>Descripción</label>
+                <textarea className="sp-input" placeholder="Contexto del objetivo..." value={createForm.description} onChange={e => setCreateForm(f => ({...f, description: e.target.value}))} rows={2} style={{ padding: '10px 12px', borderRadius: 8, fontSize: 14, width: '100%', boxSizing: 'border-box', resize: 'vertical' }} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>Responsable</label>
+                  <input className="sp-input" placeholder="Nombre del dueño" value={createForm.owner} onChange={e => setCreateForm(f => ({...f, owner: e.target.value}))} style={{ padding: '10px 12px', borderRadius: 8, fontSize: 14, width: '100%', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>Fecha Límite</label>
+                  <input className="sp-input" type="date" value={createForm.dueDate} onChange={e => setCreateForm(f => ({...f, dueDate: e.target.value}))} style={{ padding: '10px 12px', borderRadius: 8, fontSize: 14, width: '100%', boxSizing: 'border-box' }} />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>Avance inicial (%)</label>
+                  <input className="sp-input" type="number" min="0" max="100" value={createForm.progress} onChange={e => setCreateForm(f => ({...f, progress: e.target.value}))} style={{ padding: '10px 12px', borderRadius: 8, fontSize: 14, width: '100%', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>Estado</label>
+                  <select className="sp-input" value={createForm.status} onChange={e => setCreateForm(f => ({...f, status: e.target.value}))} style={{ padding: '10px 12px', borderRadius: 8, fontSize: 14, width: '100%', boxSizing: 'border-box' }}>
+                    <option value="active">En Curso</option>
+                    <option value="at_risk">En Riesgo</option>
+                    <option value="completed">Completado</option>
+                    <option value="cancelled">Cancelado</option>
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                <button type="submit" disabled={creating} className="sp-btn sp-btn-primary" style={{ flex: 1, padding: '12px', borderRadius: 10, fontWeight: 700, fontSize: 14 }}>
+                  {creating ? 'Guardando...' : '✅ Crear OKR'}
+                </button>
+                <button type="button" onClick={() => setShowCreateModal(false)} className="sp-btn" style={{ flex: 1, padding: '12px', borderRadius: 10, fontSize: 14 }}>Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+</div>
   );
 }
