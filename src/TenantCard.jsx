@@ -1,49 +1,117 @@
-import React, { memo, useState } from 'react';
+import React from 'react';
 
-const TenantCard = memo(({ tenant, onSelect }) => {
-  const [isLoaded, setIsLoaded] = useState(false);
-  const activeMods = Object.values(tenant.modules || {}).filter(Boolean).length;
-  
-  const tm = new Date().getFullYear() + "-" + String(new Date().getMonth() + 1).padStart(2, '0');
-  const tp = tenant.modules?.lastPaymentMonth === tm;
-  const tg = !tp && new Date().getDate() <= 10;
+const STATUS_CONFIG = {
+  active:    { label: 'Activo',     color: '#16a34a', bg: '#dcfce7', icon: '✅' },
+  trial:     { label: 'Trial',      color: '#f59e0b', bg: '#fef9c3', icon: '⏳' },
+  suspended: { label: 'Suspendido', color: '#dc2626', bg: '#fee2e2', icon: '⛔' },
+  inactive:  { label: 'Inactivo',   color: '#6b7280', bg: '#f3f4f6', icon: '💤' },
+};
+
+const PLAN_CONFIG = {
+  trial:      { label: 'Trial',      color: '#f59e0b' },
+  basic:      { label: 'Basic',      color: '#6366f1' },
+  premium:    { label: 'Premium',    color: '#8b5cf6' },
+  enterprise: { label: 'Enterprise', color: '#14b8a6' },
+};
+
+export default function TenantCard({ tenant, isSelected, onClick, onEditTenant }) {
+  if (!tenant) return null;
+
+  const status   = STATUS_CONFIG[tenant.status] || STATUS_CONFIG.active;
+  const plan     = PLAN_CONFIG[tenant.plan]     || PLAN_CONFIG.basic;
+  const initials = (tenant.name || 'E').substring(0, 2).toUpperCase();
+
+  // Score de salud (0-100) basado en usuarios + is_paid + status
+  const healthScore = [
+    tenant.status === 'active'   ? 40 : 0,
+    tenant.is_paid               ? 30 : 0,
+    (tenant.user_count || 0) > 0 ? 20 : 0,
+    tenant.modules?.okrs         ? 10 : 0,
+  ].reduce((a, b) => a + b, 0);
+
+  const healthColor = healthScore >= 80 ? '#16a34a' : healthScore >= 50 ? '#f59e0b' : '#dc2626';
 
   return (
-    <div className="sp-card sp-card-hover scale-in" style={{ display: 'flex', flexDirection: 'column', padding: 24, background: 'var(--bg2)', borderRadius: 16, border: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: `linear-gradient(90deg, ${tenant.themeColor}, transparent)` }}></div>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 20 }}>
-        <div style={{ position: 'relative', overflow: 'hidden', width: 56, height: 56, borderRadius: 16, background: `linear-gradient(135deg, ${tenant.themeColor}, var(--bg3))`, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 800, border: `1px solid ${tenant.themeColor}40`, flexShrink: 0, boxShadow: `0 4px 12px ${tenant.themeColor}30` }}>
-          {!isLoaded && (tenant.name || 'E')[0].toUpperCase()}
-          {tenant.logoUrl && (
-            <img 
-              src={tenant.logoUrl} 
-              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: isLoaded ? 1 : 0, transition: 'opacity 0.3s ease' }} 
-              alt={tenant.name} 
-              loading="lazy"
-              onLoad={() => setIsLoaded(true)}
-            />
-          )}
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)', marginBottom: 4, lineHeight: 1.2 }}>{tenant.name}</div>
-            <span className="sp-badge" style={{ background: tp ? 'var(--green-light)' : (tg ? 'var(--gold)20' : 'var(--red-light)'), color: tp ? 'var(--green)' : (tg ? 'var(--gold)' : 'var(--red)') }}>{tp ? 'Al día' : (tg ? 'En Gracia' : 'Bloqueado')}</span>
+    <div
+      onClick={onClick}
+      style={{
+        padding: '16px',
+        borderRadius: 14,
+        background: isSelected ? 'var(--primary-light)' : 'var(--bg2)',
+        border: '2px solid ' + (isSelected ? 'var(--primary)' : 'var(--border)'),
+        cursor: 'pointer',
+        transition: 'all 0.18s',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Barra de color del plan arriba */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: plan.color, borderRadius: '14px 14px 0 0' }} />
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+        {tenant.logo_url ? (
+          <img src={tenant.logo_url} alt={tenant.name}
+            style={{ width: 40, height: 40, borderRadius: 10, objectFit: 'contain', background: 'white', padding: 4, flexShrink: 0 }} />
+        ) : (
+          <div style={{
+            width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+            background: plan.color + '20', color: plan.color,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontWeight: 800, fontSize: 15, border: '1.5px solid ' + plan.color + '40'
+          }}>
+            {initials}
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text3)' }}>ID: {tenant.id.toString().padStart(6, '0')}</div>
+        )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {tenant.name || 'Sin nombre'}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text3)' }}>
+            {tenant.subdomain ? tenant.subdomain + '.xtratia.com' : tenant.industry || 'Sin industria'}
+          </div>
         </div>
-      </div>
-      
-      <div style={{ display: 'flex', gap: 12, marginBottom: 24, padding: '12px 0', borderTop: '1px dashed var(--border)', borderBottom: '1px dashed var(--border)' }}>
-        <div style={{ flex: 1, textAlign: 'center' }}><div style={{fontSize: 18, fontWeight: 800, color: 'var(--text)'}}>{(tenant.users || []).length}</div><div style={{fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', fontWeight: 600}}>Usuarios</div></div>
-        <div style={{ width: 1, background: 'var(--border)' }}></div>
-        <div style={{ flex: 1, textAlign: 'center' }}><div style={{fontSize: 18, fontWeight: 800, color: 'var(--text)'}}>{activeMods}/6</div><div style={{fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', fontWeight: 600}}>Módulos</div></div>
+        {/* Status badge */}
+        <span style={{ padding: '3px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: status.bg, color: status.color, whiteSpace: 'nowrap', flexShrink: 0 }}>
+          {status.icon} {status.label}
+        </span>
       </div>
 
-      <button onClick={() => onSelect(tenant.id)} className="sp-btn" style={{ background: 'var(--primary)', color: '#fff', border: 'none', width: '100%', justifyContent: 'center', marginTop: 'auto', transition: 'all 0.2s', opacity: 0.9, padding: '12px', borderRadius: 14 }} onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0.9}>
-        ⚙️ Configurar Plataforma
-      </button>
+      {/* Métricas */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 12 }}>
+        <div style={{ textAlign: 'center', padding: '8px 4px', borderRadius: 8, background: 'var(--bg)' }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>{tenant.user_count || 0}</div>
+          <div style={{ fontSize: 10, color: 'var(--text3)' }}>Usuarios</div>
+        </div>
+        <div style={{ textAlign: 'center', padding: '8px 4px', borderRadius: 8, background: 'var(--bg)' }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: plan.color }}>{plan.label}</div>
+          <div style={{ fontSize: 10, color: 'var(--text3)' }}>Plan</div>
+        </div>
+        <div style={{ textAlign: 'center', padding: '8px 4px', borderRadius: 8, background: 'var(--bg)' }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: healthColor }}>{healthScore}%</div>
+          <div style={{ fontSize: 10, color: 'var(--text3)' }}>Salud</div>
+        </div>
+      </div>
+
+      {/* Barra de salud */}
+      <div style={{ height: 4, borderRadius: 4, background: 'var(--border)', marginBottom: 10, overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: healthScore + '%', background: healthColor, borderRadius: 4, transition: 'width 0.5s ease' }} />
+      </div>
+
+      {/* Footer: pago + módulos activos */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: 11, color: tenant.is_paid ? '#16a34a' : '#dc2626', fontWeight: 600 }}>
+          {tenant.is_paid ? '💳 Al corriente' : '⚠️ Pago pendiente'}
+        </span>
+        <div style={{ display: 'flex', gap: 3 }}>
+          {['okrs', 'kpis', 'ai', 'analytics'].map(mod => (
+            <div key={mod} style={{
+              width: 6, height: 6, borderRadius: '50%',
+              background: tenant.modules?.[mod] ? '#6366f1' : 'var(--border)'
+            }} title={mod.toUpperCase()} />
+          ))}
+        </div>
+      </div>
     </div>
   );
-});
-
-export default TenantCard;
+}
