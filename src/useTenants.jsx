@@ -13,25 +13,50 @@ export function useTenants(isSystemOwner, profile) {
   const tenantsPerPage = 10;
 
   const loadTenants = useCallback(async () => {
+    if (!isSystemOwner) { setLoadingData(false); return; }
     setLoadingData(true);
     try {
-      let query = supabase.from('organizations').select('*, profiles(*)', { count: 'exact' });
+      // Usar la vista enriquecida que incluye user_count, okr_count, kpi_count
+      const { data: orgs, error } = await supabase
+        .from('organizations_with_stats')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      if (!isSystemOwner) {
-        query = query.eq('id', profile?.organization_id);
+      if (error) {
+        // Fallback a tabla principal si la vista no está disponible
+        const { data: orgsSimple } = await supabase
+          .from('organizations')
+          .select('id, name, subdomain, industry, size, logo_url, theme_color, modules, max_users, status, plan, billing_email, price_basic, price_premium, is_paid, trial_ends_at, max_api_calls, api_calls_used')
+          .order('created_at', { ascending: false });
+        
+        setTenants((orgsSimple || []).map(org => ({
+          id: org.id,
+          name: org.name,
+          subdomain: org.subdomain,
+          industry: org.industry,
+          size: org.size,
+          logoUrl: org.logo_url,
+          themeColor: org.theme_color,
+          modules: org.modules,
+          maxUsers: org.max_users,
+          status: org.status || 'active',
+          plan: org.plan || 'basic',
+          billingEmail: org.billing_email,
+          priceBasic: org.price_basic,
+          pricePremium: org.price_premium,
+          isPaid: org.is_paid,
+          trialEndsAt: org.trial_ends_at,
+          maxApiCalls: org.max_api_calls,
+          apiCallsUsed: org.api_calls_used,
+          userCount: 0,
+          okrCount: 0,
+          kpiCount: 0,
+        })));
+        setTotalTenantPages(1);
+        return;
       }
 
-      if (searchTenantQuery) {
-        query = query.or(`name.ilike.%${searchTenantQuery}%,subdomain.ilike.%${searchTenantQuery}%`);
-      }
-
-      const { data, count, error } = await query
-        .order('name', { ascending: true })
-        .range((tenantPage - 1) * tenantsPerPage, tenantPage * tenantsPerPage - 1);
-
-      if (error) throw error;
-
-      const formattedTenants = data.map(org => ({
+      const mapped = (orgs || []).map(org => ({
         id: org.id,
         name: org.name,
         subdomain: org.subdomain,
@@ -39,54 +64,57 @@ export function useTenants(isSystemOwner, profile) {
         size: org.size,
         logoUrl: org.logo_url,
         themeColor: org.theme_color,
-        maxUsers: org.max_users,
-        language: org.language,
         modules: org.modules,
-        users: org.profiles.map(p => ({
-          id: p.id,
-          name: p.full_name,
-          email: p.email,
-          role: p.role,
-          jobTitle: p.job_title,
-          photoUrl: p.photo_url,
-          department: p.department,
-          createdAt: p.created_at,
-        })),
-        roles: org.roles
+        maxUsers: org.max_users,
+        status: org.status || 'active',
+        plan: org.plan || 'basic',
+        billingEmail: org.billing_email,
+        priceBasic: org.price_basic,
+        pricePremium: org.price_premium,
+        isPaid: org.is_paid || false,
+        trialEndsAt: org.trial_ends_at,
+        maxApiCalls: org.max_api_calls || 1000,
+        apiCallsUsed: org.api_calls_used || 0,
+        userCount: parseInt(org.user_count) || 0,
+        okrCount: parseInt(org.okr_count) || 0,
+        kpiCount: parseInt(org.kpi_count) || 0,
       }));
 
-      setTenants(formattedTenants);
-      setTotalTenantPages(Math.ceil(count / tenantsPerPage));
-    } catch (error) {
-      console.error("Error loading tenants:", error);
-      notificationService.error("Error al cargar las organizaciones: " + error.message);
+      setTenants(mapped);
+      setTotalTenantPages(Math.max(1, Math.ceil(mapped.length / tenantsPerPage)));
+      if (mapped.length > 0 && !selectedTenantId) {
+        setSelectedTenantId(mapped[0].id);
+      }
+    } catch (e) {
+      notificationService.error('Error cargando organizaciones: ' + e.message);
     } finally {
       setLoadingData(false);
     }
-  }, [isSystemOwner, profile, searchTenantQuery, tenantPage]);
+  }, [isSystemOwner]);
 
-  useEffect(() => {
-    loadTenants();
-  }, [loadTenants]);
+  useEffect(() => { loadTenants(); }, [loadTenants]);
 
-  const updateTenant = useCallback(async (key, value, tenantId = selectedTenantId) => {
-    if (!tenantId) return;
-    try {
-      const payload = { [key]: value };
-      await organizationService.update(tenantId, payload);
-      setTenants(prevTenants =>
-        prevTenants.map(t => (t.id === tenantId ? { ...t, [key]: value } : t))
-      );
-      notificationService.success("Organización actualizada.");
-    } catch (error) {
-      console.error("Error updating tenant:", error);
-      notificationService.error("Error al actualizar la organización: " + error.message);
-    }
-  }, [selectedTenantId]);
+  const filteredTenants = tenants.filter(t =>
+    !searchTenantQuery ||
+    (t.name || '').toLowerCase().includes(searchTenantQuery.toLowerCase()) ||
+    (t.subdomain || '').toLowerCase().includes(searchTenantQuery.toLowerCase()) ||
+    (t.industry || '').toLowerCase().includes(searchTenantQuery.toLowerCase()) ||
+    (t.status || '').toLowerCase().includes(searchTenantQuery.toLowerCase()) ||
+    (t.plan || '').toLowerCase().includes(searchTenantQuery.toLowerCase())
+  );
+
+  const paginatedTenants = filteredTenants.slice(
+    (tenantPage - 1) * tenantsPerPage,
+    tenantPage * tenantsPerPage
+  );
+
+  const currentTenant = tenants.find(t => t.id === selectedTenantId) || null;
 
   return {
     tenants,
-    setTenants,
+    filteredTenants,
+    paginatedTenants,
+    currentTenant,
     selectedTenantId,
     setSelectedTenantId,
     loadingData,
@@ -95,6 +123,6 @@ export function useTenants(isSystemOwner, profile) {
     tenantPage,
     setTenantPage,
     totalTenantPages,
-    updateTenant,
+    loadTenants,
   };
 }
