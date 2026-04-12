@@ -1,135 +1,185 @@
-import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import React, { useMemo } from 'react';
+import {
+  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  RadarChart, Radar, PolarGrid, PolarAngleAxis,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+} from 'recharts';
 import { useStore } from './store.js';
-import { shallow } from 'zustand/shallow';
-export default function Dashboard({ onNavigate }) {
-  const okrs = useStore(state => state.okrs);
-  const initiatives = useStore(state => state.initiatives);
-  const okrData = (okrs || []).map(okr => ({
-    name: okr.objective.length > 20 ? okr.objective.substring(0, 20) + '...' : okr.objective,
-    progreso: okr.progress || 0
-  }));
 
-  const initCounts = {
-    completadas: initiatives?.filter(i => i.status === 'completed').length || 0,
-    en_progreso: initiatives?.filter(i => i.status === 'in_progress' || i.status === 'at_risk').length || 0,
-    sin_iniciar: initiatives?.filter(i => i.status === 'not_started').length || 0,
-  };
+const COLORS = ['#6366f1', '#14b8a6', '#f59e0b', '#dc2626', '#22c55e', '#8b5cf6'];
 
-  const pieData = [
-    { name: 'Completadas', value: initCounts.completadas, color: '#10b981' },
-    { name: 'En Progreso / Riesgo', value: initCounts.en_progreso, color: '#0d9488' },
-    { name: 'Sin Iniciar', value: initCounts.sin_iniciar, color: '#64748b' }
-  ].filter(d => d.value > 0);
-
-  if (pieData.length === 0) pieData.push({ name: 'Sin Iniciativas', value: 1, color: '#334155' });
-
-  // Lógica IA de detección de estancamiento
-  const stagnantOkrs = (okrs || []).filter(o => o.progress < 15 && o.status === 'on_track');
-  const criticalOkrs = (okrs || []).filter(o => o.status === 'at_risk');
-  const hasAlerts = stagnantOkrs.length > 0 || criticalOkrs.length > 0;
-
-  const handleNotify = (okr) => {
-    const subject = encodeURIComponent(`Revisión Estratégica Requerida: OKR Estancado - ${okr.objective}`);
-    const body = encodeURIComponent(`Hola ${okr.owner || 'equipo'},\n\nEl sistema Xtratia ha detectado que el siguiente objetivo estratégico se encuentra estancado.\n\n🎯 OKR: ${okr.objective}\n📊 Progreso actual: ${okr.progress}%\n📁 Área: ${okr.department || 'No especificada'}\n\nActualmente el estado es "En curso", pero el avance es muy bajo. Por favor, actualiza el estatus en la plataforma o indícanos si existe algún bloqueo operativo que requiera apoyo directivo.\n\nSaludos cordiales,\nOficina de Estrategia`);
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
-  };
-
+function StatCard({ icon, label, value, sub, color = 'var(--primary)', trend }) {
   return (
-    <div className="fade-up">
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20 }}>
-        <div className="sp-card sp-card-hover" style={{ padding: 24, cursor: 'pointer' }} onClick={() => onNavigate('okrs')}>
-          <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, letterSpacing: '-0.5px' }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🎯</div>
-            Avance de Objetivos (OKRs)
-          </h3>
-          {okrData.length === 0 ? (
-            <p style={{ color: 'var(--text3)', fontSize: 13 }}>No hay OKRs registrados aún.</p>
-          ) : (
-            <div style={{ height: 300 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={okrData} layout="vertical" margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="var(--border)" />
-                  <XAxis type="number" domain={[0, 100]} hide />
-                  <YAxis dataKey="name" type="category" width={130} tick={{ fontSize: 11, fill: 'var(--text2)' }} axisLine={false} tickLine={false} />
-                  <Tooltip cursor={{ fill: 'var(--bg3)' }} contentStyle={{ background: 'var(--bg2)', borderColor: 'var(--border)', borderRadius: 8, color: 'var(--text)' }} />
-                  <Bar dataKey="progreso" fill="var(--primary)" radius={[0, 6, 6, 0]} barSize={24} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
+    <div style={{ padding: 20, borderRadius: 14, background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <span style={{ fontSize: 22 }}>{icon}</span>
+        {trend !== undefined && (
+          <span style={{ fontSize: 11, fontWeight: 700, color: trend >= 0 ? '#16a34a' : '#dc2626' }}>
+            {trend >= 0 ? '↑' : '↓'} {Math.abs(trend)}%
+          </span>
+        )}
+      </div>
+      <div style={{ fontSize: 28, fontWeight: 900, color, lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginTop: 4 }}>{label}</div>
+      {sub && <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>{sub}</div>}
+    </div>
+  );
+}
 
-        <div className="sp-card sp-card-hover" style={{ padding: 24, cursor: 'pointer' }} onClick={() => onNavigate('iniciativas')}>
-          <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, letterSpacing: '-0.5px' }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(124, 58, 237, 0.15)', color: 'var(--violet)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🚀</div>
-            Distribución de Iniciativas
-          </h3>
-          <div style={{ height: 200, marginBottom: 20, position: 'relative' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={pieData} cx="50%" cy="50%" innerRadius={65} outerRadius={85} paddingAngle={4} cornerRadius={6} dataKey="value" stroke="none">
-                  {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                </Pie>
-                <Tooltip contentStyle={{ background: 'var(--bg2)', borderColor: 'var(--border)', borderRadius: 8, color: 'var(--text)' }} itemStyle={{ color: 'var(--text)' }} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-              <span style={{ fontSize: 36, fontWeight: 800, color: 'var(--text)', lineHeight: 1 }}>{initCounts.completadas + initCounts.en_progreso + initCounts.sin_iniciar}</span>
-              <span style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700, marginTop: 4 }}>Totales</span>
-            </div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: '#10b981' }} /><span style={{ color: 'var(--text2)', fontWeight: 500, fontSize: 13 }}>Completadas</span></div><strong style={{ color: 'var(--green)' }}>{initCounts.completadas}</strong>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: '#0d9488' }} /><span style={{ color: 'var(--text2)', fontWeight: 500, fontSize: 13 }}>En Progreso / Riesgo</span></div><strong style={{ color: 'var(--teal)' }}>{initCounts.en_progreso}</strong>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: '#64748b' }} /><span style={{ color: 'var(--text2)', fontWeight: 500, fontSize: 13 }}>Sin Iniciar</span></div><strong style={{ color: 'var(--text3)' }}>{initCounts.sin_iniciar}</strong>
-            </div>
-          </div>
-        </div>
+export default function Dashboard() {
+  const okrs        = useStore(s => s.okrs        || []);
+  const kpis        = useStore(s => s.kpis        || []);
+  const initiatives = useStore(s => s.initiatives || []);
+  const org         = useStore(s => s.currentOrganization);
 
-        <div className="sp-card" style={{ gridColumn: '1 / -1', padding: 24, borderLeft: hasAlerts ? '4px solid var(--gold)' : '4px solid var(--green)' }}>
-          <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, letterSpacing: '-0.5px' }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: hasAlerts ? 'rgba(245, 158, 11, 0.15)' : 'var(--green-light)', color: hasAlerts ? 'var(--gold)' : 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
-              {hasAlerts ? '⚠️' : '✅'}
-            </div>
-            {hasAlerts ? 'Alertas Automáticas de Estancamiento' : 'Ejecución Saludable'}
-          </h3>
-          
-          {!hasAlerts ? (
-            <p style={{ color: 'var(--text3)', fontSize: 14 }}>No se detectan OKRs estancados o en riesgo severo actualmente.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {stagnantOkrs.map(okr => (
-                <div key={`stag-${okr.id}`} style={{ padding: 16, background: 'var(--bg3)', borderRadius: 8, border: '1px solid rgba(245, 158, 11, 0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>Alerta de Estancamiento: {okr.objective}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text3)' }}>Este objetivo está marcado "En Curso" pero tiene solo un <strong style={{ color: 'var(--gold)' }}>{okr.progress}%</strong> de avance. Podría llevar semanas sin actualizarse.</div>
-                  </div>
-                  <button onClick={() => handleNotify(okr)} className="sp-btn" style={{ background: 'transparent', border: '1px solid var(--gold)', color: 'var(--gold)', fontSize: 11, padding: '6px 12px', flexShrink: 0 }}>
-                    ✉️ Notificar Dueño
-                  </button>
-                </div>
-              ))}
-              {criticalOkrs.map(okr => (
-                <div key={`risk-${okr.id}`} style={{ padding: 16, background: 'var(--bg3)', borderRadius: 8, border: '1px solid rgba(239, 68, 68, 0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>Riesgo Crítico: {okr.objective}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text3)' }}>Reportado oficialmente en riesgo. Requiere intervención directiva para destrabar bloqueos.</div>
-                  </div>
-                  <button onClick={() => handleNotify(okr)} className="sp-btn" style={{ background: 'var(--red)', color: '#fff', fontSize: 11, padding: '6px 12px', flexShrink: 0, border: 'none' }}>
-                    ✉️ Exigir Reporte
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+  // ── Métricas calculadas ──────────────────────────────────────────────────
+  const metrics = useMemo(() => {
+    const avgOKR = okrs.length > 0
+      ? Math.round(okrs.reduce((a, o) => a + (o.progress || 0), 0) / okrs.length)
+      : 0;
+    const okrsOnTrack  = okrs.filter(o => (o.progress || 0) >= 70).length;
+    const okrsAtRisk   = okrs.filter(o => (o.progress || 0) < 50).length;
+    const kpisOnTarget = kpis.filter(k => k.target > 0 && (k.value / k.target) * 100 >= 80).length;
+    const kpisAtRisk   = kpis.filter(k => k.target > 0 && (k.value / k.target) * 100 < 60).length;
+    const initsCompleted = initiatives.filter(i => i.phase === 'completed' || i.status === 'completed').length;
+    const initsActive    = initiatives.filter(i => i.phase === 'in_progress' || i.status === 'active').length;
+    return { avgOKR, okrsOnTrack, okrsAtRisk, kpisOnTarget, kpisAtRisk, initsCompleted, initsActive };
+  }, [okrs, kpis, initiatives]);
+
+  // ── Datos para gráficas ──────────────────────────────────────────────────
+  const okrStatusData = useMemo(() => [
+    { name: 'En Curso', value: okrs.filter(o => (o.progress||0) >= 70).length, color: '#16a34a' },
+    { name: 'En Riesgo', value: okrs.filter(o => (o.progress||0) >= 40 && (o.progress||0) < 70).length, color: '#f59e0b' },
+    { name: 'Crítico', value: okrs.filter(o => (o.progress||0) < 40).length, color: '#dc2626' },
+  ].filter(d => d.value > 0), [okrs]);
+
+  const kpiPerformanceData = useMemo(() =>
+    kpis.slice(0, 8).map(k => ({
+      name: (k.name || 'KPI').substring(0, 15),
+      actual: k.value || 0,
+      meta: k.target || 100,
+      pct: k.target > 0 ? Math.round((k.value / k.target) * 100) : 0,
+    })), [kpis]);
+
+  const okrProgressData = useMemo(() =>
+    okrs.slice(0, 8).map(o => ({
+      name: (o.title || o.objective || 'OKR').substring(0, 18),
+      progreso: o.progress || 0,
+    })), [okrs]);
+
+  const initiativesByPhase = useMemo(() => {
+    const phases = ['planning', 'in_progress', 'review', 'completed'];
+    return phases.map(p => ({
+      fase: p === 'planning' ? 'Planeación' : p === 'in_progress' ? 'En Progreso' : p === 'review' ? 'Revisión' : 'Completada',
+      cantidad: initiatives.filter(i => i.phase === p || i.status === p).length,
+    }));
+  }, [initiatives]);
+
+  const hasData = okrs.length > 0 || kpis.length > 0;
+
+  if (!hasData) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ textAlign: 'center', padding: '48px 24px', background: 'var(--bg2)', borderRadius: 16, border: '2px dashed var(--border)' }}>
+          <div style={{ fontSize: 52, marginBottom: 12 }}>📊</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>Sin datos analíticos aún</div>
+          <div style={{ fontSize: 14, color: 'var(--text3)', maxWidth: 400, margin: '0 auto' }}>
+            Crea OKRs y KPIs en los módulos correspondientes para visualizar las analíticas estratégicas de tu organización.
+          </div>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Título */}
+      <div>
+        <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 4 }}>
+          📊 Analítica Estratégica
+        </h2>
+        <p style={{ fontSize: 13, color: 'var(--text3)' }}>
+          {org?.name} · {okrs.length} OKRs · {kpis.length} KPIs · {initiatives.length} Iniciativas
+        </p>
+      </div>
+
+      {/* KPIs resumen */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
+        <StatCard icon="🎯" label="Avance OKRs" value={metrics.avgOKR + '%'} sub={metrics.okrsOnTrack + ' en curso · ' + metrics.okrsAtRisk + ' críticos'} color={metrics.avgOKR >= 70 ? '#16a34a' : metrics.avgOKR >= 40 ? '#f59e0b' : '#dc2626'} />
+        <StatCard icon="📊" label="KPIs en Meta" value={metrics.kpisOnTarget} sub={'de ' + kpis.length + ' · ' + metrics.kpisAtRisk + ' en riesgo'} color="#6366f1" />
+        <StatCard icon="🚀" label="Iniciativas" value={initiatives.length} sub={metrics.initsCompleted + ' completadas · ' + metrics.initsActive + ' activas'} color="#14b8a6" />
+        <StatCard icon="⚡" label="Score Salud" value={Math.round((metrics.avgOKR + (kpis.length > 0 ? (metrics.kpisOnTarget / kpis.length) * 100 : 0)) / 2) + '%'} sub="Índice combinado" color="#8b5cf6" />
+      </div>
+
+      {/* Gráfica de barras — OKR Progress */}
+      {okrProgressData.length > 0 && (
+        <div style={{ padding: 20, borderRadius: 14, background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Avance por OKR</h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={okrProgressData} margin={{ top: 0, right: 10, bottom: 40, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--text3)' }} angle={-30} textAnchor="end" />
+              <YAxis tick={{ fontSize: 10, fill: 'var(--text3)' }} domain={[0, 100]} />
+              <Tooltip formatter={(v) => v + '%'} contentStyle={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8 }} />
+              <Bar dataKey="progreso" name="Avance %" radius={[6,6,0,0]}>
+                {okrProgressData.map((entry, i) => (
+                  <Cell key={i} fill={entry.progreso >= 70 ? '#16a34a' : entry.progreso >= 40 ? '#f59e0b' : '#dc2626'} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: kpiPerformanceData.length > 0 ? '1fr 1fr' : '1fr', gap: 16 }}>
+        {/* Pie chart — Status OKRs */}
+        {okrStatusData.length > 0 && (
+          <div style={{ padding: 20, borderRadius: 14, background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Estado OKRs</h3>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie data={okrStatusData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" label={({ name, percent }) => name + ' ' + Math.round(percent*100) + '%'} labelLine={false}>
+                  {okrStatusData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                </Pie>
+                <Tooltip contentStyle={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* Bar chart — KPI Actual vs Meta */}
+        {kpiPerformanceData.length > 0 && (
+          <div style={{ padding: 20, borderRadius: 14, background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>KPIs: Actual vs Meta</h3>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={kpiPerformanceData} margin={{ top: 0, right: 10, bottom: 40, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="name" tick={{ fontSize: 9, fill: 'var(--text3)' }} angle={-30} textAnchor="end" />
+                <YAxis tick={{ fontSize: 10, fill: 'var(--text3)' }} />
+                <Tooltip contentStyle={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8 }} />
+                <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                <Bar dataKey="actual" name="Actual" fill="#6366f1" radius={[4,4,0,0]} />
+                <Bar dataKey="meta" name="Meta" fill="#e2e8f0" radius={[4,4,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+
+      {/* Iniciativas por fase */}
+      {initiatives.length > 0 && (
+        <div style={{ padding: 20, borderRadius: 14, background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Iniciativas por Fase</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+            {initiativesByPhase.map((p, i) => (
+              <div key={p.fase} style={{ textAlign: 'center', padding: '14px 8px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 24, fontWeight: 900, color: COLORS[i] }}>{p.cantidad}</div>
+                <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>{p.fase}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
