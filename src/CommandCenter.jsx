@@ -10,6 +10,20 @@ export default function CommandCenter({ globalPeriod }) {
   const [loadingInsight, setLoadingInsight] = useState(false);
   const [isEditingIdentity, setIsEditingIdentity] = useState(false);
   const [identity, setIdentity] = useState({ mission: '', vision: '', values: '' });
+  const [flashInsightText, setFlashInsightText] = useState('');
+  const [flashLoading, setFlashLoading] = useState(false);
+
+  const handleFlashInsight = async () => {
+    setFlashLoading(true);
+    try {
+      const data = { okrsCount: okrs.length, kpisCount: kpis.length, orgName: currentOrg?.name };
+      const insight = await groqService.flashInsight(data);
+      setFlashInsightText(insight);
+    } catch (e) {
+      setFlashInsightText('Error: ' + e.message);
+    } finally { setFlashLoading(false); }
+  };
+
   const okrs = useStore(state => state.okrs);
   const kpis = useStore(state => state.kpis);
   const initiatives = useStore(state => state.initiatives);
