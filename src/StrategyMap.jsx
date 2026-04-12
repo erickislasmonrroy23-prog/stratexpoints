@@ -84,21 +84,44 @@ export default function StrategyMap({ onCreateObjective, onDeleteObjective, onUp
   const [selectedObjective, setSelectedObjective] = useState(null);  
   const objectives = useStore(state => state.objectives);
 
-  const handleAdd = () => {
-    if (!newObj.trim()) return;
-    const selectedPerspective = perspectives.find(p => p.id === selectedPersp);
-    const prefix = selectedPerspective ? selectedPerspective.prefix : 'OBJ';
-    
-    const objectivesInPerspective = (objectives || []).filter(o => o.code?.startsWith(prefix));
-    const existingNumbers = objectivesInPerspective
-      .map(o => parseInt(o.code.substring(prefix.length), 10))
-      .filter(n => !isNaN(n));
-    const maxNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) : 0;
-    const newCode = `${prefix}${maxNumber + 1}`;
-
-    const PERSP_UUID = {'F':'3662b306-fc59-44c6-b750-db0d0469efdd','C':'fea4ce16-5a76-48fd-8bc3-40f7c826baa3','P':'8871fae0-5b92-49b7-8050-21fc1c9903cd','A':'deebed6d-7e58-42f5-92d5-928096e6a1da'};
-    onCreateObjective({ name: newObj, perspective_id: PERSP_UUID[prefix] || selectedPersp, status: 'on_track', theme: selectedTheme === 'auto' ? null : selectedTheme, code: newCode });
-    setNewObj('');
+  const handleAdd = async (perspectiveId) => {
+    const title = prompt('Nombre del objetivo estratégico:');
+    if (!title || !title.trim()) return;
+    try {
+      const { supabase } = await import('./supabase.js');
+      const { data, error } = await supabase
+        .from('strategic_objectives')
+        .insert({
+          title: title.trim(),
+          perspective_id: perspectiveId,
+          organization_id: profile?.organization_id,
+          status: 'active',
+          progress: 0,
+        })
+        .select()
+        .single();
+      if (error) {
+        // Fallback: tabla objectives si strategic_objectives no existe
+        const { data: d2, error: e2 } = await supabase
+          .from('objectives')
+          .insert({
+            title: title.trim(),
+            perspective_id: perspectiveId,
+            organization_id: profile?.organization_id,
+            status: 'active',
+            progress: 0,
+          })
+          .select()
+          .single();
+        if (e2) throw e2;
+        setObjectives(prev => [...(prev || []), d2]);
+      } else {
+        setObjectives(prev => [...(prev || []), data]);
+      }
+      notificationService.success('Objetivo creado correctamente.');
+    } catch (e) {
+      notificationService.error('Error al crear objetivo: ' + e.message);
+    }
   };
 
   const handleTitleBlur = () => {
