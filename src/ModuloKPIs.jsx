@@ -9,6 +9,37 @@ export default function ModuloKPIs({ onModal, onEdit, onCreateOkrFromKpi, onDele
   const kpis = useStore(state => state.kpis);
   const can = useStore.use.can();
   const [tab, setTab] = useState('list');
+  const [showKpiModal, setShowKpiModal] = useState(false);
+  const [kpiForm, setKpiForm] = useState({ name: '', target: '', value: '', unit: '%', department: '', owner: '', frequency: 'monthly' });
+  const [savingKpi, setSavingKpi] = useState(false);
+
+  const handleCreateKPI = async (e) => {
+    e.preventDefault();
+    if (!kpiForm.name.trim()) return notificationService.error('El nombre del KPI es requerido.');
+    setSavingKpi(true);
+    try {
+      const { supabase } = await import('./supabase.js');
+      const { error } = await supabase.from('kpis').insert({
+        name: kpiForm.name,
+        target: parseFloat(kpiForm.target) || 0,
+        value: parseFloat(kpiForm.value) || 0,
+        unit: kpiForm.unit,
+        department: kpiForm.department,
+        owner: kpiForm.owner,
+        frequency: kpiForm.frequency,
+        organization_id: profile?.organization_id,
+      });
+      if (error) throw error;
+      notificationService.success('✅ KPI creado correctamente.');
+      setShowKpiModal(false);
+      setKpiForm({ name: '', target: '', value: '', unit: '%', department: '', owner: '', frequency: 'monthly' });
+      const { kpiService } = await import('./services.js');
+      const newKPIs = await kpiService.getAll(profile?.organization_id);
+      useStore.getState().setKPIs(newKPIs || []);
+    } catch (err) { notificationService.error('Error: ' + err.message); }
+    finally { setSavingKpi(false); }
+  };
+
   const [filterOwner, setFilterOwner] = useState('');
   const [filterDept, setFilterDept] = useState('');
   const [collapsedDepts, setCollapsedDepts] = useState({});
@@ -357,6 +388,61 @@ function KpiCard({ kpi, can, onEdit, onDelete, onCreateOkrFromKpi, getColor }) {
           </button>
         </div>
       )}
-    </div>
+    
+      {showKpiModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div className="sp-card" style={{ width: '100%', maxWidth: 520, padding: 32, borderRadius: 20, boxShadow: '0 24px 48px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ marginBottom: 20, fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>📊 Nuevo KPI</h3>
+            <form onSubmit={handleCreateKPI} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>Nombre del KPI *</label>
+                <input className="sp-input" required placeholder="Ej: Tasa de conversión de ventas" value={kpiForm.name} onChange={e => setKpiForm(f => ({...f, name: e.target.value}))} style={{ padding: '10px 12px', borderRadius: 8, fontSize: 14, width: '100%', boxSizing: 'border-box' }} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>Valor actual</label>
+                  <input className="sp-input" type="number" step="any" placeholder="0" value={kpiForm.value} onChange={e => setKpiForm(f => ({...f, value: e.target.value}))} style={{ padding: '10px 12px', borderRadius: 8, fontSize: 14, width: '100%', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>Meta</label>
+                  <input className="sp-input" type="number" step="any" placeholder="100" value={kpiForm.target} onChange={e => setKpiForm(f => ({...f, target: e.target.value}))} style={{ padding: '10px 12px', borderRadius: 8, fontSize: 14, width: '100%', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>Unidad</label>
+                  <input className="sp-input" placeholder="%, $, hrs..." value={kpiForm.unit} onChange={e => setKpiForm(f => ({...f, unit: e.target.value}))} style={{ padding: '10px 12px', borderRadius: 8, fontSize: 14, width: '100%', boxSizing: 'border-box' }} />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>Departamento</label>
+                  <input className="sp-input" placeholder="Ventas, Ops, RRHH..." value={kpiForm.department} onChange={e => setKpiForm(f => ({...f, department: e.target.value}))} style={{ padding: '10px 12px', borderRadius: 8, fontSize: 14, width: '100%', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>Responsable</label>
+                  <input className="sp-input" placeholder="Nombre" value={kpiForm.owner} onChange={e => setKpiForm(f => ({...f, owner: e.target.value}))} style={{ padding: '10px 12px', borderRadius: 8, fontSize: 14, width: '100%', boxSizing: 'border-box' }} />
+                </div>
+              </div>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>Frecuencia de medición</label>
+                <select className="sp-input" value={kpiForm.frequency} onChange={e => setKpiForm(f => ({...f, frequency: e.target.value}))} style={{ padding: '10px 12px', borderRadius: 8, fontSize: 14, width: '100%', boxSizing: 'border-box' }}>
+                  <option value="daily">Diaria</option>
+                  <option value="weekly">Semanal</option>
+                  <option value="monthly">Mensual</option>
+                  <option value="quarterly">Trimestral</option>
+                  <option value="annual">Anual</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                <button type="submit" disabled={savingKpi} className="sp-btn sp-btn-primary" style={{ flex: 1, padding: '12px', borderRadius: 10, fontWeight: 700, fontSize: 14 }}>
+                  {savingKpi ? 'Guardando...' : '✅ Crear KPI'}
+                </button>
+                <button type="button" onClick={() => setShowKpiModal(false)} className="sp-btn" style={{ flex: 1, padding: '12px', borderRadius: 10, fontSize: 14 }}>Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+</div>
   );
 }
