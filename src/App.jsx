@@ -249,6 +249,7 @@ function LanguageSwitcher() {
 
     // 2. Cambia el idioma de la UI directamente para una respuesta instantánea.
     i18n.changeLanguage(newLang);
+    localStorage.setItem('xtratia-lang', newLang);
 
     // 3. Si hay un perfil, actualiza el estado y la BD en segundo plano.
     if (realProfile?.id) {
