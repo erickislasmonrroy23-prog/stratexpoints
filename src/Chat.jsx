@@ -1,63 +1,140 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { groqService } from './services.js';
+import { notificationService } from './services.js';
 import { useStore } from './store.js';
-import { shallow } from 'zustand/shallow';
+
+const SYSTEM_PROMPT = `Eres Xtratia AI, un asistente estratégico experto en OKRs, KPIs, Balanced Scorecard, Hoshin Kanri e iniciativas estratégicas. Ayudas a equipos directivos a tomar mejores decisiones. Responde siempre en español, de forma concisa y accionable. Cuando sea relevante, estructura tu respuesta con puntos clave.`;
 
 export default function Chat() {
-  // Seleccionamos los datos necesarios para evitar re-renders innecesarios.
-  // Usamos `shallow` para una comparación eficiente de los datos del store.
-  const okrs = useStore(state => state.okrs);
-  const kpis = useStore(state => state.kpis);
-  const profile = useStore.use.profile();
+  const okrs      = useStore(s => s.okrs      || []);
+  const kpis      = useStore(s => s.kpis      || []);
+  const org       = useStore(s => s.currentOrganization);
 
-  // Usamos la forma de "lazy initializer" de useState. La función solo se ejecuta
-  // una vez en el montaje inicial, evitando recalcular el mensaje en cada render.
-  const [messages, setMessages] = useState(() => [
-    { role: 'assistant', content: `¡Hola ${profile?.full_name || 'Líder'}! Soy tu asistente estratégico de IA. Puedo analizar el estatus de tus ${okrs?.length || 0} OKRs y ${kpis?.length || 0} KPIs. ¿En qué te ayudo hoy?` },
+  const [messages, setMessages] = useState([
+    {
+      role: 'assistant',
+      content: '¡Hola! Soy Xtratia AI, tu asistente estratégico. Puedo ayudarte a analizar tus OKRs y KPIs, generar recomendaciones y responder preguntas sobre tu estrategia. ¿En qué trabajamos hoy?'
+    }
   ]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  
-  const handleSend = async (e) => {
-    e.preventDefault();
-    if (!input.trim() || loading) return;
-    
-    const userMsg = { role: 'user', content: input };
-    const newHistory = [...messages, userMsg];
-    setMessages(newHistory);
+  const [input, setInput]       = useState('');
+  const [loading, setLoading]   = useState(false);
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const sendMessage = async (e) => {
+    e?.preventDefault();
+    const text = input.trim();
+    if (!text || loading) return;
+
+    const userMsg = { role: 'user', content: text };
+    setMessages(prev => [...prev, userMsg]);
     setInput('');
     setLoading(true);
-    
-    const systemMsg = { 
-      role: 'system', 
-      content: `Eres un consultor experto en estrategia empresarial. Contexto actual de la empresa: OKRs: ${JSON.stringify(okrs || [])}. KPIs: ${JSON.stringify(kpis || [])}. Responde a las consultas basándote en estos datos, de forma profesional, concisa y en español.`
-    };
 
     try {
-      const response = await groqService.ask([systemMsg, ...newHistory]);
-      setMessages(prev => [...prev, { role: 'assistant', content: response }]);
-    } catch (e) {
-      setMessages(prev => [...prev, { role: 'assistant', content: `Lo siento, ocurrió un error al conectar con el motor de IA: ${e.message}` }]);
+      // Contexto de la organización incluido automáticamente
+      const contextMsg = {
+        role: 'system',
+        content: SYSTEM_PROMPT + '\n\nContexto actual de la organización ' + (org?.name || '') + ':\n' +
+          'OKRs activos: ' + okrs.length + ' | KPIs monitoreados: ' + kpis.length + '\n' +
+          'Plan: ' + (org?.plan || 'basic') + ' | Estado: ' + (org?.status || 'active')
+      };
+
+      const history = messages.slice(-8).map(m => ({ role: m.role, content: m.content }));
+      const reply = await groqService.chat([contextMsg, ...history, userMsg]);
+
+      setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+    } catch (err) {
+      const errMsg = err.message || 'Error desconocido';
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: '⚠️ Error al conectar con la IA: ' + errMsg + '\n\nVerifica que la clave VITE_GROQ_API_KEY esté configurada en Vercel.'
+      }]);
+      notificationService.error('Error IA: ' + errMsg);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
+  const quickQuestions = [
+    '¿Cuál es la salud de mis OKRs?',
+    'Genera recomendaciones estratégicas',
+    '¿Qué KPIs están en riesgo?',
+    'Sugiere acciones para mejorar el avance',
+  ];
+
   return (
-    <div className="fade-up" style={{ height: 'calc(100vh - 200px)', display: 'flex', flexDirection: 'column' }}>
-      <div className="sp-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ flex: 1, overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {messages.map((m, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
-              <div style={{ maxWidth: '75%', padding: '14px 18px', borderRadius: 14, background: m.role === 'user' ? 'var(--primary)' : 'var(--bg3)', color: m.role === 'user' ? '#fff' : 'var(--text)', border: m.role === 'user' ? 'none' : '1px solid var(--border)', fontSize: 14, lineHeight: 1.5, boxShadow: 'var(--shadow)', whiteSpace: 'pre-wrap' }}>{m.content}</div>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 500, maxHeight: 700 }}>
+      {/* Mensajes */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {messages.map((msg, i) => (
+          <div key={i} style={{
+            display: 'flex',
+            justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+          }}>
+            <div style={{
+              maxWidth: '80%',
+              padding: '12px 16px',
+              borderRadius: msg.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+              background: msg.role === 'user' ? 'var(--primary)' : 'var(--bg2)',
+              color: msg.role === 'user' ? 'white' : 'var(--text)',
+              fontSize: 14,
+              lineHeight: 1.6,
+              whiteSpace: 'pre-wrap',
+              border: msg.role === 'user' ? 'none' : '1px solid var(--border)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+            }}>
+              {msg.role === 'assistant' && (
+                <div style={{ fontSize: 11, color: msg.role === 'user' ? 'rgba(255,255,255,0.7)' : 'var(--primary)', fontWeight: 700, marginBottom: 4 }}>
+                  🤖 Xtratia AI
+                </div>
+              )}
+              {msg.content}
             </div>
-          ))}
-          {loading && <div style={{ alignSelf: 'flex-start', color: 'var(--text3)', fontSize: 13 }}>Escribiendo...</div>}
-        </div>
-        <form onSubmit={handleSend} style={{ padding: 16, borderTop: '1px solid var(--border)', background: 'var(--bg2)', display: 'flex', gap: 12 }}>
-          <input className="sp-input" value={input} onChange={e => setInput(e.target.value)} placeholder="Ej: Analiza por qué la perspectiva financiera está en riesgo..." style={{ flex: 1 }} />
-          <button type="submit" className="sp-btn" style={{ padding: '0 24px' }} disabled={loading}>Enviar</button>
-        </form>
+          </div>
+        ))}
+        {loading && (
+          <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+            <div style={{ padding: '12px 16px', borderRadius: '18px 18px 18px 4px', background: 'var(--bg2)', border: '1px solid var(--border)', fontSize: 13, color: 'var(--text3)' }}>
+              <span style={{ animation: 'pulse 1s infinite' }}>Analizando...</span>
+            </div>
+          </div>
+        )}
+        <div ref={bottomRef} />
       </div>
+
+      {/* Preguntas rápidas */}
+      {messages.length <= 2 && (
+        <div style={{ padding: '0 16px 8px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {quickQuestions.map(q => (
+            <button key={q} onClick={() => { setInput(q); }}
+              style={{ padding: '6px 12px', borderRadius: 20, fontSize: 12, cursor: 'pointer', background: 'var(--primary-light)', color: 'var(--primary)', border: '1px solid var(--primary)', fontWeight: 500 }}>
+              {q}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Input */}
+      <form onSubmit={sendMessage} style={{ display: 'flex', gap: 8, padding: '12px 16px', borderTop: '1px solid var(--border)', background: 'var(--bg)' }}>
+        <input
+          className="sp-input"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          placeholder="Pregunta sobre tu estrategia, OKRs, KPIs..."
+          disabled={loading}
+          style={{ flex: 1, padding: '12px 16px', borderRadius: 12, fontSize: 14 }}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+        />
+        <button type="submit" disabled={loading || !input.trim()}
+          className="sp-btn sp-btn-primary"
+          style={{ padding: '12px 20px', borderRadius: 12, fontWeight: 700, fontSize: 14, whiteSpace: 'nowrap' }}>
+          {loading ? '...' : 'Enviar →'}
+        </button>
+      </form>
     </div>
   );
 }
