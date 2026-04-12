@@ -45,32 +45,36 @@ export default function OKRGenerator() {
   };
 
   const handleGenerate = async () => {
-    if (!idea.trim()) return;
     setLoading(true);
-    
-    const mapObjectives = objectives?.map(o => ({ id: o.id, name: o.name })) || [];
-    
-    const prompt = `Actúa como un experto en OKRs corporativos. Basado en esta idea: "${idea}", genera un plan estratégico completo desglosando TODOS los OKRs necesarios (entre 3 y 6 OKRs) para lograr el éxito total de la iniciativa. 
-    Asigna a cada uno un departamento responsable (department), un puesto o rol sugerido como dueño (owner) y vincúlalo a uno de los siguientes Objetivos Estratégicos si tiene sentido (usa el ID exacto, o null si no aplica): ${JSON.stringify(mapObjectives)}.
-    Devuelve ÚNICAMENTE un arreglo JSON válido con esta estructura exacta, sin texto extra:
-    [{"obj": "Texto del objetivo (OKR)", "department": "Nombre del Área", "owner": "Puesto responsable", "objective_id": "ID_aqui_o_null", "krs": ["KR 1", "KR 2"]}]`;
-
-    // La llamada a la IA se hace con `jsonMode=true`. Esta es la principal defensa contra
-    // la inyección de prompts, ya que fuerza a la IA a devolver únicamente un objeto JSON
-    // válido, previniendo la ejecución de scripts o la devolución de texto no deseado.
+    setGeneratedOKRs([]);
     try {
-      // Forzamos JSON Mode en true para que la IA nunca se equivoque de formato
-      const response = await groqService.ask(
-        [{ role: 'system', content: 'Eres un generador de OKRs que solo responde con JSON válido.' }, { role: 'user', content: prompt }],
-        true
-      );
-      const parsed = JSON.parse(response);
-      setResults(processGeneratedResults(parsed));
-    } catch (err) {
-      console.error("Error generando OKRs:", err);
-      notificationService.error("Error de IA: " + err.message);
+      const prompt = [
+        {
+          role: 'system',
+          content: 'Eres experto en OKRs. Genera ' + (numOKRs || 3) + ' OKRs estratégicos para la perspectiva "' + (selectedPerspective || 'Financiera') + '" basados en el contexto dado. Responde SOLO con JSON válido: [{"objective": "...", "keyResults": ["...", "...", "..."]}]. Sin texto adicional.'
+        },
+        {
+          role: 'user',
+          content: 'Empresa: ' + (orgName || 'nuestra empresa') + '. Industria: ' + (industry || 'general') + '. Visión: ' + (vision || 'crecer sustentablemente') + '. Período: ' + (period || 'Q2 2026') + '.'
+        }
+      ];
+      
+      const raw = await groqService.chat(prompt, 'llama3-8b-8192');
+      
+      // Parsear JSON de la respuesta
+      const jsonMatch = raw.match(/\[.*\]/s);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        setGeneratedOKRs(parsed);
+      } else {
+        // Fallback: mostrar texto crudo formateado
+        setGeneratedOKRs([{ objective: raw, keyResults: [] }]);
+      }
+    } catch (e) {
+      notificationService.error('Error generando OKRs: ' + e.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleAutoGenerate = async () => {
