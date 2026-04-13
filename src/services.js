@@ -232,3 +232,47 @@ export const groqService = {
     ]);
   },
 };
+
+// ── Profile Service ──────────────────────────────────────────────
+export const profileService = {
+  getAll: async (orgId) => {
+    if (!orgId) return [];
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('organization_id', orgId)
+      .order('created_at', { ascending: false });
+    if (error) { console.error('profileService.getAll:', error.message); return []; }
+    return data || [];
+  },
+  update: async (id, payload) => {
+    const { data, error } = await supabase
+      .from('profiles').update(payload).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+  },
+  delete: async (id) => {
+    const { error } = await supabase.from('profiles').delete().eq('id', id);
+    if (error) throw error;
+  },
+};
+
+// ── Email Service (stub — enviar emails requiere backend) ────────────
+export const emailService = {
+  sendInvitation: async (email, orgName) => {
+    // En producción usar Supabase Edge Functions o Resend
+    console.info('emailService.sendInvitation:', email, 'org:', orgName);
+    return { success: true, message: 'Invitación enviada (simulada)' };
+  },
+  sendPasswordReset: async (email) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + '/reset-password',
+    });
+    if (error) throw error;
+    return { success: true };
+  },
+  sendNotification: async (to, subject, body) => {
+    console.info('emailService.sendNotification:', to, subject);
+    return { success: true };
+  },
+};
