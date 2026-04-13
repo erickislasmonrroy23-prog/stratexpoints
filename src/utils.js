@@ -118,3 +118,21 @@ export const calcHealthScore = (org) => {
     org.modules?.okrs           ? 10 : 0,
   ].reduce((a, b) => a + b, 0);
 };
+
+// ── Quarter Helper ────────────────────────────────────────────────────────────
+export function getQuarterFromDate(date) {
+  const d = date ? new Date(date) : new Date();
+  const month = d.getMonth(); // 0-11
+  const year = d.getFullYear();
+  const quarter = Math.floor(month / 3) + 1;
+  return { quarter, year, label: 'Q' + quarter + '-' + year };
+}
+
+export function getCurrentQuarter() {
+  return getQuarterFromDate(new Date());
+}
+
+export function formatQuarter(date) {
+  const { quarter, year } = getQuarterFromDate(date);
+  return 'Q' + quarter + ' ' + year;
+}
