@@ -18,9 +18,9 @@ export default function Login() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
       setStatusMsg({ type: 'success', text: '✅ Acceso correcto. Cargando tu plataforma...' });
     setLoading(false);
-    if (error) notificationService.error('Error: ' + error.message);
+    if (error) notificationService.error('Error: ' + error?.message);
       setStatusMsg({ type: 'error', text: (() => {
-          const msg = error.message || '';
+          const msg = error?.message || '';
           if (msg.includes('Invalid login credentials') || msg.includes('invalid_credentials')) return 'Correo o contraseña incorrectos. Verifica tus datos e intenta de nuevo.';
           if (msg.includes('Email not confirmed')) return 'Tu correo aún no está verificado. Revisa tu bandeja de entrada.';
           if (msg.includes('Too many requests')) return 'Demasiados intentos. Espera unos minutos e intenta de nuevo.';
@@ -32,7 +32,7 @@ export default function Login() {
   const handleReset = async (e) => {
     e.preventDefault();
     const { error } = await supabase.auth.resetPasswordForEmail(email);
-    if (error) notificationService.error('Error: ' + error.message);
+    if (error) notificationService.error('Error: ' + error?.message);
     else notificationService.success('Te hemos enviado un enlace a tu correo. Revisa tu bandeja de entrada (y spam).');
   };
 
