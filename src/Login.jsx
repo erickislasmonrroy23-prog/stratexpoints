@@ -5,6 +5,7 @@ import { useStore } from './store.js';
 
 export default function Login() {
   const [email, setEmail] = useState('');
+  const [statusMsg, setStatusMsg] = React.useState({ type: '', text: '' });
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -15,8 +16,10 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+      setStatusMsg({ type: 'success', text: '✅ Acceso correcto. Cargando tu plataforma...' });
     setLoading(false);
     if (error) notificationService.error('Error: ' + error.message);
+      setStatusMsg({ type: 'error', text: error.message || 'Credenciales incorrectas. Verifica tu correo y contraseña.' });
   };
 
   const handleReset = async (e) => {
@@ -133,6 +136,18 @@ export default function Login() {
                 {showPassword ? '🙈' : '👁️'}
               </button>
             </div>
+            {statusMsg.text && (
+              <div style={{
+                padding: '12px 16px', borderRadius: 10, marginBottom: 12, fontSize: 13, fontWeight: 600,
+                background: statusMsg.type === 'success' ? '#dcfce7' : '#fee2e2',
+                color: statusMsg.type === 'success' ? '#16a34a' : '#dc2626',
+                border: '1px solid ' + (statusMsg.type === 'success' ? '#86efac' : '#fecaca'),
+                display: 'flex', alignItems: 'center', gap: 8
+              }}>
+                <span style={{ fontSize: 16 }}>{statusMsg.type === 'success' ? '✅' : '❌'}</span>
+                {statusMsg.text}
+              </div>
+            )}
             <button
               type="submit"
               disabled={loading}
