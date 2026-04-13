@@ -114,3 +114,42 @@ export function StatCard({ icon, label, value, sub, color = 'var(--primary)', tr
 export function LoadingSpinner({ size = 32, color = 'var(--primary)' }) {
   return <div style={{ width: size, height: size, borderRadius: '50%', border: '3px solid var(--border)', borderTopColor: color, animation: 'spin 0.8s linear infinite' }} />;
 }
+
+// ── ConfirmationModal ────────────────────────────────────────────
+export function ConfirmationModal({ isOpen, title, message, onConfirm, onCancel, confirmLabel = 'Confirmar', cancelLabel = 'Cancelar', danger = false }) {
+  if (!isOpen) return null;
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div className="sp-card" style={{ width: '100%', maxWidth: 420, padding: 28, borderRadius: 18, boxShadow: '0 24px 48px rgba(0,0,0,0.2)' }}>
+        <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)', marginBottom: 10 }}>{title || 'Confirmar'}</h3>
+        <p style={{ fontSize: 14, color: 'var(--text3)', marginBottom: 20, lineHeight: 1.5 }}>{message}</p>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={onConfirm} className="sp-btn" style={{ flex: 1, padding: '11px', borderRadius: 9, fontWeight: 700, fontSize: 14, background: danger ? '#dc2626' : 'var(--primary)', color: 'white', border: 'none', cursor: 'pointer' }}>
+            {confirmLabel}
+          </button>
+          <button onClick={onCancel} className="sp-btn" style={{ flex: 1, padding: '11px', borderRadius: 9, fontSize: 14, cursor: 'pointer', background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+            {cancelLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Modal genérico ──────────────────────────────────────────────────────
+export function Modal({ isOpen, onClose, title, children, maxWidth = 520 }) {
+  if (!isOpen) return null;
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={e => e.target === e.currentTarget && onClose && onClose()}>
+      <div className="sp-card" style={{ width: '100%', maxWidth, borderRadius: 20, boxShadow: '0 24px 48px rgba(0,0,0,0.2)', maxHeight: '90vh', overflowY: 'auto' }}>
+        {title && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
+            <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)', margin: 0 }}>{title}</h3>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text3)', padding: '0 4px' }}>×</button>
+          </div>
+        )}
+        <div style={{ padding: '20px 24px' }}>{children}</div>
+      </div>
+    </div>
+  );
+}
