@@ -109,6 +109,16 @@ export const useStore = create((set, get) => ({
   setModuleData:    (m, d) => set(s => ({ moduleData: { ...(s.moduleData||{}), [m]: d } })),
   moduleData:       {},
 
+
+  // ── Auth State (usado por loadProfile en App.jsx) ────────────────────
+  auth:        null,
+  authLoading: false,
+  
+  setAuth:       (authData) => set({ auth: authData, profile: authData?.user || authData || null }),
+  setAuthLoading:(v)        => set({ authLoading: v }),
+  setLoading:    (v)        => set({ isLoading: v, authLoading: v }),
+  clearAuth:     ()         => set({ auth: null, profile: null, currentOrganization: null, isSystemOwner: false }),
+
 }));
 
 export default useStore;
