@@ -19,7 +19,14 @@ export default function Login() {
       setStatusMsg({ type: 'success', text: '✅ Acceso correcto. Cargando tu plataforma...' });
     setLoading(false);
     if (error) notificationService.error('Error: ' + error.message);
-      setStatusMsg({ type: 'error', text: error.message || 'Credenciales incorrectas. Verifica tu correo y contraseña.' });
+      setStatusMsg({ type: 'error', text: (() => {
+          const msg = error.message || '';
+          if (msg.includes('Invalid login credentials') || msg.includes('invalid_credentials')) return 'Correo o contraseña incorrectos. Verifica tus datos e intenta de nuevo.';
+          if (msg.includes('Email not confirmed')) return 'Tu correo aún no está verificado. Revisa tu bandeja de entrada.';
+          if (msg.includes('Too many requests')) return 'Demasiados intentos. Espera unos minutos e intenta de nuevo.';
+          if (msg.includes('User not found')) return 'No encontramos una cuenta con ese correo.';
+          return 'Error al iniciar sesión. Verifica tus credenciales.';
+        })() });
   };
 
   const handleReset = async (e) => {
