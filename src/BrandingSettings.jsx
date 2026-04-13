@@ -1,107 +1,137 @@
-import React, { useRef } from 'react';
+import React, { useState } from 'react';
+import { supabase } from './supabase.js';
+import { notificationService } from './services.js';
 
-export default function BrandingSettings({ tenant, isSystemOwner, onUpdate, onSave, onCopyLink, onLogoUpload, uploadingLogo }) {
-  const logoInputRef = useRef(null);
+const PRESET_COLORS = [
+  '#6366f1','#8b5cf6','#14b8a6','#0ea5e9','#f59e0b',
+  '#ef4444','#22c55e','#f97316','#ec4899','#06b6d4',
+];
 
-  const predefinedIndustries = ["Tecnología", "Finanzas", "Salud", "Retail", "Manufactura"];
-  const isCustomIndustry = tenant?.industry === 'Otro' || (tenant?.industry && !predefinedIndustries.includes(tenant.industry));
-  const selectIndustryVal = isCustomIndustry ? 'Otro' : (tenant?.industry || '');
+export default function BrandingSettings({ tenant, onUpdate }) {
+  const [form, setForm] = useState({
+    name:        tenant?.name        || '',
+    industry:    tenant?.industry    || '',
+    subdomain:   tenant?.subdomain   || '',
+    logo_url:    tenant?.logo_url    || '',
+    theme_color: tenant?.theme_color || '#6366f1',
+    mission:     tenant?.mission     || '',
+    vision:      tenant?.vision      || '',
+    values:      tenant?.values      || '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [previewLogo, setPreviewLogo] = useState(tenant?.logo_url || '');
 
-  const predefinedSizes = ["1-50", "50-200", "200-500", "500+"];
-  const isCustomSize = tenant?.size === 'Otro' || (tenant?.size && !predefinedSizes.includes(tenant.size));
-  const selectSizeVal = isCustomSize ? 'Otro' : (tenant?.size || '');
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!form.name.trim()) return notificationService.error('El nombre de la empresa es requerido.');
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('organizations').update({
+        name:        form.name,
+        industry:    form.industry,
+        subdomain:   form.subdomain || null,
+        logo_url:    form.logo_url  || null,
+        theme_color: form.theme_color,
+        mission:     form.mission   || null,
+        vision:      form.vision    || null,
+        values:      form.values    || null,
+      }).eq('id', tenant?.id);
+      if (error) throw error;
+      notificationService.success('✅ Configuración de marca guardada.');
+      if (onUpdate) onUpdate({ ...tenant, ...form });
+    } catch (e) { notificationService.error('Error: ' + e.message); }
+    finally { setSaving(false); }
+  };
+
+  const inputStyle = { padding: '10px 12px', borderRadius: 8, fontSize: 14, width: '100%', boxSizing: 'border-box' };
+  const labelStyle = { fontSize: 11, fontWeight: 700, color: 'var(--text3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' };
 
   return (
-    <div className="sp-card" style={{ padding: 28 }}>
-      <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10, letterSpacing: '-0.5px' }}>
-        <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🏢</div>
-        Identidad y Accesos
-      </h3>
-      <p style={{ color: 'var(--text3)', fontSize: 13, marginBottom: 24, lineHeight: 1.6 }}>Configura los datos base de la organización, personaliza su marca blanca y genera su enlace de acceso único.</p>
+    <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 16 }}>
-        <div>
-          <label className="sp-label" style={{ marginBottom: 8, fontSize: 12, color: 'var(--text2)' }}>Nombre Comercial</label>
-          <input className="sp-input" value={tenant.name} onChange={e => onUpdate('name', e.target.value)} placeholder="Ej: Acme Corp" style={{ padding: '14px 16px', borderRadius: 14, fontSize: 14 }} />
-        </div>
-        <div>
-          <label className="sp-label" style={{ marginBottom: 8, fontSize: 12, color: 'var(--text2)' }}>Subdominio Único (URL)</label>
-          <input className="sp-input" value={tenant.subdomain} onChange={e => onUpdate('subdomain', e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))} placeholder="ej: acme" style={{ padding: '14px 16px', borderRadius: 14, fontSize: 14 }} />
-        </div>
-        <div>
-          <label className="sp-label" style={{ marginBottom: 8, fontSize: 12, color: 'var(--text2)' }}>Idioma de la Plataforma</label>
-          <select className="sp-input" value={tenant.language || 'es-MX'} onChange={e => onUpdate('language', e.target.value)} style={{ padding: '14px 16px', borderRadius: 14, fontSize: 14, fontWeight: 600 }}>
-            <option value="es-MX">Español (Latinoamérica)</option>
-            <option value="en-US">Inglés (EE.UU.)</option>
-          </select>
-        </div>
-        <div>
-          <label className="sp-label" style={{ marginBottom: 8, fontSize: 12, color: 'var(--text2)' }}>Sector / Industria</label>
-          <select className="sp-input" value={selectIndustryVal} onChange={e => onUpdate('industry', e.target.value)} style={{ padding: '14px 16px', borderRadius: 14, fontSize: 14 }}>
-            <option value="">Seleccionar industria...</option>
-            {predefinedIndustries.map(ind => <option key={ind} value={ind}>{ind}</option>)}
-            <option value="Otro">Otro</option>
-          </select>
-          {isCustomIndustry && (
-            <input className="sp-input scale-in" style={{ marginTop: 8, padding: '10px 16px', borderRadius: 12, borderColor: 'var(--primary)', background: 'var(--primary-light)' }} autoFocus placeholder="Escribe el sector..." value={tenant.industry === 'Otro' ? '' : tenant.industry} onChange={e => onUpdate('industry', e.target.value)} />
-          )}
-        </div>
-        <div>
-          <label className="sp-label" style={{ marginBottom: 8, fontSize: 12, color: 'var(--text2)' }}>Tamaño (Empleados)</label>
-          <select className="sp-input" value={selectSizeVal} onChange={e => onUpdate('size', e.target.value)} style={{ padding: '14px 16px', borderRadius: 14, fontSize: 14 }}>
-            <option value="">Seleccionar tamaño...</option>
-            {predefinedSizes.map(sz => <option key={sz} value={sz}>{sz}</option>)}
-            <option value="Otro">Otro</option>
-          </select>
-          {isCustomSize && (
-            <input className="sp-input scale-in" style={{ marginTop: 8, padding: '10px 16px', borderRadius: 12, borderColor: 'var(--primary)', background: 'var(--primary-light)' }} autoFocus placeholder="Escribe el tamaño..." value={tenant.size === 'Otro' ? '' : tenant.size} onChange={e => onUpdate('size', e.target.value)} />
-          )}
-        </div>
-        {isSystemOwner && (
-          <div style={{ gridColumn: '1 / -1', marginTop: 8, padding: 20, background: 'rgba(217, 119, 6, 0.08)', border: '1px dashed var(--gold)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <label className="sp-label" style={{ color: 'var(--gold)', fontSize: 13, marginBottom: 4 }}>Límite de Licencias Vendidas</label>
-              <div style={{ fontSize: 12, color: 'var(--text3)' }}>Control de aforo exclusivo para Súper Admin.</div>
-            </div>
-            <input className="sp-input" type="number" min="1" value={tenant.maxUsers} onChange={e => onUpdate('maxUsers', Number(e.target.value))} style={{ width: 100, padding: '14px', fontSize: 18, fontWeight: 800, textAlign: 'center', borderRadius: 14, color: 'var(--gold)' }} />
+      {/* Preview de marca */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 18px', borderRadius: 14, background: form.theme_color + '15', border: '2px solid ' + form.theme_color + '40' }}>
+        {previewLogo ? (
+          <img src={previewLogo} alt="Logo" style={{ width: 52, height: 52, objectFit: 'contain', borderRadius: 10, background: 'white', padding: 6 }} onError={() => setPreviewLogo('')} />
+        ) : (
+          <div style={{ width: 52, height: 52, borderRadius: 10, background: form.theme_color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 800, color: 'white' }}>
+            {(form.name || 'X')[0].toUpperCase()}
           </div>
         )}
+        <div>
+          <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--text)' }}>{form.name || 'Nombre de la empresa'}</div>
+          <div style={{ fontSize: 12, color: 'var(--text3)' }}>{form.industry || 'Industria'} · {form.subdomain ? form.subdomain + '.xtratia.com' : 'sin subdominio'}</div>
+        </div>
       </div>
 
-      <div style={{ background: 'var(--primary-light)', border: '1px solid rgba(37,99,235,0.2)', borderRadius: 12, padding: 16, marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: 'inset 0 2px 4px rgba(37,99,235,0.05)' }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 11, color: 'var(--primary)', textTransform: 'uppercase', fontWeight: 800, marginBottom: 4 }}>Enlace Privado de Bóveda</div>
-          <div style={{ fontSize: 14, color: 'var(--primary)', fontWeight: 600, fontFamily: 'monospace' }}>https://{tenant.subdomain || 'empresa'}.xtratia.com</div>
-        </div>
-        <button className="sp-btn" onClick={() => onCopyLink(tenant.subdomain)} style={{ background: 'var(--primary)', padding: '10px 20px', borderRadius: 99, boxShadow: '0 4px 8px rgba(37,99,235,0.2)' }}>📋 Copiar Link</button>
-      </div>
-      
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 20, borderTop: '1px dashed var(--border)', paddingTop: 20, marginBottom: 24 }}>
+      {/* Datos básicos */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <div>
-          <label className="sp-label" style={{ marginBottom: 8, fontSize: 12, color: 'var(--text2)' }}>Color de Acento (Tema)</label>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <input type="color" value={tenant.themeColor} onChange={e => onUpdate('themeColor', e.target.value)} style={{ width: 46, height: 46, padding: 0, border: '2px solid var(--border)', borderRadius: '50%', cursor: 'pointer', background: 'transparent' }} title="Elegir color corporativo" />
-            <input className="sp-input" value={tenant.themeColor} onChange={e => onUpdate('themeColor', e.target.value)} style={{ flex: 1, fontFamily: 'monospace', padding: '14px 16px', borderRadius: 14, fontSize: 14 }} />
+          <label style={labelStyle}>Nombre de la Empresa *</label>
+          <input className="sp-input" required value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))} placeholder="Mi Empresa S.A." style={inputStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>Industria</label>
+          <select className="sp-input" value={form.industry} onChange={e => setForm(f => ({...f, industry: e.target.value}))} style={inputStyle}>
+            <option value="">Selecciona...</option>
+            {['Tecnología','Finanzas','Salud','Manufactura','Retail','Servicios','Educación','Construcción','Logística','Consultoría','Otro'].map(i => (
+              <option key={i} value={i}>{i}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label style={labelStyle}>Subdominio</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+            <input className="sp-input" value={form.subdomain} onChange={e => setForm(f => ({...f, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,'')}))} placeholder="miempresa" style={{ ...inputStyle, borderRadius: '8px 0 0 8px', borderRight: 'none' }} />
+            <span style={{ padding: '10px 10px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '0 8px 8px 0', fontSize: 12, color: 'var(--text3)', whiteSpace: 'nowrap' }}>.xtratia.com</span>
           </div>
         </div>
-        
         <div>
-          <label className="sp-label" style={{ marginBottom: 8, fontSize: 12, color: 'var(--text2)' }}>Logotipo de la Organización</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{ width: 46, height: 46, borderRadius: 12, background: 'var(--bg)', border: '1px dashed var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, padding: 4 }}>
-              {tenant.logoUrl ? <img src={tenant.logoUrl} alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ fontSize: 16 }}>🏢</span>}
-            </div>
-            <div style={{ flex: 1 }}>
-              <input type="file" ref={logoInputRef} onChange={onLogoUpload} style={{ display: 'none' }} accept="image/*" />
-              <button type="button" onClick={() => logoInputRef.current?.click()} className="sp-btn" style={{ background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border)', padding: '12px 16px', borderRadius: 12, cursor: 'pointer', fontSize: 13, width: '100%', justifyContent: 'center', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--primary)'} onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
-                {uploadingLogo ? '⏳ Subiendo...' : tenant.logoUrl ? '🔄 Cambiar Logo' : '📁 Subir Logo'}
-              </button>
-            </div>
+          <label style={labelStyle}>URL del Logo</label>
+          <input className="sp-input" type="url" value={form.logo_url} onChange={e => { setForm(f => ({...f, logo_url: e.target.value})); setPreviewLogo(e.target.value); }} placeholder="https://mi-empresa.com/logo.png" style={inputStyle} />
+        </div>
+      </div>
+
+      {/* Color de marca */}
+      <div>
+        <label style={labelStyle}>Color Principal de Marca</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {PRESET_COLORS.map(c => (
+            <button key={c} type="button" onClick={() => setForm(f => ({...f, theme_color: c}))}
+              style={{
+                width: 32, height: 32, borderRadius: '50%', background: c, cursor: 'pointer',
+                border: form.theme_color === c ? '3px solid var(--text)' : '3px solid transparent',
+                transition: 'all 0.15s', transform: form.theme_color === c ? 'scale(1.2)' : 'scale(1)',
+              }} />
+          ))}
+          <input type="color" value={form.theme_color} onChange={e => setForm(f => ({...f, theme_color: e.target.value}))}
+            style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', cursor: 'pointer', padding: 0 }} title="Color personalizado" />
+          <span style={{ fontSize: 12, color: 'var(--text3)', fontFamily: 'monospace' }}>{form.theme_color}</span>
+        </div>
+      </div>
+
+      {/* Identidad estratégica */}
+      <div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', marginBottom: 12, borderBottom: '1px solid var(--border)', paddingBottom: 6 }}>Identidad Estratégica</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div>
+            <label style={labelStyle}>Misión</label>
+            <textarea className="sp-input" value={form.mission} onChange={e => setForm(f => ({...f, mission: e.target.value}))} placeholder="Define la misión de tu organización..." rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
+          </div>
+          <div>
+            <label style={labelStyle}>Visión</label>
+            <textarea className="sp-input" value={form.vision} onChange={e => setForm(f => ({...f, vision: e.target.value}))} placeholder="Define la visión a largo plazo..." rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
+          </div>
+          <div>
+            <label style={labelStyle}>Valores Corporativos</label>
+            <textarea className="sp-input" value={form.values} onChange={e => setForm(f => ({...f, values: e.target.value}))} placeholder="Integridad, Innovación, Excelencia..." rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
           </div>
         </div>
       </div>
-      
-      <button className="sp-btn" onClick={onSave} style={{ background: 'var(--text)', color: 'var(--bg)', width: '100%', justifyContent: 'center', padding: '16px', borderRadius: 16, fontSize: 15, fontWeight: 800 }}>💾 Guardar Perfil de Empresa</button>
-    </div>
+
+      <button type="submit" disabled={saving} className="sp-btn sp-btn-primary" style={{ padding: '13px', borderRadius: 10, fontWeight: 700, fontSize: 14 }}>
+        {saving ? 'Guardando...' : '💾 Guardar Configuración de Marca'}
+      </button>
+    </form>
   );
 }
