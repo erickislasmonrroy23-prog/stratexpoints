@@ -1,183 +1,222 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from './supabase.js';
 import { notificationService } from './services.js';
+import UserEditModal from './UserEditModal.jsx';
 
-export default function UserDirectory({ users = [], onEditUser, onRefresh, canEdit = false }) {
-  const [search, setSearch] = useState('');
-  const [deletingId, setDeletingId] = useState(null);
-  const [changingPwdUser, setChangingPwdUser] = useState(null);
-  const [newPwd, setNewPwd] = useState('');
-  const [confirmPwd, setConfirmPwd] = useState('');
-  const [showNewPwd, setShowNewPwd] = useState(false);
-  const [pwdLoading, setPwdLoading] = useState(false);
+const ROLE_CONFIG = {
+  admin:       { label: 'Admin',       color: '#dc2626', bg: '#fee2e2' },
+  Admin:       { label: 'Admin',       color: '#dc2626', bg: '#fee2e2' },
+  editor:      { label: 'Editor',      color: '#f59e0b', bg: '#fef9c3' },
+  viewer:      { label: 'Lector',      color: '#16a34a', bg: '#dcfce7' },
+  super_admin: { label: 'Super Admin', color: '#6366f1', bg: '#eef2ff' },
+};
+
+export default function UserDirectory({ organizationId }) {
+  const [users, setUsers]         = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [search, setSearch]       = useState('');
+  const [editUser, setEditUser]   = useState(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [passModal, setPassModal] = useState(null);
+  const [newPass, setNewPass]     = useState('');
+  const [savingPass, setSavingPass] = useState(false);
+
+  const loadUsers = async () => {
+    if (!organizationId) { setLoading(false); return; }
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, role, job_title, department, photo_url, created_at')
+        .eq('organization_id', organizationId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (e) {
+      notificationService.error('Error cargando usuarios: ' + e.message);
+    } finally { setLoading(false); }
+  };
+
+  useEffect(() => { loadUsers(); }, [organizationId]);
+
+  const handleDelete = async (userId, userName) => {
+    if (!window.confirm('¿Eliminar a ' + userName + '? Esta acción no se puede deshacer.')) return;
+    try {
+      const { error } = await supabase.from('profiles').delete().eq('id', userId);
+      if (error) throw error;
+      notificationService.success('Usuario eliminado.');
+      setUsers(prev => prev.filter(u => u.id !== userId));
+    } catch (e) { notificationService.error('Error: ' + e.message); }
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    if (!newPass || newPass.length < 8) return notificationService.error('La contraseña debe tener al menos 8 caracteres.');
+    setSavingPass(true);
+    try {
+      const { error } = await supabase.auth.admin.updateUserById(passModal.id, { password: newPass });
+      if (error) throw error;
+      notificationService.success('Contraseña actualizada para ' + passModal.full_name + '.');
+      setPassModal(null);
+      setNewPass('');
+    } catch (e) { notificationService.error('Error: ' + e.message); }
+    finally { setSavingPass(false); }
+  };
 
   const filtered = users.filter(u =>
-    (u.full_name || '').toLowerCase().includes(search.toLowerCase()) ||
-    (u.email || '').toLowerCase().includes(search.toLowerCase()) ||
-    (u.role || '').toLowerCase().includes(search.toLowerCase())
+    !search ||
+    (u.full_name||'').toLowerCase().includes(search.toLowerCase()) ||
+    (u.email||'').toLowerCase().includes(search.toLowerCase()) ||
+    (u.department||'').toLowerCase().includes(search.toLowerCase()) ||
+    (u.role||'').toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleDelete = async (user) => {
-    if (!window.confirm('Eliminar a ' + (user.full_name || user.email) + '? Esta accion no se puede deshacer.')) return;
-    setDeletingId(user.id);
-    try {
-      const { error } = await supabase.from('profiles').delete().eq('id', user.id);
-      if (error) throw error;
-      notificationService.success('Usuario eliminado correctamente.');
-      if (onRefresh) onRefresh();
-    } catch (e) {
-      notificationService.error('Error al eliminar: ' + e.message);
-    } finally {
-      setDeletingId(null);
-    }
-  };
+  const initials = (name) => (name||'?').split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
 
-  const handleChangePwd = async (e) => {
-    e.preventDefault();
-    if (newPwd.length < 6) return notificationService.error('Minimo 6 caracteres.');
-    if (newPwd !== confirmPwd) return notificationService.error('Las contrasenas no coinciden.');
-    setPwdLoading(true);
-    try {
-      const { error } = await supabase.auth.admin.updateUserById(changingPwdUser.id, { password: newPwd });
-      if (error) {
-        // Fallback: enviar magic link de reset si no hay permisos admin
-        const { error: e2 } = await supabase.auth.resetPasswordForEmail(changingPwdUser.email);
-        if (e2) throw e2;
-        notificationService.success('Se envio un enlace de cambio de contrasena al correo del usuario.');
-      } else {
-        notificationService.success('Contrasena actualizada correctamente.');
-      }
-      setChangingPwdUser(null); setNewPwd(''); setConfirmPwd('');
-    } catch (err) {
-      notificationService.error('Error: ' + err.message);
-    } finally {
-      setPwdLoading(false);
-    }
-  };
-
-  const roleColors = {
-    admin:  { bg: '#ede9fe', color: '#6d28d9' },
-    editor: { bg: '#dbeafe', color: '#1d4ed8' },
-    viewer: { bg: '#dcfce7', color: '#15803d' },
-  };
+  if (loading) {
+    return (
+      <div style={{ padding: 24, textAlign: 'center', color: 'var(--text3)' }}>
+        <div style={{ fontSize: 24, marginBottom: 8 }}>👥</div>
+        <div>Cargando usuarios...</div>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <input
-        className="sp-input"
-        placeholder="Buscar por nombre, email o rol..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        style={{ padding: '10px 14px', borderRadius: 10, fontSize: 14, width: '100%', boxSizing: 'border-box', marginBottom: 16 }}
-      />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <input className="sp-input" placeholder="Buscar por nombre, correo, rol..." value={search} onChange={e => setSearch(e.target.value)}
+          style={{ flex: 1, minWidth: 200, padding: '9px 12px', borderRadius: 8, fontSize: 13 }} />
+        <button onClick={() => setShowCreate(true)} className="sp-btn sp-btn-primary"
+          style={{ padding: '9px 16px', borderRadius: 8, fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap' }}>
+          + Nuevo Usuario
+        </button>
+        <button onClick={loadUsers}
+          style={{ padding: '9px 12px', borderRadius: 8, fontSize: 13, background: 'var(--bg2)', border: '1px solid var(--border)', cursor: 'pointer', color: 'var(--text3)' }}>
+          🔄
+        </button>
+      </div>
 
-      {changingPwdUser && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="sp-card" style={{ padding: 32, width: 420, borderRadius: 20, boxShadow: '0 24px 48px rgba(0,0,0,0.15)' }}>
-            <h3 style={{ marginBottom: 4, color: 'var(--text)', fontSize: 18 }}>Cambiar contrasena</h3>
-            <p style={{ color: 'var(--text3)', fontSize: 13, marginBottom: 20 }}>{changingPwdUser.full_name || changingPwdUser.email}</p>
-            <form onSubmit={handleChangePwd}>
-              <label className="sp-label" style={{ fontSize: 12, display: 'block', marginBottom: 6 }}>Nueva contrasena</label>
-              <div style={{ position: 'relative', marginBottom: 12 }}>
-                <input
-                  className="sp-input"
-                  type={showNewPwd ? 'text' : 'password'}
-                  placeholder="Minimo 6 caracteres"
-                  value={newPwd}
-                  onChange={e => setNewPwd(e.target.value)}
-                  style={{ padding: '12px 40px 12px 14px', borderRadius: 10, fontSize: 14, width: '100%', boxSizing: 'border-box' }}
-                  required
-                />
-                <button type="button" onClick={() => setShowNewPwd(p => !p)}
-                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>
-                  {showNewPwd ? 'x' : 'o'}
-                </button>
+      {/* Stat bar */}
+      <div style={{ display: 'flex', gap: 8, fontSize: 12, color: 'var(--text3)' }}>
+        <span>{users.length} usuarios totales</span>
+        <span>·</span>
+        <span>{users.filter(u => u.role === 'admin' || u.role === 'Admin').length} admins</span>
+        <span>·</span>
+        <span>{filtered.length} mostrados</span>
+      </div>
+
+      {/* Lista */}
+      {filtered.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '32px 20px', background: 'var(--bg2)', borderRadius: 12, border: '2px dashed var(--border)' }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>👤</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+            {search ? 'Sin resultados para "' + search + '"' : 'Sin usuarios registrados'}
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {filtered.map(user => {
+            const roleConf = ROLE_CONFIG[user.role] || { label: user.role || 'N/A', color: '#6b7280', bg: '#f3f4f6' };
+            return (
+              <div key={user.id} style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+                borderRadius: 10, background: 'var(--bg2)', border: '1px solid var(--border)',
+              }}>
+                {/* Avatar */}
+                {user.photo_url ? (
+                  <img src={user.photo_url} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} alt="" />
+                ) : (
+                  <div style={{
+                    width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
+                    background: 'linear-gradient(135deg, var(--primary), var(--teal))',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 14, fontWeight: 700, color: 'white',
+                  }}>
+                    {initials(user.full_name)}
+                  </div>
+                )}
+
+                {/* Info */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {user.full_name || 'Sin nombre'}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 1 }}>
+                    {user.job_title && <span>{user.job_title} · </span>}
+                    {user.department && <span>{user.department}</span>}
+                    {!user.job_title && !user.department && <span>Sin puesto asignado</span>}
+                  </div>
+                </div>
+
+                {/* Role badge */}
+                <span style={{ padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: roleConf.bg, color: roleConf.color, flexShrink: 0 }}>
+                  {roleConf.label}
+                </span>
+
+                {/* Acciones */}
+                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                  <button onClick={() => setEditUser(user)} title="Editar"
+                    style={{ padding: '5px 8px', borderRadius: 6, fontSize: 12, background: 'var(--bg2)', border: '1px solid var(--border)', cursor: 'pointer' }}>
+                    ✏️
+                  </button>
+                  <button onClick={() => { setPassModal(user); setNewPass(''); }} title="Cambiar contraseña"
+                    style={{ padding: '5px 8px', borderRadius: 6, fontSize: 12, background: '#fef9c3', border: '1px solid #fbbf24', cursor: 'pointer' }}>
+                    🔑
+                  </button>
+                  <button onClick={() => handleDelete(user.id, user.full_name)} title="Eliminar"
+                    style={{ padding: '5px 8px', borderRadius: 6, fontSize: 12, background: '#fee2e2', border: '1px solid #fecaca', color: '#dc2626', cursor: 'pointer' }}>
+                    🗑️
+                  </button>
+                </div>
               </div>
-              <label className="sp-label" style={{ fontSize: 12, display: 'block', marginBottom: 6 }}>Confirmar contrasena</label>
-              <input
-                className="sp-input"
-                type="password"
-                placeholder="Repite la contrasena"
-                value={confirmPwd}
-                onChange={e => setConfirmPwd(e.target.value)}
-                style={{ padding: '12px 14px', borderRadius: 10, fontSize: 14, width: '100%', boxSizing: 'border-box', marginBottom: 20 }}
-                required
-              />
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button type="submit" disabled={pwdLoading}
-                  className="sp-btn sp-btn-primary"
-                  style={{ flex: 1, padding: '12px', borderRadius: 10, fontWeight: 700, fontSize: 14 }}>
-                  {pwdLoading ? 'Guardando...' : 'Guardar contrasena'}
+            );
+          })}
+        </div>
+      )}
+
+      {/* Modal editar usuario existente */}
+      {editUser && (
+        <UserEditModal
+          user={editUser}
+          onClose={() => setEditUser(null)}
+          onRefresh={loadUsers}
+        />
+      )}
+
+      {/* Modal crear nuevo usuario */}
+      {showCreate && (
+        <UserEditModal
+          user={{ isNew: true, organization_id: organizationId }}
+          onClose={() => setShowCreate(false)}
+          onRefresh={loadUsers}
+        />
+      )}
+
+      {/* Modal cambiar contraseña */}
+      {passModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div className="sp-card" style={{ width: '100%', maxWidth: 400, padding: 28, borderRadius: 20, boxShadow: '0 24px 48px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ marginBottom: 16, fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>
+              🔑 Cambiar Contraseña — {passModal.full_name}
+            </h3>
+            <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>Nueva Contraseña</label>
+                <input className="sp-input" type="password" required minLength={8} placeholder="Mínimo 8 caracteres" value={newPass} onChange={e => setNewPass(e.target.value)}
+                  style={{ padding: '10px 12px', borderRadius: 8, fontSize: 14, width: '100%', boxSizing: 'border-box' }} />
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                <button type="submit" disabled={savingPass} className="sp-btn sp-btn-primary" style={{ flex: 1, padding: '11px', borderRadius: 8, fontWeight: 700, fontSize: 13 }}>
+                  {savingPass ? 'Guardando...' : '✅ Actualizar'}
                 </button>
-                <button type="button"
-                  onClick={() => { setChangingPwdUser(null); setNewPwd(''); setConfirmPwd(''); }}
-                  className="sp-btn"
-                  style={{ flex: 1, padding: '12px', borderRadius: 10, fontSize: 14 }}>
+                <button type="button" onClick={() => setPassModal(null)} className="sp-btn" style={{ flex: 1, padding: '11px', borderRadius: 8, fontSize: 13 }}>
                   Cancelar
                 </button>
               </div>
             </form>
           </div>
-        </div>
-      )}
-
-      {filtered.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text3)', fontSize: 14 }}>No se encontraron usuarios.</div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {filtered.map(u => {
-            const rs = roleColors[u.role] || { bg: '#f3f4f6', color: '#374151' };
-            return (
-              <div key={u.id} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '14px 16px', borderRadius: 12,
-                background: 'var(--bg2)', border: '1px solid var(--border)', gap: 12, flexWrap: 'wrap'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 180 }}>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
-                    background: 'linear-gradient(135deg, var(--primary), var(--teal))',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: 'white', fontWeight: 700, fontSize: 15, overflow: 'hidden'
-                  }}>
-                    {u.photo_url
-                      ? <img src={u.photo_url} alt="" style={{ width: 40, height: 40, objectFit: 'cover' }} />
-                      : (u.full_name || u.email || '?')[0].toUpperCase()
-                    }
-                  </div>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: 14 }}>{u.full_name || '(Sin nombre)'}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text3)' }}>{u.email} {u.job_title ? '· ' + u.job_title : ''}</div>
-                  </div>
-                </div>
-
-                <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: rs.bg, color: rs.color, whiteSpace: 'nowrap' }}>
-                  {(u.role || 'viewer').toUpperCase()}
-                </span>
-
-                {canEdit && (
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button onClick={() => onEditUser && onEditUser(u)}
-                      title="Editar datos del usuario"
-                      style={{ padding: '7px 12px', borderRadius: 8, fontSize: 13, background: 'var(--bg2)', border: '1px solid var(--border)', cursor: 'pointer' }}>
-                      Editar
-                    </button>
-                    <button onClick={() => setChangingPwdUser(u)}
-                      title="Cambiar contrasena"
-                      style={{ padding: '7px 12px', borderRadius: 8, fontSize: 13, background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', cursor: 'pointer' }}>
-                      Contrasena
-                    </button>
-                    <button onClick={() => handleDelete(u)}
-                      disabled={deletingId === u.id}
-                      title="Eliminar usuario"
-                      style={{ padding: '7px 12px', borderRadius: 8, fontSize: 13, background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', cursor: 'pointer' }}>
-                      {deletingId === u.id ? '...' : 'Eliminar'}
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
         </div>
       )}
     </div>
