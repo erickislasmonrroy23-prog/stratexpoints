@@ -84,6 +84,31 @@ export const useStore = create((set, get) => ({
     return false;
   },
 
+
+  // ── Funciones de compatibilidad con App.jsx original ─────────────────────
+  dispatch: (action) => {
+    // Compatibilidad con dispatch-style actions
+    if (action && action.type) {
+      const type = action.type;
+      if (type === 'SET_PROFILE') useStore.getState().setProfile(action.payload);
+      if (type === 'SET_ORG') useStore.getState().setCurrentOrganization(action.payload);
+      if (type === 'RESET') useStore.getState().resetAll();
+    }
+  },
+
+  // Aliases comunes que App.jsx podría usar
+  setUser:          (u) => set({ profile: u }),
+  clearUser:        ()  => set({ profile: null }),
+  setOrg:           (o) => set({ currentOrganization: o }),
+  clearAll:         ()  => useStore.getState().resetAll(),
+  logout:           ()  => useStore.getState().resetAll(),
+  setIsLoading:     (v) => set({ isLoading: v }),
+  isLoading:        false,
+  setError:         (e) => set({ lastError: e }),
+  lastError:        null,
+  setModuleData:    (m, d) => set(s => ({ moduleData: { ...(s.moduleData||{}), [m]: d } })),
+  moduleData:       {},
+
 }));
 
 export default useStore;
