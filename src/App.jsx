@@ -106,15 +106,15 @@ function ModuloEstrategia({ onDeleteObjective }){
       <div className="fade-up">
         <StrategyMap onCreateObjective={async function(form){
           try { await objectivesService.create(form); }
-          catch(e) { notificationService.error("Error al crear objetivo: " + e.message); }
+          catch(e) { notificationService.error("Error al crear objetivo: " + e?.message); }
         }} onDeleteObjective={onDeleteObjective} onUpdateObjective={async function(id, form){
           try { 
             await objectivesService.update(id, form); 
           } catch(e) { 
-            if (e.message?.includes('schema cache') || e.message?.includes('Could not find')) {
+            if (e?.message?.includes('schema cache') || e?.message?.includes('Could not find')) {
               notificationService.error("Acción requerida en BD: Agrega la columna 'theme' (tipo text) en la tabla 'objectives'.");
             } else {
-              notificationService.error("Error al actualizar: " + e.message);
+              notificationService.error("Error al actualizar: " + e?.message);
             }
           }
         }}/>
@@ -401,7 +401,7 @@ function MainApp({ onLogout, onSuperAdmin }){
             try {
                 await objectivesService.delete(id);
                 notificationService.success("Objetivo eliminado correctamente.");
-            } catch (e) { notificationService.error("Error al eliminar: " + e.message); }
+            } catch (e) { notificationService.error("Error al eliminar: " + e?.message); }
             closeConfirmationModal();
         },
     });
@@ -415,7 +415,7 @@ function MainApp({ onLogout, onSuperAdmin }){
             try {
                 await okrService.delete(id);
                 notificationService.success("OKR eliminado correctamente.");
-            } catch (e) { notificationService.error("Error al eliminar OKR: " + e.message); }
+            } catch (e) { notificationService.error("Error al eliminar OKR: " + e?.message); }
             closeConfirmationModal();
         },
     });
@@ -429,7 +429,7 @@ function MainApp({ onLogout, onSuperAdmin }){
             try {
                 await initiativeService.delete(id);
                 notificationService.success("Iniciativa eliminada correctamente.");
-            } catch (e) { notificationService.error("Error al eliminar iniciativa: " + e.message); }
+            } catch (e) { notificationService.error("Error al eliminar iniciativa: " + e?.message); }
             closeConfirmationModal();
         },
     });
@@ -443,7 +443,7 @@ function MainApp({ onLogout, onSuperAdmin }){
             try {
                 await kpiService.delete(id);
                 notificationService.success("KPI eliminado correctamente.");
-            } catch (e) { notificationService.error("Error al eliminar KPI: " + e.message); }
+            } catch (e) { notificationService.error("Error al eliminar KPI: " + e?.message); }
             closeConfirmationModal();
         },
     });
@@ -491,7 +491,7 @@ function MainApp({ onLogout, onSuperAdmin }){
       }
       setModal(null);
       setEditingItem(null);
-    } catch(e) { notificationService.error("Error al guardar OKR: " + e.message); }
+    } catch(e) { notificationService.error("Error al guardar OKR: " + e?.message); }
   }
 
   async function handleSaveKPI(form){
@@ -509,7 +509,7 @@ function MainApp({ onLogout, onSuperAdmin }){
       }
       setModal(null);
       setEditingItem(null);
-    } catch(e) { notificationService.error("Error al guardar KPI: " + e.message); }
+    } catch(e) { notificationService.error("Error al guardar KPI: " + e?.message); }
   }
 
   async function handleSaveInitiative(form){
@@ -518,7 +518,7 @@ function MainApp({ onLogout, onSuperAdmin }){
       await initiativeService.create(form);
       setModal(null);
       notificationService.success("Iniciativa creada exitosamente.");
-    } catch(e) { notificationService.error("Error al guardar Iniciativa: " + e.message); }
+    } catch(e) { notificationService.error("Error al guardar Iniciativa: " + e?.message); }
   }
 
   // LÓGICA DE GOBERNANZA Y AISLAMIENTO DE DATOS (RBAC)
@@ -811,7 +811,7 @@ export default function App(){
       setAuth(currentUser, profileData);
     } catch(e) {
       console.error("Error cargando el perfil:",e);
-      notificationService.error(`Error de red al cargar perfil: ${e.message}`);
+      notificationService.error(`Error de red al cargar perfil: ${e?.message}`);
     } finally { setLoading(false); }
   }
 
