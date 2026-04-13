@@ -56,6 +56,34 @@ export const useStore = create((set, get) => ({
     perspectives: [], objectives: [], alerts: [], notifications: [],
     activeModule: 'dashboard', zenMode: false,
   }),
+
+  // ── Permission check ──────────────────────────────────────────────────────
+  can: (action, resource) => {
+    const state = useStore.getState();
+    const profile = state.profile;
+    const isSystemOwner = state.isSystemOwner;
+    
+    // Super admin tiene acceso a todo
+    if (isSystemOwner) return true;
+    if (profile?.is_super_admin) return true;
+    
+    // Check específico para super_admin_panel
+    if (resource === 'super_admin_panel') {
+      return !!(isSystemOwner || profile?.is_super_admin || profile?.role === 'super_admin');
+    }
+    
+    // Por defecto basarse en el rol
+    const role = profile?.role || 'viewer';
+    const roleLevel = { super_admin: 4, admin: 3, Admin: 3, editor: 2, viewer: 1 };
+    const userLevel = roleLevel[role] || 1;
+    
+    if (action === 'access' || action === 'view') return userLevel >= 1;
+    if (action === 'create' || action === 'edit') return userLevel >= 2;
+    if (action === 'delete' || action === 'manage') return userLevel >= 3;
+    
+    return false;
+  },
+
 }));
 
 export default useStore;
