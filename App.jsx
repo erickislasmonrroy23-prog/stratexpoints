@@ -747,15 +747,91 @@ function MainApp({ onLogout, onSuperAdmin }){
   );
 }
 
+// ── Pantalla de nueva contraseña (flujo de recuperación) ──────────────────
+function ResetPasswordScreen() {
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [showPass, setShowPass] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState({ type: '', text: '' });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (password.length < 8) {
+      setMsg({ type: 'error', text: 'La contraseña debe tener al menos 8 caracteres.' });
+      return;
+    }
+    if (password !== confirm) {
+      setMsg({ type: 'error', text: 'Las contraseñas no coinciden.' });
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.updateUser({ password });
+    setLoading(false);
+    if (error) {
+      setMsg({ type: 'error', text: 'Error al actualizar: ' + error.message });
+    } else {
+      setMsg({ type: 'success', text: '¡Contraseña actualizada! Redirigiendo...' });
+      setTimeout(() => supabase.auth.signOut(), 2000);
+    }
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', padding: 24 }}>
+      <form onSubmit={handleSubmit} className="sp-card fade-up" style={{ padding: 48, width: '100%', maxWidth: 420, borderRadius: 24 }}>
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: 'linear-gradient(135deg,#6366f1,#14b8a6)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, marginBottom: 16 }}>🔐</div>
+          <h2 style={{ color: 'var(--text)', fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Nueva contraseña</h2>
+          <p style={{ color: 'var(--text3)', fontSize: 14 }}>Elige una contraseña segura para tu cuenta.</p>
+        </div>
+        {msg.text && (
+          <div style={{ padding: '12px 16px', borderRadius: 10, marginBottom: 16, fontSize: 13, fontWeight: 600, background: msg.type === 'success' ? '#dcfce7' : '#fee2e2', color: msg.type === 'success' ? '#16a34a' : '#dc2626', border: '1px solid ' + (msg.type === 'success' ? '#86efac' : '#fecaca'), display: 'flex', gap: 8 }}>
+            <span>{msg.type === 'success' ? '✅' : '❌'}</span><span>{msg.text}</span>
+          </div>
+        )}
+        <label className="sp-label" style={{ fontSize: 12, marginBottom: 8, display: 'block' }}>Nueva contraseña</label>
+        <div style={{ position: 'relative', marginBottom: 16 }}>
+          <input
+            className="sp-input"
+            type={showPass ? 'text' : 'password'}
+            placeholder="Mínimo 8 caracteres"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            autoFocus
+            autoComplete="new-password"
+            style={{ padding: '14px 48px 14px 16px', borderRadius: 14, fontSize: 14, width: '100%', boxSizing: 'border-box' }}
+            required
+          />
+          <button type="button" onClick={() => setShowPass(p => !p)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', fontSize: 18 }} aria-label={showPass ? 'Ocultar' : 'Mostrar'}>
+            {showPass ? '🙈' : '👁️'}
+          </button>
+        </div>
+        <label className="sp-label" style={{ fontSize: 12, marginBottom: 8, display: 'block' }}>Confirmar contraseña</label>
+        <input
+          className="sp-input"
+          type={showPass ? 'text' : 'password'}
+          placeholder="Repite tu contraseña"
+          value={confirm}
+          onChange={e => setConfirm(e.target.value)}
+          autoComplete="new-password"
+          style={{ padding: '14px 16px', borderRadius: 14, fontSize: 14, width: '100%', boxSizing: 'border-box', marginBottom: 24 }}
+          required
+        />
+        <button type="submit" disabled={loading} className="sp-btn sp-btn-primary" style={{ width: '100%', padding: '16px 24px', borderRadius: 14, fontSize: 16, fontWeight: 700, opacity: loading ? 0.7 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}>
+          {loading ? 'Guardando...' : 'Guardar nueva contraseña →'}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 export default function App(){
   const { i18n } = useTranslation();
   const [loading, setLoading] = useState(true);
-  const [superAdminActive, setSuperAdminActive] = useState(false); // Renamed to avoid confusion with the component name
+  const [recoveryMode, setRecoveryMode] = useState(false);
+  const [superAdminActive, setSuperAdminActive] = useState(false);
   const [showSuperAdminCodeModal, setShowSuperAdminCodeModal] = useState(false);
   const [superAdminCodeInput, setSuperAdminCodeInput] = useState('');
-  // Se leen los datos de autenticación directamente del store de Zustand como única fuente de verdad.
-  // **OPTIMIZACIÓN CRÍTICA**: Se refactoriza a selectores atómicos para prevenir el bucle infinito de re-renderizados
-  // ("Maximum update depth exceeded") causado por la creación de nuevos objetos en el selector.
   const user = useStore(state => state.user);
   const profile = useStore(state => state.profile);
   const setAuth = useStore(state => state.setAuth);
@@ -763,17 +839,43 @@ export default function App(){
 
   useEffect(function(){
     initTheme();
-    supabase.auth.getSession().then(function(res){
-      var session=res.data.session;
-      if(session&&session.user){loadProfile(session.user);}
-      else setLoading(false);
-    });
-    var sub=supabase.auth.onAuthStateChange(function(_event,session){
+
+    // Verificar PRIMERO si la URL tiene un token de recuperación de contraseña.
+    // Supabase incluye `type=recovery` en el hash del link del correo.
+    // Hay que interceptarlo antes de que getSession() lo procese como sesión normal
+    // y mande al usuario directo a la app en lugar de la pantalla de nueva contraseña.
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    if (hashParams.get('type') === 'recovery') {
+      setRecoveryMode(true);
+      setLoading(false);
+      // Limpiar el hash de la URL para que no persista al recargar
+      window.history.replaceState(null, '', window.location.pathname);
+      // No llamar getSession — dejar que onAuthStateChange maneje el token
+    } else {
+      supabase.auth.getSession().then(function(res){
+        var session=res.data.session;
+        if(session&&session.user){loadProfile(session.user);}
+        else setLoading(false);
+      });
+    }
+
+    var sub=supabase.auth.onAuthStateChange(function(event, session){
+      if(event === 'PASSWORD_RECOVERY') {
+        setRecoveryMode(true);
+        setLoading(false);
+        return;
+      }
+      if(event === 'USER_UPDATED') {
+        // Contraseña actualizada — limpiar sesión y volver al login para que inicie de nuevo
+        setRecoveryMode(false);
+        setAuth(null, null);
+        return;
+      }
       if(session&&session.user){loadProfile(session.user);}
       else{setLoading(false);setAuth(null,null);}
     });
     return () => sub.data.subscription.unsubscribe();
-  },[setAuth]); // Se elimina `i18n` de las dependencias para romper el bucle de re-renderizado.
+  },[setAuth]);
 
   async function loadProfile(currentUser){
     try{
@@ -837,9 +939,8 @@ export default function App(){
   };
 
   if (loading) return <LoadingScreen />;
-  // **MEJORA DE ROBUSTEZ**: No renderizar la app principal si el usuario está logueado
-  // pero su perfil no se pudo cargar. Esto previene todos los errores de 'null' posteriores.
-  if (!user || !profile) return <Login onLogin={(u, p) => setAuth(u, p)} />;
+  if (recoveryMode) return <ResetPasswordScreen />;
+  if (!profile) return <Login onLogin={(u, p) => setAuth(u, p)} />;
 
   // If superAdminActive is true, render SuperAdmin component
   if (superAdminActive) return <SuperAdmin user={user} profile={profile} onBack={() => setSuperAdminActive(false)} isCodeActivated={true} />;

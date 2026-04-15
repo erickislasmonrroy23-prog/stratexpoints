@@ -1,40 +1,75 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { supabase } from './supabase.js';
-import { notificationService } from './services.js';
 import { useStore } from './store.js';
 
 export default function Login() {
   const [email, setEmail] = useState('');
-  const [statusMsg, setStatusMsg] = React.useState({ type: '', text: '' });
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resetMode, setResetMode] = useState(false);
+  const [statusMsg, setStatusMsg] = useState({ type: '', text: '' });
+  const [resetSent, setResetSent] = useState(false);
   const tenant = useStore(s => s.currentOrganization);
+
+  const getErrorText = (message = '') => {
+    if (message.includes('Invalid login credentials') || message.includes('invalid_credentials'))
+      return 'Correo o contraseña incorrectos. Verifica tus datos e intenta de nuevo.';
+    if (message.includes('Email not confirmed'))
+      return 'Tu correo aún no está verificado. Revisa tu bandeja de entrada.';
+    if (message.includes('Too many requests'))
+      return 'Demasiados intentos. Espera unos minutos e intenta de nuevo.';
+    if (message.includes('User not found'))
+      return 'No encontramos una cuenta con ese correo.';
+    return 'Error al iniciar sesión. Verifica tus credenciales.';
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setStatusMsg({ type: '', text: '' });
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-      setStatusMsg({ type: 'success', text: '✅ Acceso correcto. Cargando tu plataforma...' });
     setLoading(false);
-    if (error) notificationService.error('Error: ' + error?.message);
-      setStatusMsg({ type: 'error', text: (() => {
-          const msg = error?.message || '';
-          if (msg.includes('Invalid login credentials') || msg.includes('invalid_credentials')) return 'Correo o contraseña incorrectos. Verifica tus datos e intenta de nuevo.';
-          if (msg.includes('Email not confirmed')) return 'Tu correo aún no está verificado. Revisa tu bandeja de entrada.';
-          if (msg.includes('Too many requests')) return 'Demasiados intentos. Espera unos minutos e intenta de nuevo.';
-          if (msg.includes('User not found')) return 'No encontramos una cuenta con ese correo.';
-          return 'Error al iniciar sesión. Verifica tus credenciales.';
-        })() });
+    if (error) {
+      setStatusMsg({ type: 'error', text: getErrorText(error.message) });
+    } else {
+      setStatusMsg({ type: 'success', text: 'Acceso correcto. Cargando tu plataforma...' });
+    }
   };
 
   const handleReset = async (e) => {
     e.preventDefault();
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
-    if (error) notificationService.error('Error: ' + error?.message);
-    else notificationService.success('Te hemos enviado un enlace a tu correo. Revisa tu bandeja de entrada (y spam).');
+    setLoading(true);
+    setStatusMsg({ type: '', text: '' });
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin,
+    });
+    setLoading(false);
+    if (error) {
+      setStatusMsg({ type: 'error', text: 'No pudimos enviar el enlace. Verifica el correo e intenta de nuevo.' });
+    } else {
+      setResetSent(true);
+      setStatusMsg({ type: 'success', text: 'Enlace enviado. Revisa tu bandeja de entrada y la carpeta de spam.' });
+    }
   };
+
+  const handleFieldChange = (setter) => (e) => {
+    setter(e.target.value);
+    if (statusMsg.text) setStatusMsg({ type: '', text: '' });
+  };
+
+  const StatusBanner = ({ type, text }) => (
+    <div style={{
+      padding: '12px 16px', borderRadius: 10, marginBottom: 16, fontSize: 13, fontWeight: 600,
+      background: type === 'success' ? '#dcfce7' : '#fee2e2',
+      color: type === 'success' ? '#16a34a' : '#dc2626',
+      border: '1px solid ' + (type === 'success' ? '#86efac' : '#fecaca'),
+      display: 'flex', alignItems: 'flex-start', gap: 8
+    }}>
+      <span style={{ flexShrink: 0 }}>{type === 'success' ? '✅' : '❌'}</span>
+      <span>{text}</span>
+    </div>
+  );
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', background: 'var(--bg)' }}>
@@ -92,13 +127,41 @@ export default function Login() {
         {resetMode ? (
           <form onSubmit={handleReset} className="sp-card fade-up" style={{ padding: 48, width: '100%', maxWidth: 420, borderRadius: 24 }}>
             <h2 style={{ marginBottom: 8, textAlign: 'center', color: 'var(--text)', fontSize: 24, fontWeight: 800 }}>Recuperar contraseña</h2>
-            <p style={{ textAlign: 'center', color: 'var(--text3)', fontSize: 14, marginBottom: 32 }}>Ingresa tu correo y te enviaremos un enlace.</p>
-            <label className="sp-label" style={{ marginBottom: 8, fontSize: 12 }}>Correo Electrónico</label>
-            <input className="sp-input scale-in" type="email" placeholder="ejemplo@empresa.com" value={email} onChange={e => setEmail(e.target.value)} style={{ marginBottom: 20, padding: '14px 16px', borderRadius: 14, fontSize: 14 }} required />
-            <button type="submit" className="sp-btn sp-btn-primary" style={{ width: '100%', padding: '16px 24px', borderRadius: 14, fontSize: 16, fontWeight: 700, marginBottom: 16 }}>
-              Enviar enlace →
-            </button>
-            <button type="button" onClick={() => setResetMode(false)} style={{ width: '100%', background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: 14 }}>
+            <p style={{ textAlign: 'center', color: 'var(--text3)', fontSize: 14, marginBottom: 32 }}>
+              {resetSent ? 'Revisa también la carpeta de spam si no ves el correo.' : 'Ingresa tu correo y te enviaremos un enlace de acceso.'}
+            </p>
+            {statusMsg.text && (
+              <StatusBanner type={statusMsg.type} text={statusMsg.text} />
+            )}
+            {!resetSent && (
+              <>
+                <label className="sp-label" style={{ marginBottom: 8, fontSize: 12 }}>Correo Electrónico</label>
+                <input
+                  className="sp-input scale-in"
+                  type="email"
+                  placeholder="ejemplo@empresa.com"
+                  value={email}
+                  onChange={handleFieldChange(setEmail)}
+                  autoFocus
+                  autoComplete="email"
+                  style={{ marginBottom: 20, padding: '14px 16px', borderRadius: 14, fontSize: 14 }}
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="sp-btn sp-btn-primary"
+                  style={{ width: '100%', padding: '16px 24px', borderRadius: 14, fontSize: 16, fontWeight: 700, marginBottom: 16, opacity: loading ? 0.7 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
+                >
+                  {loading ? 'Enviando...' : 'Enviar enlace →'}
+                </button>
+              </>
+            )}
+            <button
+              type="button"
+              onClick={() => { setResetMode(false); setResetSent(false); setStatusMsg({ type: '', text: '' }); }}
+              style={{ width: '100%', background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: 14, marginTop: resetSent ? 16 : 0 }}
+            >
               ← Volver al login
             </button>
           </form>
@@ -114,23 +177,26 @@ export default function Login() {
               type="email"
               placeholder="ejemplo@empresa.com"
               value={email}
-              onChange={e => setEmail(e.target.value)}
+              onChange={handleFieldChange(setEmail)}
+              autoFocus
+              autoComplete="email"
               style={{ marginBottom: 20, padding: '14px 16px', borderRadius: 14, fontSize: 14 }}
               required
             />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <label className="sp-label" style={{ fontSize: 12 }}>Contraseña</label>
-              <button type="button" onClick={() => setResetMode(true)} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: 12 }}>
+              <button type="button" onClick={() => { setResetMode(true); setStatusMsg({ type: '', text: '' }); }} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: 12 }}>
                 ¿Olvidaste tu contraseña?
               </button>
             </div>
-            <div style={{ position: 'relative', marginBottom: 28 }}>
+            <div style={{ position: 'relative', marginBottom: 24 }}>
               <input
                 className="sp-input scale-in"
                 type={showPassword ? 'text' : 'password'}
                 placeholder="••••••••"
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={handleFieldChange(setPassword)}
+                autoComplete="current-password"
                 style={{ padding: '14px 16px', borderRadius: 14, fontSize: 14, paddingRight: 48, width: '100%', boxSizing: 'border-box' }}
                 required
               />
@@ -138,28 +204,19 @@ export default function Login() {
                 type="button"
                 onClick={() => setShowPassword(p => !p)}
                 style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', fontSize: 18, padding: 4 }}
-                title={showPassword ? 'Ocultar' : 'Mostrar'}
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
               >
                 {showPassword ? '🙈' : '👁️'}
               </button>
             </div>
             {statusMsg.text && (
-              <div style={{
-                padding: '12px 16px', borderRadius: 10, marginBottom: 12, fontSize: 13, fontWeight: 600,
-                background: statusMsg.type === 'success' ? '#dcfce7' : '#fee2e2',
-                color: statusMsg.type === 'success' ? '#16a34a' : '#dc2626',
-                border: '1px solid ' + (statusMsg.type === 'success' ? '#86efac' : '#fecaca'),
-                display: 'flex', alignItems: 'center', gap: 8
-              }}>
-                <span style={{ fontSize: 16 }}>{statusMsg.type === 'success' ? '✅' : '❌'}</span>
-                {statusMsg.text}
-              </div>
+              <StatusBanner type={statusMsg.type} text={statusMsg.text} />
             )}
             <button
               type="submit"
               disabled={loading}
               className="sp-btn sp-btn-primary"
-              style={{ width: '100%', padding: '16px 24px', borderRadius: 14, fontSize: 16, fontWeight: 700, background: loading ? 'var(--text3)' : 'var(--primary)', color: 'white', border: 'none', cursor: loading ? 'not-allowed' : 'pointer' }}
+              style={{ width: '100%', padding: '16px 24px', borderRadius: 14, fontSize: 16, fontWeight: 700, opacity: loading ? 0.7 : 1, cursor: loading ? 'not-allowed' : 'pointer', marginTop: 4 }}
             >
               {loading ? 'Accediendo...' : 'Acceder a la Plataforma →'}
             </button>
