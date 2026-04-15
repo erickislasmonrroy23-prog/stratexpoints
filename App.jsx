@@ -839,21 +839,37 @@ export default function App(){
 
   useEffect(function(){
     initTheme();
-    supabase.auth.getSession().then(function(res){
-      var session=res.data.session;
-      if(session&&session.user){loadProfile(session.user);}
-      else setLoading(false);
-    });
+
+    // Verificar PRIMERO si la URL tiene un token de recuperación de contraseña.
+    // Supabase incluye `type=recovery` en el hash del link del correo.
+    // Hay que interceptarlo antes de que getSession() lo procese como sesión normal
+    // y mande al usuario directo a la app en lugar de la pantalla de nueva contraseña.
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    if (hashParams.get('type') === 'recovery') {
+      setRecoveryMode(true);
+      setLoading(false);
+      // Limpiar el hash de la URL para que no persista al recargar
+      window.history.replaceState(null, '', window.location.pathname);
+      // No llamar getSession — dejar que onAuthStateChange maneje el token
+    } else {
+      supabase.auth.getSession().then(function(res){
+        var session=res.data.session;
+        if(session&&session.user){loadProfile(session.user);}
+        else setLoading(false);
+      });
+    }
+
     var sub=supabase.auth.onAuthStateChange(function(event, session){
       if(event === 'PASSWORD_RECOVERY') {
-        // Usuario llegó desde el link de email — mostrar pantalla de nueva contraseña
         setRecoveryMode(true);
         setLoading(false);
         return;
       }
       if(event === 'USER_UPDATED') {
-        // Contraseña actualizada exitosamente — salir del modo recovery
+        // Contraseña actualizada — limpiar sesión y volver al login para que inicie de nuevo
         setRecoveryMode(false);
+        setAuth(null, null);
+        return;
       }
       if(session&&session.user){loadProfile(session.user);}
       else{setLoading(false);setAuth(null,null);}

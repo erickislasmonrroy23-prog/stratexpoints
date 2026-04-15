@@ -41,7 +41,9 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     setStatusMsg({ type: '', text: '' });
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin,
+    });
     setLoading(false);
     if (error) {
       setStatusMsg({ type: 'error', text: 'No pudimos enviar el enlace. Verifica el correo e intenta de nuevo.' });
