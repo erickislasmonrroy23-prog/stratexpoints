@@ -770,17 +770,49 @@ export default function App(){
 
   useEffect(function(){
     initTheme();
+    let profileLoading = false;
+
+    // Suscribirse PRIMERO para no perdernos el evento PASSWORD_RECOVERY
+    var sub = supabase.auth.onAuthStateChange(function(event, session){
+      if (event === 'PASSWORD_RECOVERY') {
+        // El usuario llegó desde el enlace de recuperación — no intentar cargar perfil
+        setLoading(false);
+        return;
+      }
+      if (event === 'USER_UPDATED') {
+        // Contraseña cambiada — limpiar sesión para forzar login limpio
+        setAuth(null, null);
+        setLoading(false);
+        return;
+      }
+      if (event === 'SIGNED_OUT') {
+        setAuth(null, null);
+        setLoading(false);
+        return;
+      }
+      if (session && session.user && !profileLoading) {
+        profileLoading = true;
+        loadProfile(session.user).finally(() => { profileLoading = false; });
+      } else if (!session) {
+        setLoading(false);
+        setAuth(null, null);
+      }
+    });
+
+    // Luego verificar si ya hay sesión activa
     supabase.auth.getSession().then(function(res){
-      var session=res.data.session;
-      if(session&&session.user){loadProfile(session.user);}
-      else setLoading(false);
+      var session = res.data.session;
+      if (session && session.user && !profileLoading) {
+        profileLoading = true;
+        loadProfile(session.user).finally(() => { profileLoading = false; });
+      } else if (!session) {
+        setLoading(false);
+      }
     });
-    var sub=supabase.auth.onAuthStateChange(function(_event,session){
-      if(session&&session.user){loadProfile(session.user);}
-      else{setLoading(false);setAuth(null,null);}
-    });
+
     return () => sub.data.subscription.unsubscribe();
-  },[setAuth]); // Se elimina `i18n` de las dependencias para romper el bucle de re-renderizado.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]); // Solo al montar — setAuth es estable desde el store
 
   async function loadProfile(currentUser){
     try{
@@ -844,9 +876,9 @@ export default function App(){
   };
 
   if (loading) return <LoadingScreen />;
-  // **MEJORA DE ROBUSTEZ**: No renderizar la app principal si el usuario está logueado
-  // pero su perfil no se pudo cargar. Esto previene todos los errores de 'null' posteriores.
-  if (!user || !profile) return <Login onLogin={(u, p) => setAuth(u, p)} />;
+  // **MEJORA DE ROBUSTEZ**: No renderizar la app principal hasta que el perfil esté cargado.
+  // Usamos `profile` como única fuente de verdad (se carga junto con `user` en setAuth).
+  if (!profile) return <Login onLogin={(u, p) => setAuth(u, p)} />;
 
   // If superAdminActive is true, render SuperAdmin component
   if (superAdminActive) return <SuperAdmin user={user} profile={profile} onBack={() => setSuperAdminActive(false)} isCodeActivated={true} />;
