@@ -840,40 +840,53 @@ export default function App(){
   useEffect(function(){
     initTheme();
 
-    // Verificar PRIMERO si la URL tiene un token de recuperación de contraseña.
-    // Supabase incluye `type=recovery` en el hash del link del correo.
-    // Hay que interceptarlo antes de que getSession() lo procese como sesión normal
-    // y mande al usuario directo a la app en lugar de la pantalla de nueva contraseña.
-    const hashParams = new URLSearchParams(window.location.hash.slice(1));
-    if (hashParams.get('type') === 'recovery') {
+    // Flag sincrónico (ref) para evitar la race condition entre
+    // onAuthStateChange y getSession — si ya detectamos recovery,
+    // getSession no debe llamar loadProfile.
+    let recoveryDetected = false;
+
+    // Checar URL ANTES de suscribirnos — Supabase puede enviar el token
+    // como hash (flujo implícito) O como query param (flujo PKCE nuevo).
+    const hashParams   = new URLSearchParams(window.location.hash.slice(1));
+    const searchParams = new URLSearchParams(window.location.search);
+    if (hashParams.get('type') === 'recovery' || searchParams.get('type') === 'recovery') {
+      recoveryDetected = true;
       setRecoveryMode(true);
       setLoading(false);
-      // Limpiar el hash de la URL para que no persista al recargar
       window.history.replaceState(null, '', window.location.pathname);
-      // No llamar getSession — dejar que onAuthStateChange maneje el token
-    } else {
-      supabase.auth.getSession().then(function(res){
-        var session=res.data.session;
-        if(session&&session.user){loadProfile(session.user);}
-        else setLoading(false);
-      });
     }
 
-    var sub=supabase.auth.onAuthStateChange(function(event, session){
-      if(event === 'PASSWORD_RECOVERY') {
+    // Suscribir onAuthStateChange PRIMERO, antes de getSession,
+    // para no perder el evento PASSWORD_RECOVERY.
+    var sub = supabase.auth.onAuthStateChange(function(event, session){
+      if (event === 'PASSWORD_RECOVERY') {
+        recoveryDetected = true;
         setRecoveryMode(true);
         setLoading(false);
         return;
       }
-      if(event === 'USER_UPDATED') {
-        // Contraseña actualizada — limpiar sesión y volver al login para que inicie de nuevo
+      if (event === 'USER_UPDATED') {
         setRecoveryMode(false);
         setAuth(null, null);
         return;
       }
-      if(session&&session.user){loadProfile(session.user);}
-      else{setLoading(false);setAuth(null,null);}
+      // Solo procesar sesión normal si NO estamos en flujo de recovery
+      if (!recoveryDetected) {
+        if (session && session.user) { loadProfile(session.user); }
+        else { setLoading(false); setAuth(null, null); }
+      }
     });
+
+    // getSession solo si no es recovery — y respeta el flag
+    if (!recoveryDetected) {
+      supabase.auth.getSession().then(function(res){
+        if (recoveryDetected) return; // onAuthStateChange ya tomó el control
+        var session = res.data.session;
+        if (session && session.user) { loadProfile(session.user); }
+        else { setLoading(false); }
+      });
+    }
+
     return () => sub.data.subscription.unsubscribe();
   },[setAuth]);
 
