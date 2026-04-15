@@ -91,10 +91,26 @@ export const useStore = create((set, get) => ({
   setIsLoading: (v) => set({ isLoading: v }),
   setError:     (e) => set({ lastError: e }),
 
-  // ── Auth helpers (compatibilidad con App.jsx) ─────────────────────────────
-  setAuth:   (authData) => set({ profile: authData?.user ?? authData ?? null }),
-  clearAuth: ()         => set({ profile: null, currentOrganization: null, isSystemOwner: false }),
-  logout:    ()         => useStore.getState().resetAll(),
+  // ── Auth helpers ──────────────────────────────────────────────────────────
+  // setAuth(user, profileData) — guarda el usuario auth Y los datos del perfil de BD
+  // setAuth(null, null)        — limpia todo (logout)
+  setAuth: (user, profileData) => {
+    if (!user) {
+      set({ profile: null, currentOrganization: null, isSystemOwner: false });
+      return;
+    }
+    if (profileData) {
+      set({
+        profile: { ...profileData, id: user.id, email: user.email },
+        currentOrganization: profileData.organizations || null,
+        isSystemOwner: !!(profileData.is_super_admin || profileData.role === 'super_admin'),
+      });
+    } else {
+      set({ profile: { id: user.id, email: user.email } });
+    }
+  },
+  clearAuth: () => set({ profile: null, currentOrganization: null, isSystemOwner: false }),
+  logout:    () => useStore.getState().resetAll(),
 
 }));
 
