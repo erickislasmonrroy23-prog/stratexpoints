@@ -31,7 +31,7 @@ export default function Prediction() {
         }
       ];
 
-      const prediction = await groqService.chat(prompt, 'llama3-70b-8192');
+      const prediction = await groqService.chat(prompt);
       setResult(prediction);
     } catch (e) {
       notificationService.error('Error en predicción: ' + e.message);

@@ -45,7 +45,7 @@ export default function AIInsights() {
       const analysis = await groqService.chat([
         { role: 'system', content: prompts[selected] },
         { role: 'user', content: 'Datos de la organización ' + (ctx.org||'') + ': ' + JSON.stringify(ctx) }
-      ], 'llama3-70b-8192');
+      ]);
 
       setResult(analysis);
       setHistory(prev => [{ type: selected, result: analysis, date: new Date().toLocaleTimeString('es-MX') }, ...prev].slice(0,5));
@@ -96,7 +96,7 @@ export default function AIInsights() {
         className="sp-btn sp-btn-primary"
         style={{ padding: '14px', borderRadius: 10, fontWeight: 700, fontSize: 14 }}>
         {loading
-          ? 'Analizando con Groq IA (llama3-70b)...'
+          ? 'Analizando con Gemini AI...'
           : currentType?.icon + ' Ejecutar ' + currentType?.label
         }
       </button>

@@ -113,18 +113,19 @@ export const perspectiveService = {
     const { data, error } = await supabase
       .from('perspectives')
       .select('*')
-      .eq('organization_id', orgId)
-      .order('created_at', { ascending: false });
+      .eq('organization_id', orgId);
+    // No se ordena por created_at — la columna puede no existir en todas las instancias
     if (error) { console.error('perspectiveService.getAll:', error.message); return []; }
     return data || [];
   },
   initDefaults: async (orgId) => {
     if (!orgId) return [];
+    // Sin campo 'order' — la columna no existe en todas las instancias de la tabla
     const defaults = [
-      { name: 'Financiera', icon: '💰', color: '#10B981', prefix: 'FIN', order: 1, organization_id: orgId },
-      { name: 'Clientes', icon: '🤝', color: '#3B82F6', prefix: 'CLI', order: 2, organization_id: orgId },
-      { name: 'Procesos Internos', icon: '⚙️', color: '#8B5CF6', prefix: 'PRO', order: 3, organization_id: orgId },
-      { name: 'Aprendizaje y Crecimiento', icon: '🚀', color: '#F59E0B', prefix: 'APR', order: 4, organization_id: orgId },
+      { name: 'Financiera',               icon: '💰', color: '#10B981', prefix: 'FIN', organization_id: orgId },
+      { name: 'Clientes',                 icon: '🤝', color: '#3B82F6', prefix: 'CLI', organization_id: orgId },
+      { name: 'Procesos Internos',        icon: '⚙️', color: '#8B5CF6', prefix: 'PRO', organization_id: orgId },
+      { name: 'Aprendizaje y Crecimiento',icon: '🚀', color: '#F59E0B', prefix: 'APR', organization_id: orgId },
     ];
     const { data, error } = await supabase.from('perspectives').insert(defaults).select();
     if (error) { console.error('perspectiveService.initDefaults:', error.message); return defaults.map((d,i)=>({...d,id:i+1})); }
@@ -170,8 +171,8 @@ export const objectivesService = {
     const { data, error } = await supabase
       .from('objectives')
       .select('*')
-      .eq('organization_id', orgId)
-      .order('created_at', { ascending: false });
+      .eq('organization_id', orgId);
+    // Sin order('created_at') — la columna no existe en todas las instancias
     if (error) { console.error('objectivesService.getAll:', error.message); return []; }
     return data || [];
   },
@@ -278,9 +279,12 @@ const AI_KEY_MISSING = '⚠️ La IA no está disponible. Configura VITE_GEMINI_
 export const groqService = {
   isAvailable: () => !!import.meta.env.VITE_GEMINI_API_KEY,
 
-  chat: async (messages, model = 'gemini-2.0-flash') => {
+  // _model se ignora intencionalmente — siempre se usa gemini-2.0-flash
+  // (los módulos viejos pasaban 'llama3-70b-8192' etc que Gemini no acepta)
+  chat: async (messages, _model = 'gemini-2.0-flash') => {
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
     if (!apiKey) throw new Error(AI_KEY_MISSING);
+    const model = 'gemini-2.0-flash';
 
     const res = await fetch(
       'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',

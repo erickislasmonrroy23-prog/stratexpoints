@@ -59,7 +59,7 @@ export default function OKRGenerator() {
         }
       ];
       
-      const raw = await groqService.chat(prompt, 'llama3-8b-8192');
+      const raw = await groqService.chat(prompt);
       
       // Parsear JSON de la respuesta
       const jsonMatch = raw.match(/\[.*\]/s);

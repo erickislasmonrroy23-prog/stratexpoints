@@ -52,7 +52,7 @@ export default function Simulator() {
           role: 'user',
           content: 'Organización: ' + (ctx.org||'') + '\nEscenario: ' + scenarioLabels[scenario] + '\nDescripción: ' + scenarioContext + '\nDatos actuales: ' + JSON.stringify(ctx)
         }
-      ], 'llama3-70b-8192');
+      ]);
 
       setResult(analysis);
     } catch (e) {
