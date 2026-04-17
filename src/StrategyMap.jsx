@@ -24,7 +24,7 @@ function ObjectiveDetailModal({ objective, perspectives, onClose, onUpdate }) {
         <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
                 <div style={{ width: 40, height: 40, borderRadius: '50%', background: perspective.color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800 }}>
-                    {perspective.prefix}
+                    {perspective.prefix || (perspective.name||'?').substring(0,3).toUpperCase()}
                 </div>
                 <div>
                     <h3 style={{ fontSize: 18, color: 'var(--text)', marginBottom: 4 }}>{objective.name}</h3>
@@ -228,11 +228,13 @@ export default function StrategyMap({ onCreateObjective, onDeleteObjective, onUp
             </div>
           </div>
           {perspectives.map((persp, index) => {
+            // prefix se deriva del nombre si no existe la columna en BD
+            const perspPrefix = persp.prefix || (persp.name || '???').substring(0, 3).toUpperCase();
             // Filtra por perspective_id primero (más confiable), con fallback al prefix del código
             const objs = objectives?.filter(o =>
               o.perspective_id === persp.id ||
               o.perspective_id === String(persp.id) ||
-              (o.code && (o.code + '').startsWith(persp.prefix))
+              (o.code && perspPrefix && (o.code + '').startsWith(perspPrefix))
             ) || [];
             
             const getStrategicTheme = (obj, perspId) => {

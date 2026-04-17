@@ -28,11 +28,8 @@ export default function ModuloOKRs({onModal,onEdit, onDelete}){
       const { data, error } = await (await import('./supabase.js')).supabase
         .from('okrs')
         .insert({
-          objective: createForm.objective,
-          title: createForm.objective,       // compatibilidad con filas que usan title
-          description: createForm.description,
+          objective: createForm.objective,   // campo principal de la tabla
           owner: createForm.owner,
-          due_date: createForm.dueDate || null,
           progress: parseInt(createForm.progress) || 0,
           status: createForm.status,
           organization_id: profile?.organization_id,

@@ -55,8 +55,8 @@ export default function StrategicEngine() {
       if (parsed.objectives) {
         for (const o of parsed.objectives) {
           const perspectiveId = o.perspective_id || 1; // Default to Financial
-          const perspective = (perspectives || []).find(p => p.id === perspectiveId) || { prefix: 'AI' };
-          const prefix = perspective.prefix;
+          const perspective = (perspectives || []).find(p => p.id === perspectiveId) || { name: 'AI' };
+          const prefix = perspective.prefix || (perspective.name || 'AI').substring(0, 3).toUpperCase();
 
           const objectivesInPerspective = tempObjectives.filter(obj => obj.perspective_id === perspectiveId && obj.code?.startsWith(prefix));
           const existingNumbers = objectivesInPerspective

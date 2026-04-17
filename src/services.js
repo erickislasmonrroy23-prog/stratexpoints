@@ -120,12 +120,12 @@ export const perspectiveService = {
   },
   initDefaults: async (orgId) => {
     if (!orgId) return [];
-    // Sin campo 'order' — la columna no existe en todas las instancias de la tabla
+    // Solo columnas que existen en la tabla: id, organization_id, name, icon, color, order_index, created_at
     const defaults = [
-      { name: 'Financiera',               icon: '💰', color: '#10B981', prefix: 'FIN', organization_id: orgId },
-      { name: 'Clientes',                 icon: '🤝', color: '#3B82F6', prefix: 'CLI', organization_id: orgId },
-      { name: 'Procesos Internos',        icon: '⚙️', color: '#8B5CF6', prefix: 'PRO', organization_id: orgId },
-      { name: 'Aprendizaje y Crecimiento',icon: '🚀', color: '#F59E0B', prefix: 'APR', organization_id: orgId },
+      { name: 'Financiera',                icon: '💰', color: '#10B981', order_index: 1, organization_id: orgId },
+      { name: 'Clientes',                  icon: '🤝', color: '#3B82F6', order_index: 2, organization_id: orgId },
+      { name: 'Procesos Internos',         icon: '⚙️', color: '#8B5CF6', order_index: 3, organization_id: orgId },
+      { name: 'Aprendizaje y Crecimiento', icon: '🚀', color: '#F59E0B', order_index: 4, organization_id: orgId },
     ];
     const { data, error } = await supabase.from('perspectives').insert(defaults).select();
     if (error) { console.error('perspectiveService.initDefaults:', error.message); return defaults.map((d,i)=>({...d,id:i+1})); }
@@ -177,7 +177,9 @@ export const objectivesService = {
     return data || [];
   },
   create: async (payload) => {
-    const { data, error } = await supabase.from('objectives').insert(payload).select().single();
+    // Quitar campos que no existen en la tabla objectives
+    const { progress, created_at, updated_at, ...safePayload } = payload;
+    const { data, error } = await supabase.from('objectives').insert(safePayload).select().single();
     if (error) throw error;
     return data;
   },
