@@ -16,7 +16,7 @@ export default function CommandCenter({ globalPeriod }) {
   const handleFlashInsight = async () => {
     setFlashLoading(true);
     try {
-      const data = { okrsCount: okrs.length, kpisCount: kpis.length, orgName: currentOrg?.name };
+      const data = { okrsCount: okrs.length, kpisCount: kpis.length, orgName: currentOrganization?.name };
       const insight = await groqService.flashInsight(data);
       setFlashInsightText(insight);
     } catch (e) {
@@ -29,6 +29,7 @@ export default function CommandCenter({ globalPeriod }) {
   const initiatives = useStore(state => state.initiatives);
   const alerts = useStore(state => state.alerts);
   const profile = useStore.use.profile();
+  const currentOrganization = useStore(state => state.currentOrganization);
   const onNavigate = useStore.use.setActiveModule();
   const loadAllData = useStore.use.loadAllData();
   

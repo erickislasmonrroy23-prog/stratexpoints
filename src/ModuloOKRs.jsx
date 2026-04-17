@@ -17,18 +17,19 @@ export default function ModuloOKRs({onModal,onEdit, onDelete}){
   const can = useStore.use.can();
   const [tab,setTab]=useState("list");
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createForm, setCreateForm] = useState({ title: '', description: '', owner: '', dueDate: '', progress: 0, status: 'active' });
+  const [createForm, setCreateForm] = useState({ objective: '', description: '', owner: '', dueDate: '', progress: 0, status: 'active' });
   const [creating, setCreating] = useState(false);
 
   const handleCreateOKR = async (e) => {
     e.preventDefault();
-    if (!createForm.title.trim()) return notificationService.error('El título es requerido.');
+    if (!createForm.objective.trim()) return notificationService.error('El objetivo es requerido.');
     setCreating(true);
     try {
       const { data, error } = await (await import('./supabase.js')).supabase
         .from('okrs')
         .insert({
-          title: createForm.title,
+          objective: createForm.objective,
+          title: createForm.objective,       // compatibilidad con filas que usan title
           description: createForm.description,
           owner: createForm.owner,
           due_date: createForm.dueDate || null,
@@ -41,7 +42,7 @@ export default function ModuloOKRs({onModal,onEdit, onDelete}){
       if (error) throw error;
       notificationService.success('✅ OKR creado correctamente.');
       setShowCreateModal(false);
-      setCreateForm({ title: '', description: '', owner: '', dueDate: '', progress: 0, status: 'active' });
+      setCreateForm({ objective: '', description: '', owner: '', dueDate: '', progress: 0, status: 'active' });
       // Recargar OKRs en el store
       const { okrService } = await import('./services.js');
       const newOKRs = await okrService.getAll(profile?.organization_id);
@@ -394,7 +395,7 @@ export default function ModuloOKRs({onModal,onEdit, onDelete}){
             <form onSubmit={handleCreateOKR} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>Objetivo *</label>
-                <input className="sp-input" required placeholder="Ej: Aumentar ingresos en un 30% este trimestre" value={createForm.title} onChange={e => setCreateForm(f => ({...f, title: e.target.value}))} style={{ padding: '10px 12px', borderRadius: 8, fontSize: 14, width: '100%', boxSizing: 'border-box' }} />
+                <input className="sp-input" required placeholder="Ej: Aumentar ingresos en un 30% este trimestre" value={createForm.objective} onChange={e => setCreateForm(f => ({...f, objective: e.target.value}))} style={{ padding: '10px 12px', borderRadius: 8, fontSize: 14, width: '100%', boxSizing: 'border-box' }} />
               </div>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>Descripción</label>

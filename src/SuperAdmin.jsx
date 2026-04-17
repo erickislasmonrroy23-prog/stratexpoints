@@ -111,7 +111,10 @@ export default function SuperAdmin({ user, profile, onBack }) {
              atRisk++;
            }
         });
-        if (isMounted) setGlobalMetrics({ mrr, active, atRisk });
+        if (isMounted) {
+          setGlobalMetrics({ mrr, active, atRisk });
+          setSystemTotalUsers(profs?.length || 0);
+        }
       } catch (e) { console.error("Error metrics BI:", e); }
     }
     fetchMetrics();
