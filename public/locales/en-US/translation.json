@@ -1,1 +1,104 @@
-{"common":{"save":"Save","cancel":"Cancel","delete":"Delete","edit":"Edit","create":"Create","search":"Search","loading":"Loading...","error":"Error","success":"Success","confirm":"Confirm","back":"Back","next":"Next","close":"Close","yes":"Yes","no":"No","add":"Add","update":"Update","view":"View","export":"Export","filter":"Filter","reset":"Reset","select":"Select"},"nav":{"dashboard":"Dashboard","commandCenter":"Command Center","okrs":"OKRs","kpis":"KPIs","initiatives":"Initiatives","bsc":"BSC","strategyMap":"Strategy Map","analytics":"Analytics","aiInsights":"AI Insights","chat":"AI Chat","settings":"Settings","admin":"Administration","profile":"Profile","logout":"Sign Out"},"okr":{"title":"Objectives & Key Results","objective":"Objective","keyResult":"Key Result","progress":"Progress","status":{"notStarted":"Not Started","inProgress":"In Progress","completed":"Completed","atRisk":"At Risk","cancelled":"Cancelled"},"create":"Create OKR","owner":"Owner","dueDate":"Due Date","cycle":"Cycle"},"kpi":{"title":"Key Performance Indicators","name":"Name","value":"Value","target":"Target","unit":"Unit","frequency":"Frequency","trend":"Trend","status":{"onTrack":"On Track","atRisk":"At Risk","offTrack":"Off Track"}},"bsc":{"title":"Balanced Scorecard","financial":"Financial","customer":"Customer","process":"Internal Processes","learning":"Learning & Growth"},"auth":{"signIn":"Sign In","signOut":"Sign Out","email":"Email","password":"Password","forgotPassword":"Forgot password?"},"errors":{"generic":"Unexpected error","network":"Network error","unauthorized":"Unauthorized","notFound":"Not found"}}
+{
+  "nav": {
+    "main": "Main",
+    "home": "Command Center",
+    "strategic_center": "Strategic Center",
+    "execution": "Execution",
+    "strategy_map": "Strategy Map",
+    "okrs": "OKRs",
+    "kpis": "KPIs",
+    "initiatives": "Initiatives",
+    "intelligence": "Intelligence",
+    "ai_intel": "AI Intelligence",
+    "analytics": "Analytics 360",
+    "operations": "Operations",
+    "reports": "Reports",
+    "alerts": "Alerts"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "add": "Add",
+    "search": "Search",
+    "loading": "Loading...",
+    "noData": "No data",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "yes": "Yes",
+    "no": "No",
+    "status": "Status",
+    "actions": "Actions",
+    "name": "Name",
+    "description": "Description"
+  },
+  "auth": {
+    "login": "Sign In",
+    "logout": "Sign Out",
+    "loginTitle": "Welcome back",
+    "loginSubtitle": "Enter your credentials to access the system.",
+    "emailLabel": "Email Address",
+    "passwordLabel": "Password",
+    "loginButton": "Access Platform →",
+    "forgotPassword": "Forgot your password?",
+    "loginError": "Login error"
+  },
+  "dashboard": {
+    "welcome": "Welcome",
+    "executiveCommandCenter": "Executive Command Center",
+    "activePeriod": "Active Period",
+    "globalHealthOKR": "OKR GLOBAL HEALTH",
+    "monitoredKPIs": "MONITORED KPIs",
+    "alertStatus": "ALERT STATUS",
+    "strategicIdentity": "Strategic Identity",
+    "mission": "OUR MISSION",
+    "vision": "OUR VISION",
+    "values": "OUR VALUES"
+  },
+  "okrs": {
+    "title": "OKRs",
+    "subtitle": "objectives registered",
+    "newOKR": "+ New OKR",
+    "objective": "Objective",
+    "progress": "Progress",
+    "owner": "Owner",
+    "generateAI": "Generate with AI",
+    "status": {
+      "onTrack": "On Track",
+      "atRisk": "At Risk",
+      "behind": "Behind",
+      "completed": "Completed",
+      "not_started": "Not Started"
+    }
+  },
+  "kpis": {
+    "title": "KPIs",
+    "newKPI": "+ New KPI",
+    "target": "Target",
+    "unit": "Unit",
+    "current": "Current",
+    "frequency": "Frequency",
+    "trend": "Trend"
+  },
+  "initiatives": {
+    "title": "Initiatives",
+    "newInitiative": "+ New Initiative",
+    "phase": "Phase",
+    "budget": "Budget",
+    "responsible": "Responsible",
+    "startDate": "Start Date",
+    "endDate": "End Date"
+  },
+  "ai": {
+    "title": "AI Intelligence",
+    "analyzing": "Analyzing with Gemini AI...",
+    "generateAnalysis": "Generate New Analysis"
+  },
+  "language": {
+    "es": "Spanish",
+    "en": "English"
+  }
+}

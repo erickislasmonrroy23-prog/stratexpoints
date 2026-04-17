@@ -1,1 +1,104 @@
-{"common":{"save":"Guardar","cancel":"Cancelar","delete":"Eliminar","edit":"Editar","create":"Crear","search":"Buscar","loading":"Cargando...","error":"Error","success":"Éxito","confirm":"Confirmar","back":"Atrás","next":"Siguiente","close":"Cerrar","yes":"Sí","no":"No","add":"Agregar","update":"Actualizar","view":"Ver","export":"Exportar","filter":"Filtrar","reset":"Restablecer","select":"Seleccionar"},"nav":{"dashboard":"Dashboard","commandCenter":"Command Center","okrs":"OKRs","kpis":"KPIs","initiatives":"Iniciativas","bsc":"BSC","strategyMap":"Mapa Estratégico","analytics":"Analítica","aiInsights":"Insights IA","chat":"Chat IA","settings":"Configuración","admin":"Administración","profile":"Perfil","logout":"Cerrar Sesión"},"okr":{"title":"Objetivos y Resultados Clave","objective":"Objetivo","keyResult":"Resultado Clave","progress":"Progreso","status":{"notStarted":"Sin Iniciar","inProgress":"En Progreso","completed":"Completado","atRisk":"En Riesgo","cancelled":"Cancelado"},"create":"Crear OKR","owner":"Responsable","dueDate":"Fecha Límite","cycle":"Ciclo"},"kpi":{"title":"Indicadores Clave","name":"Nombre","value":"Valor","target":"Meta","unit":"Unidad","frequency":"Frecuencia","trend":"Tendencia","status":{"onTrack":"En Meta","atRisk":"En Riesgo","offTrack":"Fuera de Meta"}},"bsc":{"title":"Balanced Scorecard","financial":"Financiera","customer":"Clientes","process":"Procesos Internos","learning":"Aprendizaje y Crecimiento"},"auth":{"signIn":"Iniciar Sesión","signOut":"Cerrar Sesión","email":"Correo Electrónico","password":"Contraseña","forgotPassword":"¿Olvidaste tu contraseña?"},"errors":{"generic":"Error inesperado","network":"Error de conexión","unauthorized":"No autorizado","notFound":"No encontrado"}}
+{
+  "nav": {
+    "main": "Principal",
+    "home": "Command Center",
+    "strategic_center": "Centro Estratégico",
+    "execution": "Ejecución",
+    "strategy_map": "Mapa Estratégico",
+    "okrs": "OKRs",
+    "kpis": "KPIs",
+    "initiatives": "Iniciativas",
+    "intelligence": "Inteligencia",
+    "ai_intel": "Inteligencia IA",
+    "analytics": "Analítica 360",
+    "operations": "Operaciones",
+    "reports": "Reportes",
+    "alerts": "Alertas"
+  },
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "add": "Agregar",
+    "search": "Buscar",
+    "loading": "Cargando...",
+    "noData": "Sin datos",
+    "confirm": "Confirmar",
+    "back": "Regresar",
+    "next": "Siguiente",
+    "yes": "Sí",
+    "no": "No",
+    "status": "Estado",
+    "actions": "Acciones",
+    "name": "Nombre",
+    "description": "Descripción"
+  },
+  "auth": {
+    "login": "Iniciar Sesión",
+    "logout": "Cerrar Sesión",
+    "loginTitle": "Bienvenido de nuevo",
+    "loginSubtitle": "Ingresa tus credenciales para acceder al sistema.",
+    "emailLabel": "Correo Electrónico",
+    "passwordLabel": "Contraseña",
+    "loginButton": "Acceder a la Plataforma →",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "loginError": "Error de acceso"
+  },
+  "dashboard": {
+    "welcome": "Bienvenido",
+    "executiveCommandCenter": "Command Center Ejecutivo",
+    "activePeriod": "Período Activo",
+    "globalHealthOKR": "SALUD GLOBAL OKRS",
+    "monitoredKPIs": "KPIs MONITOREADOS",
+    "alertStatus": "ESTADO DE ALERTAS",
+    "strategicIdentity": "Identidad Estratégica",
+    "mission": "NUESTRA MISIÓN",
+    "vision": "NUESTRA VISIÓN",
+    "values": "NUESTROS VALORES"
+  },
+  "okrs": {
+    "title": "OKRs",
+    "subtitle": "objetivos registrados",
+    "newOKR": "+ Nuevo OKR",
+    "objective": "Objetivo",
+    "progress": "Progreso",
+    "owner": "Responsable",
+    "generateAI": "Generar con IA",
+    "status": {
+      "onTrack": "En Curso",
+      "atRisk": "En Riesgo",
+      "behind": "Atrasado",
+      "completed": "Completado",
+      "not_started": "Sin Iniciar"
+    }
+  },
+  "kpis": {
+    "title": "KPIs",
+    "newKPI": "+ Nuevo KPI",
+    "target": "Meta",
+    "unit": "Unidad",
+    "current": "Actual",
+    "frequency": "Frecuencia",
+    "trend": "Tendencia"
+  },
+  "initiatives": {
+    "title": "Iniciativas",
+    "newInitiative": "+ Nueva Iniciativa",
+    "phase": "Fase",
+    "budget": "Presupuesto",
+    "responsible": "Responsable",
+    "startDate": "Fecha Inicio",
+    "endDate": "Fecha Fin"
+  },
+  "ai": {
+    "title": "Inteligencia IA",
+    "analyzing": "Analizando con Gemini AI...",
+    "generateAnalysis": "Generar Nuevo Análisis"
+  },
+  "language": {
+    "es": "Español",
+    "en": "Inglés"
+  }
+}

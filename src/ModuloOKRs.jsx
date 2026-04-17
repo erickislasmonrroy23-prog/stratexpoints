@@ -1,4 +1,5 @@
 import React, { useState, useRef, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useStore } from './store.js';
 import { okrService, notificationService } from './services.js';
 import { shallow } from 'zustand/shallow';
@@ -7,6 +8,7 @@ import OKRGenerator from './OKRGenerator.jsx';
 import { AddBtn, TabBar, EmptyState, STATUS_COLORS, STATUS_LABELS } from './SharedUI.jsx';
 
 export default function ModuloOKRs({onModal,onEdit, onDelete}){
+  const { t } = useTranslation();
   // Using a single selector with `shallow` comparison is more performant
   // than multiple individual selectors for object/array slices. But creating a new object
   // in the selector can cause infinite loops. Using atomic selectors is safer.
@@ -204,8 +206,8 @@ export default function ModuloOKRs({onModal,onEdit, onDelete}){
           animation: matrix-shimmer 3s linear infinite;
         }
       `}</style>
-      <div className="page-header"><div><div className="page-title">🎯 OKRs</div><div className="page-subtitle">{(okrs||[]).length} objetivos registrados</div></div></div>
-      <TabBar tabs={[{id:"list",icon:"🎯",label:"Lista OKRs"},{id:"matrix",icon:"📅",label:"Matriz Anual (52 Semanas)"},{id:"gen",icon:"✨",label:"Generar con IA"}]} active={tab} onChange={setTab} rightContent={tab==="list" ? (can('create', 'okrs') ? <AddBtn onClick={function(){onModal("okr");}} label="Nuevo OKR"/> : null) : tab==="matrix" ? <div style={{display:"flex", alignItems:"center", gap: 16}}><span style={{fontSize:11, color:"var(--green)", fontWeight:600, display:"flex", alignItems:"center", gap:6}}><span style={{display:"inline-block", width:6, height:6, borderRadius:"50%", background:"var(--green)", animation:"pulse 2s infinite"}}/> Sincronizado</span><button className="sp-btn" onClick={exportToExcel} style={{background:"var(--green)",color:"#fff",border:"none"}}>📥 Excel</button></div> : null}/>
+      <div className="page-header"><div><div className="page-title">🎯 {t('okrs.title', 'OKRs')}</div><div className="page-subtitle">{(okrs||[]).length} {t('okrs.subtitle', 'objetivos registrados')}</div></div></div>
+      <TabBar tabs={[{id:"list",icon:"🎯",label:t('okrs.title','OKRs')+" — Lista"},{id:"matrix",icon:"📅",label:"Matriz Anual (52 Semanas)"},{id:"gen",icon:"✨",label:t('okrs.generateAI','Generar con IA')}]} active={tab} onChange={setTab} rightContent={tab==="list" ? (can('create', 'okrs') ? <AddBtn onClick={function(){onModal("okr");}} label="Nuevo OKR"/> : null) : tab==="matrix" ? <div style={{display:"flex", alignItems:"center", gap: 16}}><span style={{fontSize:11, color:"var(--green)", fontWeight:600, display:"flex", alignItems:"center", gap:6}}><span style={{display:"inline-block", width:6, height:6, borderRadius:"50%", background:"var(--green)", animation:"pulse 2s infinite"}}/> Sincronizado</span><button className="sp-btn" onClick={exportToExcel} style={{background:"var(--green)",color:"#fff",border:"none"}}>📥 Excel</button></div> : null}/>
       <div className="fade-up">
         {tab==="list"&&((okrs||[]).length===0?
           <EmptyState icon="🎯" title="Sin OKRs registrados" desc="Crea tus primeros objetivos estrategicos" action={can('create', 'okrs') ? <AddBtn onClick={function(){onModal("okr");}} label="Crear OKR"/> : null}/>:

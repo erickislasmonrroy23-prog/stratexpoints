@@ -1,43 +1,39 @@
 {
   "nav": {
-    "commandCenter": "Command Center",
-    "strategicCenter": "Centro Estratégico",
-    "strategicMap": "Mapa Estratégico",
+    "main": "Principal",
+    "home": "Command Center",
+    "strategic_center": "Centro Estratégico",
+    "execution": "Ejecución",
+    "strategy_map": "Mapa Estratégico",
     "okrs": "OKRs",
     "kpis": "KPIs",
     "initiatives": "Iniciativas",
-    "aiIntelligence": "Inteligencia IA",
-    "analytics": "Analítica",
+    "intelligence": "Inteligencia",
+    "ai_intel": "Inteligencia IA",
+    "analytics": "Analítica 360",
+    "operations": "Operaciones",
     "reports": "Reportes",
     "alerts": "Alertas"
   },
   "common": {
     "save": "Guardar",
     "cancel": "Cancelar",
-    "edit": "Editar",
     "delete": "Eliminar",
+    "edit": "Editar",
     "create": "Crear",
-    "update": "Actualizar",
+    "add": "Agregar",
     "search": "Buscar",
     "loading": "Cargando...",
-    "noData": "Sin datos disponibles",
+    "noData": "Sin datos",
     "confirm": "Confirmar",
     "back": "Regresar",
     "next": "Siguiente",
     "yes": "Sí",
     "no": "No",
-    "active": "Activo",
-    "inactive": "Inactivo",
     "status": "Estado",
     "actions": "Acciones",
     "name": "Nombre",
-    "description": "Descripción",
-    "date": "Fecha",
-    "user": "Usuario",
-    "role": "Rol",
-    "email": "Correo",
-    "password": "Contraseña",
-    "welcome": "Bienvenido"
+    "description": "Descripción"
   },
   "auth": {
     "login": "Iniciar Sesión",
@@ -48,9 +44,6 @@
     "passwordLabel": "Contraseña",
     "loginButton": "Acceder a la Plataforma →",
     "forgotPassword": "¿Olvidaste tu contraseña?",
-    "resetTitle": "Recuperar contraseña",
-    "resetButton": "Enviar enlace →",
-    "backToLogin": "← Volver al login",
     "loginError": "Error de acceso"
   },
   "dashboard": {
@@ -58,62 +51,41 @@
     "executiveCommandCenter": "Command Center Ejecutivo",
     "activePeriod": "Período Activo",
     "globalHealthOKR": "SALUD GLOBAL OKRS",
-    "monitoredKPIs": "KPIS MONITOREADOS",
+    "monitoredKPIs": "KPIs MONITOREADOS",
     "alertStatus": "ESTADO DE ALERTAS",
-    "critical": "Críticas",
-    "active": "Activos",
-    "indicators": "Indicadores",
-    "executionBalance": "Balance de Ejecución (Iniciativas)",
-    "completed": "Completadas",
-    "inProgress": "En Progreso / Riesgo",
     "strategicIdentity": "Identidad Estratégica",
     "mission": "NUESTRA MISIÓN",
     "vision": "NUESTRA VISIÓN",
-    "values": "NUESTROS VALORES",
-    "predictiveScore": "Score Predictivo (IA)",
-    "currentProgress": "Progreso Actual",
-    "projection30": "Proyección 30 Días",
-    "projection90": "Proyección 90 Días",
-    "directionAssistant": "Asistente de Dirección (IA)"
+    "values": "NUESTROS VALORES"
   },
   "okrs": {
     "title": "OKRs",
     "subtitle": "objetivos registrados",
     "newOKR": "+ Nuevo OKR",
-    "createOKR": "+ Crear OKR",
-    "noOKRs": "Sin OKRs registrados",
-    "noOKRsDesc": "Crea tus primeros objetivos estratégicos",
     "objective": "Objetivo",
-    "keyResult": "Resultado Clave",
     "progress": "Progreso",
     "owner": "Responsable",
-    "dueDate": "Fecha Límite",
-    "confidence": "Confianza",
+    "generateAI": "Generar con IA",
     "status": {
       "onTrack": "En Curso",
       "atRisk": "En Riesgo",
       "behind": "Atrasado",
-      "completed": "Completado"
-    },
-    "annual52": "Matriz Anual (52 Semanas)",
-    "generateAI": "Generar con IA"
+      "completed": "Completado",
+      "not_started": "Sin Iniciar"
+    }
   },
   "kpis": {
     "title": "KPIs",
-    "noKPIs": "Sin KPIs registrados",
     "newKPI": "+ Nuevo KPI",
     "target": "Meta",
     "unit": "Unidad",
     "current": "Actual",
     "frequency": "Frecuencia",
-    "department": "Departamento",
-    "trend": "Tendencia",
-    "createOKRImprovement": "Crear OKR de Mejora"
+    "trend": "Tendencia"
   },
   "initiatives": {
     "title": "Iniciativas",
     "newInitiative": "+ Nueva Iniciativa",
-    "noInitiatives": "Sin iniciativas registradas",
     "phase": "Fase",
     "budget": "Presupuesto",
     "responsible": "Responsable",
@@ -122,30 +94,11 @@
   },
   "ai": {
     "title": "Inteligencia IA",
-    "chatAI": "Chat IA",
-    "strategicAI": "IA Estratégica",
-    "analyzeDocs": "Analizar Docs",
-    "newAnalysis": "Generar Nuevo Análisis Profundo con Groq IA",
-    "okrAudit": "Auditoría de OKRs (IA)",
-    "portfolioHealth": "Salud del Portafolio de OKRs",
-    "flashInsight": "Flash Insight",
-    "fullModule": "Módulo Completo"
-  },
-  "superAdmin": {
-    "title": "Panel de Administración",
-    "tenants": "Empresas",
-    "users": "Usuarios",
-    "billing": "Facturación",
-    "modules": "Módulos",
-    "branding": "Marca",
-    "security": "Seguridad",
-    "auditLog": "Registro de Auditoría",
-    "vaultTitle": "Bóveda de Administración",
-    "vaultSubtitle": "Ingresa tu PIN de seguridad para acceder al panel de control Multi-Tenant.",
-    "pinIncorrect": "Código incorrecto. Acceso denegado."
+    "analyzing": "Analizando con Gemini AI...",
+    "generateAnalysis": "Generar Nuevo Análisis"
   },
   "language": {
     "es": "Español",
-    "en": "English"
+    "en": "Inglés"
   }
 }

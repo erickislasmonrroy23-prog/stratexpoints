@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useStore } from './store.js';
 import { kpiService, notificationService } from './services.js';
 import BowlingChart from './BowlingChart.jsx';
@@ -6,6 +7,7 @@ import Prediction from './Prediction.jsx';
 import { AddBtn, TabBar, EmptyState } from './SharedUI.jsx';
 
 export default function ModuloKPIs({ onModal, onEdit, onCreateOkrFromKpi, onDelete }) {
+  const { t } = useTranslation();
   const kpis    = useStore(state => state.kpis);
   const profile = useStore.use.profile();
   const can     = useStore.use.can();
@@ -108,14 +110,14 @@ export default function ModuloKPIs({ onModal, onEdit, onCreateOkrFromKpi, onDele
     <div>
       <div className="page-header">
         <div>
-          <div className="page-title">KPIs</div>
+          <div className="page-title">{t('kpis.title', 'KPIs')}</div>
           <div className="page-subtitle">{(kpis || []).length} indicadores activos</div>
         </div>
       </div>
 
       <TabBar
         tabs={[
-          { id: 'list',       icon: '📊', label: 'Indicadores' },
+          { id: 'list',       icon: '📊', label: t('kpis.title', 'KPIs') },
           { id: 'bowling',    icon: '🎳', label: 'Bowling KPI' },
           { id: 'prediction', icon: '📈', label: 'Prediccion'  },
         ]}

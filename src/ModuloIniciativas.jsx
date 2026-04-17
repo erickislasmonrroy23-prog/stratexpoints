@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useStore } from './store.js';
 import { deepEqual } from 'fast-equals';
 import { shallow } from 'zustand/shallow';
@@ -7,6 +8,7 @@ import Simulator from './Simulator.jsx';
 import { AddBtn, TabBar, EmptyState, STATUS_COLORS, STATUS_LABELS } from './SharedUI.jsx';
 
 export default function ModuloIniciativas({onModal, onDelete}){
+  const { t } = useTranslation();
   const initiatives = useStore(state => state.initiatives);
   const profile = useStore.use.profile();
   const can = useStore.use.can();
@@ -75,8 +77,8 @@ export default function ModuloIniciativas({onModal, onDelete}){
 
   return(
     <div>
-      <div className="page-header"><div><div className="page-title">🚀 Iniciativas</div><div className="page-subtitle">{(initiatives||[]).length} iniciativas registradas</div></div></div>
-      <TabBar tabs={[{id:"list",icon:"🚀",label:"Lista"},{id:"kanban",icon:"📋",label:"Kanban"},{id:"simulator",icon:"🎮",label:"Simulador"}]} active={tab} onChange={setTab} rightContent={tab!=="simulator" && can('create', 'initiatives') && <AddBtn onClick={function(){onModal("initiative");}} label="Nueva" color="var(--violet)"/>}/>
+      <div className="page-header"><div><div className="page-title">🚀 {t('initiatives.title', 'Iniciativas')}</div><div className="page-subtitle">{(initiatives||[]).length} {t('initiatives.title', 'iniciativas')} registradas</div></div></div>
+      <TabBar tabs={[{id:"list",icon:"🚀",label:t('initiatives.title','Iniciativas')+" — Lista"},{id:"kanban",icon:"📋",label:"Kanban"},{id:"simulator",icon:"🎮",label:"Simulador"}]} active={tab} onChange={setTab} rightContent={tab!=="simulator" && can('create', 'initiatives') && <AddBtn onClick={function(){onModal("initiative");}} label="Nueva" color="var(--violet)"/>}/>
       <div className="fade-up">
         {tab==="list"&&((initiatives||[]).length===0?
           <EmptyState icon="🚀" title="Sin iniciativas" desc="Crea iniciativas estrategicas" action={can('create', 'initiatives') ? <AddBtn onClick={function(){onModal("initiative");}} label="Crear Iniciativa" color="var(--violet)"/> : null}/>:

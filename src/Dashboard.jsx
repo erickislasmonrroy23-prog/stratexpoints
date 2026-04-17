@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   RadarChart, Radar, PolarGrid, PolarAngleAxis,
@@ -27,6 +28,7 @@ function StatCard({ icon, label, value, sub, color = 'var(--primary)', trend }) 
 }
 
 export default function Dashboard() {
+  const { t } = useTranslation();
   const okrs        = useStore(s => s.okrs        || []);
   const kpis        = useStore(s => s.kpis        || []);
   const initiatives = useStore(s => s.initiatives || []);
@@ -96,7 +98,7 @@ export default function Dashboard() {
       {/* Título */}
       <div>
         <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 4 }}>
-          📊 Analítica Estratégica
+          📊 {t('dashboard.executiveCommandCenter', 'Analítica Estratégica')}
         </h2>
         <p style={{ fontSize: 13, color: 'var(--text3)' }}>
           {org?.name} · {okrs.length} OKRs · {kpis.length} KPIs · {initiatives.length} Iniciativas
