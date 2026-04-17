@@ -45,7 +45,9 @@ export default function NotificationCenter({ organizationId }) {
         setAlerts(prev => [payload.new, ...prev]);
         notificationService.info('Nueva alerta: ' + (payload.new.title || 'Alerta nueva'));
       })
-      .subscribe();
+      .subscribe((status, err) => {
+        if (err) console.warn('[Realtime] Alertas no disponible en tiempo real:', err.message || err);
+      });
 
     return () => { supabase.removeChannel(channel); };
   }, [organizationId]);

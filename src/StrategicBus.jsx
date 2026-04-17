@@ -24,11 +24,15 @@ export default function StrategicBus() {
         setLogs(prev => [{ id: Date.now(), type: 'KPI_SYNC', msg: `Indicador ${action}. Recalculando Score Global del mapa...`, color: 'var(--teal)' }, ...prev].slice(0, 6));
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'okrs' }, (payload) => {
-         const isRisk = payload.new?.status === 'at_risk';
-         setLogs(prev => [{ id: Date.now(), type: isRisk ? 'ALERTA' : 'EVENTO', msg: `Cambio en OKR detectado. Actualizando tableros dependientes...`, color: isRisk ? 'var(--red)' : 'var(--primary)' }, ...prev].slice(0, 6));
+        const isRisk = payload.new?.status === 'at_risk';
+        setLogs(prev => [{ id: Date.now(), type: isRisk ? 'ALERTA' : 'EVENTO', msg: `Cambio en OKR detectado. Actualizando tableros dependientes...`, color: isRisk ? 'var(--red)' : 'var(--primary)' }, ...prev].slice(0, 6));
       })
-      .subscribe();
-      
+      .subscribe((status, err) => {
+        if (err || status === 'CHANNEL_ERROR') {
+          setLogs(prev => [{ id: Date.now(), type: 'MODO', msg: 'Modo polling activo. Realtime no disponible en este plan.', color: 'var(--gold)' }, ...prev].slice(0, 6));
+        }
+      });
+
     return () => { supabase.removeChannel(channel); }
   }, []);
 

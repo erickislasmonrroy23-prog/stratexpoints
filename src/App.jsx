@@ -368,10 +368,6 @@ function MainApp({ onLogout, onSuperAdmin }){
   const setAuth = useStore(state => state.setAuth);
   const profile = impersonatedProfile || realProfile;
 
-  // DEBUG: Revisa la consola del navegador para ver el perfil de usuario que la app está recibiendo.
-  // Si eres Super Admin, 'is_super_admin' debe ser 'true' aquí.
-  console.log("Perfil de usuario actual (realProfile):", realProfile);
-
   const setupSubscriptions = useStore.use.setupSubscriptions();
   const can = useStore.use.can();
   const unsubscribeRealtime = useStore.use.unsubscribeRealtime();
@@ -772,19 +768,18 @@ export default function App(){
   const setAuth = useStore(state => state.setAuth);
   const SUPER_ADMIN_SECRET_CODE = import.meta.env.VITE_SUPER_ADMIN_SECRET_CODE || null;
 
+  const profileLoadingRef = useRef(false);
+
   useEffect(function(){
     initTheme();
-    let profileLoading = false;
 
     // Suscribirse PRIMERO para no perdernos el evento PASSWORD_RECOVERY
     var sub = supabase.auth.onAuthStateChange(function(event, session){
       if (event === 'PASSWORD_RECOVERY') {
-        // El usuario llegó desde el enlace de recuperación — no intentar cargar perfil
         setLoading(false);
         return;
       }
       if (event === 'USER_UPDATED') {
-        // Contraseña cambiada — limpiar sesión para forzar login limpio
         setAuth(null, null);
         setLoading(false);
         return;
@@ -792,23 +787,24 @@ export default function App(){
       if (event === 'SIGNED_OUT') {
         setAuth(null, null);
         setLoading(false);
+        profileLoadingRef.current = false;
         return;
       }
-      if (session && session.user && !profileLoading) {
-        profileLoading = true;
-        loadProfile(session.user).finally(() => { profileLoading = false; });
+      if (session && session.user && !profileLoadingRef.current) {
+        profileLoadingRef.current = true;
+        loadProfile(session.user).finally(() => { profileLoadingRef.current = false; });
       } else if (!session) {
         setLoading(false);
         setAuth(null, null);
       }
     });
 
-    // Luego verificar si ya hay sesión activa
+    // Luego verificar si ya hay sesión activa (solo si onAuthStateChange no lo tomó)
     supabase.auth.getSession().then(function(res){
       var session = res.data.session;
-      if (session && session.user && !profileLoading) {
-        profileLoading = true;
-        loadProfile(session.user).finally(() => { profileLoading = false; });
+      if (session && session.user && !profileLoadingRef.current) {
+        profileLoadingRef.current = true;
+        loadProfile(session.user).finally(() => { profileLoadingRef.current = false; });
       } else if (!session) {
         setLoading(false);
       }

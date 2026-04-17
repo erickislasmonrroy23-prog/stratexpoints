@@ -128,7 +128,9 @@ export const createDataSlice = (set, get) => ({
       );
     });
 
-    channel.subscribe();
+    channel.subscribe((status, err) => {
+      if (err) console.warn('[Realtime] No disponible (plan free o tabla sin replicación):', err.message || err);
+    });
     set({ _realtimeChannel: channel });
   },
 
