@@ -270,49 +270,64 @@ export const autoAlertService = {
   }
 };
 
-// ── Groq AI Service ──────────────────────────────────────────────────────────
-const GROQ_KEY_MISSING = '⚠️ La IA no está disponible. Configura VITE_GROQ_API_KEY en Vercel → Settings → Environment Variables y vuelve a desplegar.';
+// ── Gemini AI Service (Google — gratis hasta 1,500 req/día) ──────────────────
+// Usa el endpoint OpenAI-compatible de Google para máxima compatibilidad.
+// Key gratuita en: https://aistudio.google.com → Get API Key
+const AI_KEY_MISSING = '⚠️ La IA no está disponible. Configura VITE_GEMINI_API_KEY en Vercel → Settings → Environment Variables y vuelve a desplegar. Key gratuita en: aistudio.google.com';
 
 export const groqService = {
-  isAvailable: () => !!import.meta.env.VITE_GROQ_API_KEY,
-  chat: async (messages, model = 'llama3-8b-8192') => {
-    const apiKey = import.meta.env.VITE_GROQ_API_KEY;
-    if (!apiKey) throw new Error(GROQ_KEY_MISSING);
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
-      body: JSON.stringify({ model, messages, max_tokens: 2048, temperature: 0.7 }),
-    });
+  isAvailable: () => !!import.meta.env.VITE_GEMINI_API_KEY,
+
+  chat: async (messages, model = 'gemini-2.0-flash') => {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    if (!apiKey) throw new Error(AI_KEY_MISSING);
+
+    const res = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + apiKey,
+        },
+        body: JSON.stringify({ model, messages, max_tokens: 2048, temperature: 0.7 }),
+      }
+    );
+
     if (!res.ok) {
       const e = await res.json().catch(() => ({}));
-      // Manejo específico de errores Groq más comunes
-      if (res.status === 401) throw new Error('VITE_GROQ_API_KEY inválida o expirada. Genera una nueva en console.groq.com.');
-      if (res.status === 429) throw new Error('Límite de solicitudes Groq alcanzado. Intenta en unos segundos.');
-      throw new Error(e?.error?.message || 'Error Groq HTTP ' + res.status);
+      if (res.status === 400) throw new Error('VITE_GEMINI_API_KEY inválida. Verifica la key en aistudio.google.com.');
+      if (res.status === 429) throw new Error('Límite de solicitudes Gemini alcanzado. Intenta en unos segundos.');
+      throw new Error(e?.error?.message || 'Error Gemini HTTP ' + res.status);
     }
+
     const data = await res.json();
     return data.choices?.[0]?.message?.content || '';
   },
+
   analyzeOKRs: async (okrs, kpis) => {
     return groqService.chat([
       { role: 'system', content: 'Eres consultor experto en OKRs y KPIs. Analiza y entrega: 1) Salud general 2) Top 3 riesgos 3) Top 3 recomendaciones. Español, máximo 400 palabras.' },
-      { role: 'user', content: 'OKRs: ' + JSON.stringify((okrs||[]).slice(0,10)) + ' | KPIs: ' + JSON.stringify((kpis||[]).slice(0,10)) }
+      { role: 'user', content: 'OKRs: ' + JSON.stringify((okrs||[]).slice(0,10)) + ' | KPIs: ' + JSON.stringify((kpis||[]).slice(0,10)) },
     ]);
   },
+
   flashInsight: async (data) => {
     return groqService.chat([
       { role: 'system', content: 'Asesor ejecutivo. Da 3 insights estratégicos accionables en máximo 5 oraciones. Español.' },
-      { role: 'user', content: 'Datos: ' + JSON.stringify(data) }
+      { role: 'user', content: 'Datos: ' + JSON.stringify(data) },
     ]);
   },
+
   analyzeDocument: async (text, question) => {
     return groqService.chat([
       { role: 'system', content: 'Analista experto. Responde de forma concisa y estructurada. Español.' },
-      { role: 'user', content: 'Documento:\n' + text.substring(0,8000) + '\n\nPregunta: ' + (question || 'Puntos principales del documento') }
+      { role: 'user', content: 'Documento:\n' + text.substring(0, 8000) + '\n\nPregunta: ' + (question || 'Puntos principales del documento') },
     ]);
   },
-  ask: async (messages, jsonMode = false) => {
-    return groqService.chat(messages);
+
+  ask: async (messages, _jsonMode = false) => {
+    return groqService.chat(Array.isArray(messages) ? messages : [{ role: 'user', content: String(messages) }]);
   },
 };
 
