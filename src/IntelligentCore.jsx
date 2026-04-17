@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { groqService, initiativeService, kpiService, notificationService } from './services.js';
 import { useStore } from './store.js';
-import { shallow } from 'zustand/shallow';
 
 export default function IntelligentCore() {
   const [sensitivity, setSensitivity] = useState(50); // Valor inicial al 50%

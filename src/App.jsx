@@ -21,7 +21,6 @@ import StrategicEngine from "./StrategicEngine.jsx";
 import StrategicBus from "./StrategicBus.jsx";
 import IntelligentCore from "./IntelligentCore.jsx";
 import { useStore } from "./store.js";
-import { shallow } from 'zustand/shallow';
 import { deepEqual } from 'fast-equals';
 
 // Registrar bridge de notificaciones (evita importación circular con store)
@@ -453,10 +452,8 @@ function MainApp({ onLogout, onSuperAdmin }){
     loadAllData();
     setupSubscriptions(); // Iniciamos la conexión por WebSockets
 
-    // Solicitar permiso de notificaciones si no se ha hecho antes
-    if ('Notification' in window && Notification.permission === 'default') {
-      setTimeout(() => requestPushNotifications(), 5000); // Esperar 5s para no ser intrusivo
-    }
+    // Push notifications deshabilitadas: columna push_subscription no existe en profiles
+    // TODO: habilitar cuando se agregue la columna a la BD
     
     function handleCmd(e){if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();setCmdOpen(true);}}
     window.addEventListener("keydown",handleCmd);

@@ -2,7 +2,6 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from './store.js';
 import { deepEqual } from 'fast-equals';
-import { shallow } from 'zustand/shallow';
 import { initiativeService, notificationService } from './services.js';
 import Simulator from './Simulator.jsx';
 import { AddBtn, TabBar, EmptyState, STATUS_COLORS, STATUS_LABELS } from './SharedUI.jsx';

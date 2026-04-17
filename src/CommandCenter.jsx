@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { groqService, organizationService, notificationService } from './services.js';
 import { useStore } from './store.js';
-import { shallow } from 'zustand/shallow';
-import { supabase } from './supabase.js';
 
 export default function CommandCenter({ globalPeriod }) {
   const [quickInsight, setQuickInsight] = useState(null);
@@ -89,23 +87,8 @@ export default function CommandCenter({ globalPeriod }) {
   };
 
   const handleTestPush = async () => {
-    if (!profile?.push_subscription) {
-      notificationService.error("No tienes las notificaciones activadas. Recarga la página, espera 5 segundos y dale 'Permitir' al aviso del navegador.");
-      return;
-    }
-    try {
-      const { error } = await supabase.functions.invoke('send-push-notification', {
-        body: {
-          subscription: profile.push_subscription,
-          title: "¡Prueba Exitosa! 🚀",
-          body: "El sistema de notificaciones de Xtratia está funcionando a la perfección."
-        }
-      });
-      if (error) throw error;
-      notificationService.success("Notificación enviada. ¡Revisa tu pantalla!");
-    } catch (err) {
-      notificationService.error("Error al enviar la notificación: " + err.message);
-    }
+    // Push notifications no disponibles aún (requiere columna push_subscription en BD)
+    notificationService.info("Las notificaciones push están en desarrollo. Próximamente disponibles.");
   };
 
   return (

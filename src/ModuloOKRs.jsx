@@ -2,7 +2,6 @@ import React, { useState, useRef, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from './store.js';
 import { okrService, notificationService } from './services.js';
-import { shallow } from 'zustand/shallow';
 import * as XLSX from 'xlsx';
 import OKRGenerator from './OKRGenerator.jsx';
 import { AddBtn, TabBar, EmptyState, STATUS_COLORS, STATUS_LABELS } from './SharedUI.jsx';

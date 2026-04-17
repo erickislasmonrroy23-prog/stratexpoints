@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { groqService, objectivesService, okrService, kpiService, initiativeService, notificationService } from './services.js';
 import { useStore } from './store.js';
-import { shallow } from 'zustand/shallow';
 export default function StrategicEngine() {
   const [running, setRunning] = useState(true);
   const [baseStrategy, setBaseStrategy] = useState({ mission: '', vision: '', values: '' });

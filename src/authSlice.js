@@ -66,27 +66,10 @@ export const createAuthSlice = (set, get) => ({
     return hasPermission;
   },
 
-  // Lógica de Notificaciones Push
+  // Push notifications: deshabilitadas hasta que se agregue push_subscription a profiles
   requestPushNotifications: async () => {
-    const { profile } = get();
-    if (!profile || !('serviceWorker' in navigator) || !('PushManager' in window)) {
-      console.log("Push notifications not supported or no profile.");
-      return;
-    }
-
-    const permission = await window.Notification.requestPermission();
-    if (permission !== 'granted') {
-      console.log("Permission not granted for notifications.");
-      return;
-    }
-
-    const registration = await navigator.serviceWorker.ready;
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: import.meta.env.VITE_VAPID_PUBLIC_KEY // Tu llave pública VAPID
-    });
-
-    // Guardamos la suscripción en el perfil del usuario en Supabase
-    await supabase.from('profiles').update({ push_subscription: subscription }).eq('id', profile.id);
+    // No-op: columna push_subscription no existe en la tabla profiles de Supabase.
+    // Para habilitar: ALTER TABLE profiles ADD COLUMN push_subscription jsonb;
+    return;
   }
 });
