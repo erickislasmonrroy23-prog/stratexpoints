@@ -113,6 +113,23 @@ export const perspectiveService = {
     if (error) { console.error('perspectiveService.getAll:', error.message); return []; }
     return data || [];
   },
+  initDefaults: async (orgId) => {
+    if (!orgId) return [];
+    const defaults = [
+      { name: 'Financiera', icon: '💰', color: '#10B981', prefix: 'FIN', order: 1, organization_id: orgId },
+      { name: 'Clientes', icon: '🤝', color: '#3B82F6', prefix: 'CLI', order: 2, organization_id: orgId },
+      { name: 'Procesos Internos', icon: '⚙️', color: '#8B5CF6', prefix: 'PRO', order: 3, organization_id: orgId },
+      { name: 'Aprendizaje y Crecimiento', icon: '🚀', color: '#F59E0B', prefix: 'APR', order: 4, organization_id: orgId },
+    ];
+    const { data, error } = await supabase.from('perspectives').insert(defaults).select();
+    if (error) { console.error('perspectiveService.initDefaults:', error.message); return defaults.map((d,i)=>({...d,id:i+1})); }
+    return data || [];
+  },
+  create: async (payload) => {
+    const { data, error } = await supabase.from('perspectives').insert(payload).select().single();
+    if (error) throw error;
+    return data;
+  },
 };
 
 // ── Alert Service ─────────────────────────────────────────────────────────────
@@ -129,6 +146,16 @@ export const alertService = {
     if (error) { console.error('alertService.getAll:', error.message); return []; }
     return data || [];
   },
+  update: async (id, payload) => {
+    const { data, error } = await supabase.from('alerts').update(payload).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+  },
+  create: async (payload) => {
+    const { data, error } = await supabase.from('alerts').insert(payload).select().single();
+    if (error) throw error;
+    return data;
+  },
 };
 
 // ── Objectives Service ─────────────────────────────────────────────────────────
@@ -143,6 +170,35 @@ export const objectivesService = {
     if (error) { console.error('objectivesService.getAll:', error.message); return []; }
     return data || [];
   },
+  create: async (payload) => {
+    const { data, error } = await supabase.from('objectives').insert(payload).select().single();
+    if (error) throw error;
+    return data;
+  },
+  update: async (id, payload) => {
+    const { data, error } = await supabase.from('objectives').update(payload).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+  },
+  delete: async (id) => {
+    const { error } = await supabase.from('objectives').delete().eq('id', id);
+    if (error) throw error;
+  },
+  backfillObjectiveCodes: async (orgId) => {
+    if (!orgId) return 0;
+    const { data, error } = await supabase
+      .from('objectives').select('id, code, perspective_id')
+      .eq('organization_id', orgId).is('code', null);
+    if (error || !data || data.length === 0) return 0;
+    const counters = {};
+    await Promise.allSettled(data.map(obj => {
+      const prefix = obj.perspective_id ? String(obj.perspective_id).substring(0, 3).toUpperCase() : 'OBJ';
+      counters[prefix] = (counters[prefix] || 0) + 1;
+      const code = prefix + '-' + String(counters[prefix]).padStart(3, '0');
+      return supabase.from('objectives').update({ code }).eq('id', obj.id);
+    }));
+    return data.length;
+  },
 };
 
 // ── Organization Service ───────────────────────────────────────────────────────
@@ -155,6 +211,19 @@ export const organizationService = {
       .eq('id', orgId)
       .single();
     if (error) { console.error('organizationService.get:', error.message); return null; }
+    return data;
+  },
+  getAll: async () => {
+    const { data, error } = await supabase
+      .from('organizations')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) { console.error('organizationService.getAll:', error.message); return []; }
+    return data || [];
+  },
+  create: async (payload) => {
+    const { data, error } = await supabase.from('organizations').insert(payload).select().single();
+    if (error) throw error;
     return data;
   },
   update: async (orgId, payload) => {
@@ -231,10 +300,18 @@ export const groqService = {
       { role: 'user', content: 'Documento:\n' + text.substring(0,8000) + '\n\nPregunta: ' + (question || 'Puntos principales del documento') }
     ]);
   },
+  ask: async (messages, jsonMode = false) => {
+    return groqService.chat(messages);
+  },
 };
 
 // ── Profile Service ──────────────────────────────────────────────
 export const profileService = {
+  create: async (payload) => {
+    const { data, error } = await supabase.from('profiles').insert(payload).select().single();
+    if (error) throw error;
+    return data;
+  },
   getAll: async (orgId) => {
     if (!orgId) return [];
     const { data, error } = await supabase
@@ -274,5 +351,13 @@ export const emailService = {
   sendNotification: async (to, subject, body) => {
     console.info('emailService.sendNotification:', to, subject);
     return { success: true };
+  },
+  // Alias de sendInvitation — compatibilidad con módulos que usan sendInvite
+  sendInvite: async (email, orgName) => {
+    return emailService.sendInvitation(email, orgName);
+  },
+  sendInvoice: async (email, invoiceData) => {
+    console.info('emailService.sendInvoice:', email, invoiceData);
+    return { success: true, message: 'Factura enviada (simulada)' };
   },
 };

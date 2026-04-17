@@ -4,7 +4,7 @@ import { okrService, notificationService } from './services.js';
 import { shallow } from 'zustand/shallow';
 import * as XLSX from 'xlsx';
 import OKRGenerator from './OKRGenerator.jsx';
-import { AddBtn, TabBar, EmptyState, SC, SL } from './SharedUI.jsx';
+import { AddBtn, TabBar, EmptyState, STATUS_COLORS, STATUS_LABELS } from './SharedUI.jsx';
 
 export default function ModuloOKRs({onModal,onEdit, onDelete}){
   // Using a single selector with `shallow` comparison is more performant
@@ -248,7 +248,7 @@ export default function ModuloOKRs({onModal,onEdit, onDelete}){
                   {!collapsedDepts[dept] && (
                   <div className="scale-in" style={{display:"flex",flexDirection:"column",gap:12,paddingLeft:28,borderLeft:"2px dashed var(--border)", marginLeft: 28, marginBottom: 32}}>
                     {okrs.map(function(okr){
-                      var pct=okr.progress||0;var sc=SC[okr.status]||"var(--text3)";
+                      var pct=okr.progress||0;var sc=STATUS_COLORS[okr.status]||"var(--text3)";
                       var parentObj = (objectives || []).find(o => String(o.id) === String(okr.objective_id));
                       var progColor = pct <= 30 ? "var(--red)" : pct <= 70 ? "var(--gold)" : "var(--green)";
                       const hasKrs = okr.krs && okr.krs.length > 0;
@@ -259,7 +259,7 @@ export default function ModuloOKRs({onModal,onEdit, onDelete}){
                             <div style={{flex:1,marginRight:12}}>
                               <div style={{fontSize:15,fontWeight:700,color:"var(--text)",marginBottom:10,lineHeight:1.4}}>{okr.objective}</div>
                               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                                <span className="sp-badge" style={{background:(sc||"var(--text3)")+"20",color:sc}}>{SL[okr.status]||okr.status}</span>
+                                <span className="sp-badge" style={{background:(sc||"var(--text3)")+"20",color:sc}}>{STATUS_LABELS[okr.status]||okr.status}</span>
                                 {okr.owner&&<span style={{fontSize:12,color:"var(--text3)"}}>👤 {okr.owner}</span>}
                                 <span style={{fontSize:12,color:"var(--text3)"}}>📅 {okr.period}</span>
                                 {parentObj && <span style={{fontSize:11,color:"var(--primary)",background:"var(--primary-light)",padding:"4px 10px",borderRadius:6,display:"flex",alignItems:"center",gap:6,whiteSpace:"nowrap",fontWeight:700}}>🔗 {parentObj.code || '?'} - {parentObj.name}</span>}

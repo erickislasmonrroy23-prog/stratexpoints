@@ -7,6 +7,7 @@ import { AddBtn, TabBar, EmptyState } from './SharedUI.jsx';
 
 export default function ModuloKPIs({ onModal, onEdit, onCreateOkrFromKpi, onDelete }) {
   const kpis = useStore(state => state.kpis);
+  const profile = useStore.use.profile();
   const can = useStore.use.can();
   const [tab, setTab] = useState('list');
   const [showKpiModal, setShowKpiModal] = useState(false);

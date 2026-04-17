@@ -54,40 +54,51 @@ export function SkeletonMetrics({ count = 3 }) {
 }
 export const SC = SkeletonCard;
 export const SL = SkeletonLine;
-export function TabBar({ tabs = [], active, onSelect, style = {} }) {
+export function TabBar({ tabs = [], active, onSelect, onChange, rightContent, style = {} }) {
+  const handleClick = (id) => {
+    if (onChange) onChange(id);
+    else if (onSelect) onSelect(id);
+  };
   return (
-    <div style={{ display: 'flex', gap: 4, padding: '4px', background: 'var(--bg2)', borderRadius: 10, border: '1px solid var(--border)', flexWrap: 'wrap', ...style }}>
-      {tabs.map(tab => {
-        const id = typeof tab === 'object' ? tab.id : tab;
-        const label = typeof tab === 'object' ? (tab.label || tab.id) : tab;
-        return (
-          <button key={id} onClick={() => onSelect(id)}
-            style={{ padding: '7px 14px', borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: 'pointer', background: active === id ? 'var(--bg)' : 'transparent', color: active === id ? 'var(--text)' : 'var(--text3)', border: active === id ? '1px solid var(--border)' : '1px solid transparent', transition: 'all 0.15s' }}>
-            {label}
-          </button>
-        );
-      })}
+    <div style={{ display: 'flex', gap: 4, padding: '4px', background: 'var(--bg2)', borderRadius: 10, border: '1px solid var(--border)', flexWrap: 'wrap', alignItems: 'center', ...style }}>
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', flex: 1 }}>
+        {tabs.map(tab => {
+          const id = typeof tab === 'object' ? tab.id : tab;
+          const label = typeof tab === 'object' ? (tab.label || tab.id) : tab;
+          const icon = typeof tab === 'object' ? tab.icon : null;
+          return (
+            <button key={id} onClick={() => handleClick(id)}
+              style={{ padding: '7px 14px', borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: 'pointer', background: active === id ? 'var(--bg)' : 'transparent', color: active === id ? 'var(--text)' : 'var(--text3)', border: active === id ? '1px solid var(--border)' : '1px solid transparent', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 6 }}>
+              {icon && <span style={{ fontSize: 14 }}>{icon}</span>}
+              {label}
+            </button>
+          );
+        })}
+      </div>
+      {rightContent && <div style={{ marginLeft: 'auto', flexShrink: 0 }}>{rightContent}</div>}
     </div>
   );
 }
 
-export function AddBtn({ onClick, children = '+ Agregar', style = {}, disabled = false }) {
+export function AddBtn({ onClick, children, label, color, style = {}, disabled = false }) {
   return (
     <button onClick={onClick} disabled={disabled} className="sp-btn sp-btn-primary"
-      style={{ padding: '9px 16px', borderRadius: 8, fontWeight: 700, fontSize: 13, ...style }}>
-      {children}
+      style={{ padding: '9px 16px', borderRadius: 8, fontWeight: 700, fontSize: 13, ...(color ? { background: color } : {}), ...style }}>
+      {children || (label ? `+ ${label}` : '+ Agregar')}
     </button>
   );
 }
 
-export function EmptyState({ icon = '\uD83D\uDCED', title = 'Sin datos', desc = '', action = null, actionLabel = 'Crear' }) {
+export function EmptyState({ icon = '📭', title = 'Sin datos', desc = '', action = null, actionLabel = 'Crear' }) {
   return (
     <div style={{ textAlign: 'center', padding: '48px 24px', background: 'var(--bg2)', borderRadius: 16, border: '2px dashed var(--border)' }}>
       <div style={{ fontSize: 48, marginBottom: 12 }}>{icon}</div>
       <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>{title}</div>
       {desc && <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16, maxWidth: 320, margin: '0 auto 16px' }}>{desc}</div>}
       {action && (
-        <button onClick={action} className="sp-btn sp-btn-primary" style={{ padding: '10px 24px', borderRadius: 10, fontWeight: 700, fontSize: 14 }}>+ {actionLabel}</button>
+        typeof action === 'function'
+          ? <button onClick={action} className="sp-btn sp-btn-primary" style={{ padding: '10px 24px', borderRadius: 10, fontWeight: 700, fontSize: 14 }}>+ {actionLabel}</button>
+          : action
       )}
     </div>
   );
@@ -153,3 +164,32 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = 520 }) {
     </div>
   );
 }
+
+// ── Mapas de estado (Status) para OKRs / KPIs / Iniciativas ──────────────────
+export const STATUS_COLORS = {
+  on_track:    'var(--green)',
+  completed:   'var(--teal)',
+  at_risk:     'var(--gold)',
+  behind:      'var(--red)',
+  not_started: 'var(--text3)',
+  active:      'var(--primary)',
+  in_progress: 'var(--teal)',
+  planning:    'var(--primary)',
+  cancelled:   'var(--red)',
+  paused:      'var(--text3)',
+  on_hold:     'var(--gold)',
+};
+
+export const STATUS_LABELS = {
+  on_track:    'En camino',
+  completed:   'Completado',
+  at_risk:     'En riesgo',
+  behind:      'Retrasado',
+  not_started: 'Sin iniciar',
+  active:      'Activo',
+  in_progress: 'En progreso',
+  planning:    'Planeación',
+  cancelled:   'Cancelado',
+  paused:      'Pausado',
+  on_hold:     'En espera',
+};

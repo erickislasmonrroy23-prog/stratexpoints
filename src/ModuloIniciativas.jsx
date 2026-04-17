@@ -4,7 +4,7 @@ import { deepEqual } from 'fast-equals';
 import { shallow } from 'zustand/shallow';
 import { initiativeService, notificationService } from './services.js';
 import Simulator from './Simulator.jsx';
-import { AddBtn, TabBar, EmptyState, SC, SL } from './SharedUI.jsx';
+import { AddBtn, TabBar, EmptyState, STATUS_COLORS, STATUS_LABELS } from './SharedUI.jsx';
 
 export default function ModuloIniciativas({onModal, onDelete}){
   const initiatives = useStore(state => state.initiatives);
@@ -36,7 +36,13 @@ export default function ModuloIniciativas({onModal, onDelete}){
       notificationService.success('✅ Iniciativa creada correctamente.');
       setShowInitModal(false);
       setInitForm({ name: '', description: '', phase: 'planning', owner: '', start_date: '', end_date: '', budget: '', status: 'active' });
-      if (onRefresh) onRefresh();
+      // Recargar iniciativas en el store desde Supabase
+      const { initiativeService: svc } = await import('./services.js');
+      const orgId = profile?.organization_id;
+      if (orgId) {
+        const newInits = await svc.getAll(orgId);
+        useStore.getState().setInitiatives(newInits || []);
+      }
     } catch (err) { notificationService.error('Error: ' + err.message); }
     finally { setSavingInit(false); }
   };
@@ -76,11 +82,11 @@ export default function ModuloIniciativas({onModal, onDelete}){
           <EmptyState icon="🚀" title="Sin iniciativas" desc="Crea iniciativas estrategicas" action={can('create', 'initiatives') ? <AddBtn onClick={function(){onModal("initiative");}} label="Crear Iniciativa" color="var(--violet)"/> : null}/>:
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             {(initiatives||[]).map(function(ini){
-              var sc=SC[ini.status]||"var(--text3)";
+              var sc=STATUS_COLORS[ini.status]||"var(--text3)";
               return(
                 <div key={ini.id} className="sp-card" style={{padding:16,borderLeft:"3px solid "+sc}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
-                    <div style={{flex:1,marginRight:12}}><div style={{fontSize:14,fontWeight:600,color:"var(--text)",marginBottom:8}}>{ini.title}</div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><span className="sp-badge" style={{background:(sc||"var(--text3)")+"20",color:sc}}>{SL[ini.status]||ini.status}</span>{ini.owner&&<span style={{fontSize:12,color:"var(--text3)"}}>👤 {ini.owner}</span>}{ini.end_date&&<span style={{fontSize:12,color:"var(--text3)"}}>🏁 {ini.end_date}</span>}</div></div>
+                    <div style={{flex:1,marginRight:12}}><div style={{fontSize:14,fontWeight:600,color:"var(--text)",marginBottom:8}}>{ini.title}</div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><span className="sp-badge" style={{background:(sc||"var(--text3)")+"20",color:sc}}>{STATUS_LABELS[ini.status]||ini.status}</span>{ini.owner&&<span style={{fontSize:12,color:"var(--text3)"}}>👤 {ini.owner}</span>}{ini.end_date&&<span style={{fontSize:12,color:"var(--text3)"}}>🏁 {ini.end_date}</span>}</div></div>
                     <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
                       <div style={{textAlign:"right"}}><div style={{display:"flex",alignItems:"center",justifyContent:"flex-end"}}><input type="number" disabled={!can('update', 'initiatives')} min="0" max="100" defaultValue={ini.progress||0} onBlur={async function(e){var v=Math.min(100,Math.max(0,Number(e.target.value)));e.target.value=v;if(v!==(ini.progress||0)){var newStatus=ini.status;if(v===100)newStatus="completed";else if(ini.status==="completed"&&v<100)newStatus="in_progress";try{await initiativeService.update(ini.id,{progress:v,status:newStatus});}catch(err){notificationService.error(err.message);}}}} onKeyDown={function(e){if(e.key==="Enter")e.target.blur();}} style={{width:54,fontSize:20,fontWeight:800,color:sc,background:"transparent",border:"none",borderBottom:"1px dashed transparent",textAlign:"right",outline:"none",padding:0,cursor: can('update', 'initiatives') ? "text" : "not-allowed", opacity: can('update', 'initiatives') ? 1 : 0.6}}/><span style={{fontSize:20,fontWeight:800,color:sc,lineHeight:1}}>%</span></div><div style={{fontSize:10,color:"var(--text3)",marginTop:2}}>avance</div></div>
                       {can('delete', 'initiatives') && <button className="delete-btn" onClick={() => onDelete(ini.id)}>🗑</button>}
