@@ -49,18 +49,49 @@ const ModuleSkeleton = () => (
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, isChunkError: false };
   }
-  static getDerivedStateFromError(error) { return { hasError: true, error }; }
-  componentDidCatch(error, errorInfo) { console.error("Error aislando módulo:", error, errorInfo); }
+  static getDerivedStateFromError(error) {
+    // Detectar error de chunk caducado (deploy nuevo con hash diferente)
+    const isChunkError =
+      error?.name === 'TypeError' &&
+      (error?.message?.includes('Failed to fetch dynamically imported') ||
+       error?.message?.includes('Importing a module script failed') ||
+       error?.message?.includes('error loading dynamically imported module'));
+    return { hasError: true, error, isChunkError };
+  }
+  componentDidCatch(error) {
+    // Auto-recarga silenciosa si es error de chunk caducado
+    if (
+      error?.message?.includes('Failed to fetch dynamically imported') ||
+      error?.message?.includes('Importing a module script failed') ||
+      error?.message?.includes('error loading dynamically imported module')
+    ) {
+      // Solo recargar una vez para evitar bucle infinito
+      const reloadedKey = 'xtratia-chunk-reload';
+      if (!sessionStorage.getItem(reloadedKey)) {
+        sessionStorage.setItem(reloadedKey, '1');
+        window.location.reload();
+      }
+    }
+  }
   render() {
     if (this.state.hasError) {
+      if (this.state.isChunkError) {
+        return (
+          <div style={{ padding: 40, textAlign: 'center', background: 'var(--bg2)', borderRadius: 16, border: '1px solid var(--gold)' }}>
+            <div style={{ fontSize: 36, marginBottom: 12 }}>🔄</div>
+            <h3 style={{ color: 'var(--gold)', marginBottom: 8 }}>Nueva versión disponible</h3>
+            <p style={{ color: 'var(--text2)', fontSize: 13, marginBottom: 16 }}>Se detectó una actualización de la aplicación. Recargando...</p>
+            <button onClick={() => window.location.reload()} className="sp-btn" style={{ background: 'var(--primary)', color: '#fff' }}>Recargar ahora</button>
+          </div>
+        );
+      }
       return (
         <div style={{ padding: 40, textAlign: 'center', background: 'var(--bg2)', borderRadius: 16, border: '1px solid var(--red)' }}>
-          <h3 style={{ color: 'var(--red)', marginBottom: 8 }}>⚠️ Error renderizando el módulo</h3>
+          <h3 style={{ color: 'var(--red)', marginBottom: 8 }}>⚠️ Error en el módulo</h3>
           <p style={{ color: 'var(--text2)', fontSize: 13, marginBottom: 16 }}>{this.state.error?.message}</p>
-          <button onClick={() => this.setState({ hasError: false })} className="sp-btn" style={{ background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border)' }}>Reintentar</button>
-          <p style={{ color: 'var(--text3)', fontSize: 12, marginTop: 16 }}>💡 También puedes usar el menú lateral para navegar a otro módulo sin perder tu sesión.</p>
+          <button onClick={() => { sessionStorage.removeItem('xtratia-chunk-reload'); this.setState({ hasError: false, error: null }); }} className="sp-btn" style={{ background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border)' }}>Reintentar</button>
         </div>
       );
     }
