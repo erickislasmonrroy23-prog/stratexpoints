@@ -890,6 +890,13 @@ export default function App(){
   // Otherwise, render MainApp and the potential code input modal
   return (
     <>
+      {/* Banner global: clave de IA no configurada */}
+      {!import.meta.env.VITE_GROQ_API_KEY && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 99998, background: '#92400e', color: '#fef3c7', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 600 }}>
+          <span>⚠️</span>
+          <span>La IA está desactivada. Agrega <code style={{ background: 'rgba(0,0,0,0.25)', padding: '2px 6px', borderRadius: 4 }}>VITE_GROQ_API_KEY</code> en Vercel → Settings → Environment Variables y redespliega.</span>
+        </div>
+      )}
       <MainApp onLogout={handleLogout} onSuperAdmin={activateSuperAdminMode} />
       {showSuperAdminCodeModal && (
         <Modal onClose={() => setShowSuperAdminCodeModal(false)}>

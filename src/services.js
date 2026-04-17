@@ -271,10 +271,13 @@ export const autoAlertService = {
 };
 
 // ── Groq AI Service ──────────────────────────────────────────────────────────
+const GROQ_KEY_MISSING = '⚠️ La IA no está disponible. Configura VITE_GROQ_API_KEY en Vercel → Settings → Environment Variables y vuelve a desplegar.';
+
 export const groqService = {
+  isAvailable: () => !!import.meta.env.VITE_GROQ_API_KEY,
   chat: async (messages, model = 'llama3-8b-8192') => {
     const apiKey = import.meta.env.VITE_GROQ_API_KEY;
-    if (!apiKey) throw new Error('Groq API key no configurada. Agrega VITE_GROQ_API_KEY en Vercel.');
+    if (!apiKey) throw new Error(GROQ_KEY_MISSING);
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
@@ -282,6 +285,9 @@ export const groqService = {
     });
     if (!res.ok) {
       const e = await res.json().catch(() => ({}));
+      // Manejo específico de errores Groq más comunes
+      if (res.status === 401) throw new Error('VITE_GROQ_API_KEY inválida o expirada. Genera una nueva en console.groq.com.');
+      if (res.status === 429) throw new Error('Límite de solicitudes Groq alcanzado. Intenta en unos segundos.');
       throw new Error(e?.error?.message || 'Error Groq HTTP ' + res.status);
     }
     const data = await res.json();
