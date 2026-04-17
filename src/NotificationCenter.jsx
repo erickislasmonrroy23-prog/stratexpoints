@@ -32,24 +32,7 @@ export default function NotificationCenter({ organizationId }) {
 
   useEffect(() => {
     loadAlerts();
-
-    // Suscripción realtime para alertas nuevas
-    const channel = supabase
-      .channel('alerts-' + organizationId)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'alerts',
-        filter: 'organization_id=eq.' + organizationId,
-      }, (payload) => {
-        setAlerts(prev => [payload.new, ...prev]);
-        notificationService.info('Nueva alerta: ' + (payload.new.title || 'Alerta nueva'));
-      })
-      .subscribe((status, err) => {
-        if (err) console.warn('[Realtime] Alertas no disponible en tiempo real:', err.message || err);
-      });
-
-    return () => { supabase.removeChannel(channel); };
+    // Realtime deshabilitado — usa el botón 🔄 para refrescar manualmente
   }, [organizationId]);
 
   const markRead = async (alertId) => {

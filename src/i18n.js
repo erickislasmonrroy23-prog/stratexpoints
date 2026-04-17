@@ -1,6 +1,15 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
+// Logger personalizado — silencia el mensaje promocional de Locize
+// que i18next core imprime via console.info independientemente del flag debug
+const silentLogger = {
+  type: 'logger',
+  log:   () => {},   // suprime "i18next is made possible by Locize..."
+  warn:  () => {},
+  error: (args) => console.error('[i18n]', args),
+};
+
 // Recursos inline — sin petición HTTP, carga instantánea, sin mensaje Locize
 const es = {
   nav: {
@@ -79,6 +88,7 @@ const en = {
 };
 
 i18n
+  .use(silentLogger)
   .use(initReactI18next)
   .init({
     resources: {

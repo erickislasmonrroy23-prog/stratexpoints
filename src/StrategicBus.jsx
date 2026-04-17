@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from './supabase.js';
 import { useStore } from './store.js';
-import { deepEqual } from 'fast-equals';
 
 export default function StrategicBus() {
   const [logs, setLogs] = useState([
@@ -15,25 +13,13 @@ export default function StrategicBus() {
   const unlinkedInitiatives = (initiatives || []).filter(i => i.status === 'not_started' && i.progress === 0);
 
   useEffect(() => {
-    setLogs(prev => [{ id: Date.now(), type: 'ONLINE', msg: 'Sistema PUB/SUB activo. Escuchando cambios en la red en tiempo real...', color: 'var(--green)' }, ...prev]);
-    
-    // Suscripción Real a Supabase (WebSockets)
-    const channel = supabase.channel('strategic-bus')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'kpis' }, (payload) => {
-        const action = payload.eventType === 'UPDATE' ? 'actualizado' : 'creado';
-        setLogs(prev => [{ id: Date.now(), type: 'KPI_SYNC', msg: `Indicador ${action}. Recalculando Score Global del mapa...`, color: 'var(--teal)' }, ...prev].slice(0, 6));
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'okrs' }, (payload) => {
-        const isRisk = payload.new?.status === 'at_risk';
-        setLogs(prev => [{ id: Date.now(), type: isRisk ? 'ALERTA' : 'EVENTO', msg: `Cambio en OKR detectado. Actualizando tableros dependientes...`, color: isRisk ? 'var(--red)' : 'var(--primary)' }, ...prev].slice(0, 6));
-      })
-      .subscribe((status, err) => {
-        if (err || status === 'CHANNEL_ERROR') {
-          setLogs(prev => [{ id: Date.now(), type: 'MODO', msg: 'Modo polling activo. Realtime no disponible en este plan.', color: 'var(--gold)' }, ...prev].slice(0, 6));
-        }
-      });
+    // Modo polling — WebSocket deshabilitado hasta habilitar Realtime en Supabase dashboard
+    setLogs(prev => [
+      { id: Date.now(), type: 'ONLINE', msg: 'Sistema activo. Datos sincronizados por polling tras cada acción.', color: 'var(--green)' },
+      ...prev
+    ]);
 
-    return () => { supabase.removeChannel(channel); }
+    return () => {}
   }, []);
 
   return (

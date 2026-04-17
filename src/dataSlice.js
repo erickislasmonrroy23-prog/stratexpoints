@@ -1,6 +1,4 @@
 import { perspectiveService, okrService, kpiService, initiativeService, alertService, objectivesService, autoAlertService, notificationService } from './services.js';
-import { supabase } from './supabase.js';
-import { deepEqual } from 'fast-equals';
 
 // The store is flattened to avoid issues with nested object references,
 // which was a primary cause of the "Maximum update depth exceeded" error.
@@ -74,71 +72,9 @@ export const createDataSlice = (set, get) => ({
     }
   },
 
-  setupSubscriptions: () => {
-    if (get()._realtimeChannel) return;
-
-    const channel = supabase.channel('global-store-changes');
-    const tablesToSync = ['okrs', 'kpis', 'initiatives', 'objectives', 'alerts'];
-
-    tablesToSync.forEach(table => {
-      channel.on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: table },
-        (payload) => {
-          // This logic is now more robust. It gets the current state,
-          // calculates changes, and only calls `set` if there's an actual
-          // change. This is the most efficient way to handle realtime updates
-          // and prevent infinite render loops.
-          const state = get();
-          const currentTable = state[table] || [];
-          let updatedTable = currentTable;
-          let hasChanged = false;
-
-          if (payload.eventType === 'INSERT') {
-            // Prevent duplicates from race conditions
-            if (!currentTable.some(item => item.id === payload.new.id)) {
-              updatedTable = [...currentTable, payload.new];
-              hasChanged = true;
-            }
-          } else if (payload.eventType === 'UPDATE') {
-            const index = currentTable.findIndex(item => item.id === payload.new.id);
-            if (index !== -1) {
-              // Only update if the object is actually different
-              if (!deepEqual(currentTable[index], payload.new)) {
-                updatedTable = [...currentTable];
-                updatedTable[index] = payload.new;
-                hasChanged = true;
-              }
-            } else { // If not found, treat as an insert
-              updatedTable = [...currentTable, payload.new];
-              hasChanged = true;
-            }
-          } else if (payload.eventType === 'DELETE') {
-            const index = currentTable.findIndex(item => item.id === payload.old.id);
-            if (index !== -1) {
-              updatedTable = currentTable.filter(item => item.id !== payload.old.id);
-              hasChanged = true;
-            }
-          }
-
-          if (hasChanged) {
-            set({ [table]: updatedTable });
-          }
-        }
-      );
-    });
-
-    channel.subscribe((status, err) => {
-      if (err) console.warn('[Realtime] No disponible (plan free o tabla sin replicación):', err.message || err);
-    });
-    set({ _realtimeChannel: channel });
-  },
-
-  unsubscribeRealtime: () => {
-    const channel = get()._realtimeChannel;
-    if (channel) {
-      supabase.removeChannel(channel);
-      set({ _realtimeChannel: null });
-    }
-  }
+  // Realtime WebSocket deshabilitado — las tablas no tienen replicación activa.
+  // Para habilitar: Supabase Dashboard → Table Editor → tabla → toggle Realtime ON
+  // Mientras tanto, los datos se refrescan en cada acción del usuario (optimistic updates).
+  setupSubscriptions: () => { /* no-op: WebSocket deshabilitado */ },
+  unsubscribeRealtime: () => { /* no-op */ }
 });
