@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Modal } from './forms.jsx';
-import { notificationService } from './services.js';
+import { notificationService, objectivesService } from './services.js';
 import { useStore } from './store.js';
 import { deepEqual } from 'fast-equals';
 import ObjectiveCard from './ObjectiveCard.jsx';
@@ -75,52 +75,38 @@ const perspectives = [
 
 export default function StrategyMap({ onCreateObjective, onDeleteObjective, onUpdateObjective }) {
   const [newObj, setNewObj] = useState('');
+  const [adding, setAdding] = useState(false);
   const [selectedPersp, setSelectedPersp] = useState(1);
   const [selectedTheme, setSelectedTheme] = useState('auto');
   const [mapTitle, setMapTitle] = useState(() => localStorage.getItem('sp-map-title') || 'Mapa Estratégico Corporativo');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const mapRef = useRef(null);
-  const [selectedObjective, setSelectedObjective] = useState(null);  
+  const [selectedObjective, setSelectedObjective] = useState(null);
   const objectives = useStore(state => state.objectives);
+  const profile = useStore(state => state.profile);
 
-  const handleAdd = async (perspectiveId) => {
-    const title = prompt('Nombre del objetivo estratégico:');
-    if (!title || !title.trim()) return;
+  const handleAdd = async () => {
+    if (!newObj.trim()) { notificationService.error('Escribe un nombre para el objetivo.'); return; }
+    setAdding(true);
     try {
-      const { supabase } = await import('./supabase.js');
-      const { data, error } = await supabase
-        .from('strategic_objectives')
-        .insert({
-          title: title.trim(),
-          perspective_id: perspectiveId,
-          organization_id: profile?.organization_id,
-          status: 'active',
-          progress: 0,
-        })
-        .select()
-        .single();
-      if (error) {
-        // Fallback: tabla objectives si strategic_objectives no existe
-        const { data: d2, error: e2 } = await supabase
-          .from('objectives')
-          .insert({
-            title: title.trim(),
-            perspective_id: perspectiveId,
-            organization_id: profile?.organization_id,
-            status: 'active',
-            progress: 0,
-          })
-          .select()
-          .single();
-        if (e2) throw e2;
-        setObjectives(prev => [...(prev || []), d2]);
-      } else {
-        setObjectives(prev => [...(prev || []), data]);
-      }
-      notificationService.success('Objetivo creado correctamente.');
+      const payload = {
+        name: newObj.trim(),
+        perspective_id: selectedPersp,
+        organization_id: profile?.organization_id,
+        status: 'not_started',
+        progress: 0,
+        theme: selectedTheme !== 'auto' ? selectedTheme : null,
+      };
+      const created = await objectivesService.create(payload);
+      // Actualizar store de forma optimista
+      useStore.getState().setObjectives([...(objectives || []), created]);
+      setNewObj('');
+      notificationService.success('✅ Objetivo creado correctamente.');
     } catch (e) {
       notificationService.error('Error al crear objetivo: ' + e.message);
+    } finally {
+      setAdding(false);
     }
   };
 
@@ -199,7 +185,7 @@ export default function StrategyMap({ onCreateObjective, onDeleteObjective, onUp
               <option value="infrastructure">🏢 Infraestructura</option>
             </optgroup>
           </select>
-          <button className="sp-btn" onClick={handleAdd} style={{ background: 'var(--primary)', padding: '8px 16px' }}>Agregar</button>
+          <button className="sp-btn" onClick={handleAdd} disabled={adding} style={{ background: 'var(--primary)', padding: '8px 16px', opacity: adding ? 0.7 : 1 }}>{adding ? 'Guardando...' : 'Agregar'}</button>
       </div>
 
       <div className="sp-card" style={{ padding: '16px 24px', background: 'var(--bg)', backgroundImage: 'radial-gradient(var(--border) 1px, transparent 1px)', backgroundSize: '24px 24px', border: '1px solid var(--border)', overflowX: 'auto' }} ref={mapRef}>
@@ -242,7 +228,12 @@ export default function StrategyMap({ onCreateObjective, onDeleteObjective, onUp
             </div>
           </div>
           {perspectives.map((persp, index) => {
-            const objs = objectives?.filter(o => (o.code || "").startsWith(persp.prefix)) || [];
+            // Filtra por perspective_id primero (más confiable), con fallback al prefix del código
+            const objs = objectives?.filter(o =>
+              o.perspective_id === persp.id ||
+              o.perspective_id === String(persp.id) ||
+              (o.code && (o.code + '').startsWith(persp.prefix))
+            ) || [];
             
             const getStrategicTheme = (obj, perspId) => {
               if (perspId === 4 || perspId === "deebed6d-7e58-42f5-92d5-928096e6a1da" || String(perspId).startsWith("deeb") || index === 3) {

@@ -5,12 +5,16 @@ import { ROLES } from './constants.js';
 export const createAuthSlice = (set, get) => ({
   user: null,
   profile: null,
+  currentOrganization: null,   // alias de profile.organizations para compatibilidad con módulos
   impersonatedProfile: null,
+  isSystemOwner: false,
   setAuth: (newUser, newProfile) => {
     const current = get();
     // Solo actualiza si el usuario o el perfil han cambiado realmente (comparación profunda)
     if (!deepEqual(current.user, newUser) || !deepEqual(current.profile, newProfile)) {
-      set({ user: newUser, profile: newProfile });
+      const org = newProfile?.organizations || null;
+      const isOwner = !!(newProfile?.is_super_admin || newProfile?.role === 'super_admin');
+      set({ user: newUser, profile: newProfile, currentOrganization: org, isSystemOwner: isOwner });
     }
   },
   setImpersonatedProfile: (profile) => set({ impersonatedProfile: profile }),

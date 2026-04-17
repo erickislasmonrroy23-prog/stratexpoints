@@ -17,7 +17,7 @@ export function OKRForm({ onSave, onCancel, objectives = [], initialData = null 
   const storePerspectives = useStore(state => state.perspectives);
   // El estado del formulario se inicializa vacío y se puebla con un efecto
   // para manejar correctamente la re-apertura del modal para creación vs. edición.
-  const [form, setForm] = useState({ objective: '', status: 'not_started', progress: 0, period: getQuarterFromDate(new Date()), objective_id: null, department: '', owner: '', confidence_level: 8, krs: [] });  
+  const [form, setForm] = useState({ objective: '', status: 'not_started', progress: 0, period: getQuarterFromDate(new Date()).label, objective_id: null, department: '', owner: '', confidence_level: 8, krs: [] });  
   // Estado para la selección explícita del usuario en el primer dropdown.
   const [userSelectedPerspectiveId, setUserSelectedPerspectiveId] = useState(null);
 
@@ -41,7 +41,7 @@ export function OKRForm({ onSave, onCancel, objectives = [], initialData = null 
       setUserSelectedPerspectiveId(null);
     } else {
       // Si estamos creando, reseteamos todo el estado.
-      setForm({ objective: '', status: 'not_started', progress: 0, period: getQuarterFromDate(new Date()), objective_id: null, department: '', owner: '', confidence_level: 8, krs: [] });
+      setForm({ objective: '', status: 'not_started', progress: 0, period: getQuarterFromDate(new Date()).label, objective_id: null, department: '', owner: '', confidence_level: 8, krs: [] });
       setUserSelectedPerspectiveId(null);
     }
   }, [initialData]);

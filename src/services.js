@@ -1,11 +1,16 @@
 import { supabase } from './supabase.js';
 
 // ── Notification Service ─────────────────────────────────────────────────────
+// Usa un bridge lazy para evitar importación circular con el store.
+// App.jsx llama setNotifyFn() una vez montado el store.
+let _notifyBridge = null;
+export const setNotifyFn = (fn) => { _notifyBridge = fn; };
+
 export const notificationService = {
-  success: (msg) => console.log('[OK]', msg),
-  error:   (msg) => console.error('[ERR]', msg),
-  info:    (msg) => console.info('[INFO]', msg),
-  warning: (msg) => console.warn('[WARN]', msg),
+  success: (msg) => { console.log('[OK]', msg);    _notifyBridge?.({ type: 'success', message: msg }); },
+  error:   (msg) => { console.error('[ERR]', msg); _notifyBridge?.({ type: 'error',   message: msg }); },
+  info:    (msg) => { console.info('[INFO]', msg);  _notifyBridge?.({ type: 'info',    message: msg }); },
+  warning: (msg) => { console.warn('[WARN]', msg);  _notifyBridge?.({ type: 'warning', message: msg }); },
 };
 
 // ── OKR Service ──────────────────────────────────────────────────────────────

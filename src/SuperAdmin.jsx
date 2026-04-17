@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabase.js';
-import { organizationService, profileService, emailService } from './services.js';
+import { organizationService, profileService, emailService, objectivesService } from './services.js';
 import { useStore } from './store.js';
 import { useTenants } from './useTenants.jsx';
 import { useAuditLogs } from './useAuditLogs.jsx';
@@ -69,8 +69,14 @@ export default function SuperAdmin({ user, profile, onBack }) {
   const handleBackfillObjectiveCodes = async () => {
     if (!window.confirm("¿Estás seguro de querer asignar códigos a todos los objetivos sin código? Esto actualizará la base de datos.")) return;
     try {
-      const updatedCount = await objectivesService.backfillObjectiveCodes();
-      notificationService.success(`✅ Se asignaron códigos a ${updatedCount} objetivos.`);
+      // Obtener todos los tenants y hacer backfill por organización
+      const orgs = await organizationService.getAll();
+      let total = 0;
+      for (const org of orgs) {
+        const count = await objectivesService.backfillObjectiveCodes(org.id);
+        total += count;
+      }
+      notificationService.success(`✅ Se asignaron códigos a ${total} objetivos en ${orgs.length} organizaciones.`);
     } catch (e) { notificationService.error("Error al asignar códigos: " + e.message); }
   };
 

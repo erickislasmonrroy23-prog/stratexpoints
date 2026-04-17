@@ -4,9 +4,9 @@ import { initTheme, setTheme } from "./theme.js";
 import * as XLSX from "xlsx";
 import Login from "./Login.jsx";
 import { useTranslation } from "react-i18next";
-import { perspectiveService, okrService, kpiService, initiativeService, alertService, objectivesService, autoAlertService, notificationService } from "./services.js";
+import { perspectiveService, okrService, kpiService, initiativeService, alertService, objectivesService, autoAlertService, notificationService, setNotifyFn } from "./services.js";
 import { OKRForm, KPIForm, InitiativeForm, Modal } from "./forms.jsx";
-import { SC, SL, AddBtn, TabBar, EmptyState, ConfirmationModal } from "./SharedUI.jsx";
+import { AddBtn, TabBar, EmptyState, ConfirmationModal } from "./SharedUI.jsx";
 import NotificationCenter from "./NotificationCenter.jsx";
 import SuperAdmin from "./SuperAdmin.jsx";
 import CommandCenter from "./CommandCenter.jsx";
@@ -23,6 +23,10 @@ import IntelligentCore from "./IntelligentCore.jsx";
 import { useStore } from "./store.js";
 import { shallow } from 'zustand/shallow';
 import { deepEqual } from 'fast-equals';
+
+// Registrar bridge de notificaciones (evita importación circular con store)
+// useStore.getState() es seguro en nivel de módulo porque store se inicializa antes de App
+setNotifyFn((notif) => useStore.getState().addNotification(notif));
 
 // Lazy loaded heavy modules para optimizar el bundle (Performance)
 const BowlingChart = lazy(() => import("./BowlingChart.jsx"));
