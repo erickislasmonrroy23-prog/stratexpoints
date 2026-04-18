@@ -21,6 +21,19 @@ export default function BrandingSettings({ tenant, onUpdate }) {
   const [saving, setSaving] = useState(false);
   const [previewLogo, setPreviewLogo] = useState(tenant?.logo_url || '');
 
+  // URLs de acceso para compartir con el cliente
+  const slug = form.subdomain || tenant?.subdomain || '';
+  // URL de testing gratis (query param) — funciona en cualquier Vercel URL
+  const appOrigin = window.location.origin;
+  const testingUrl = slug ? `${appOrigin}/?org=${slug}` : null;
+  // URL de producción con subdominio propio
+  const productionUrl = slug ? `https://${slug}.xtratia.com` : null;
+
+  const copyUrl = (url) => {
+    navigator.clipboard.writeText(url);
+    notificationService.success('🔗 Enlace copiado al portapapeles');
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) return notificationService.error('El nombre de la empresa es requerido.');
@@ -128,6 +141,47 @@ export default function BrandingSettings({ tenant, onUpdate }) {
           </div>
         </div>
       </div>
+
+      {/* Panel de URLs de Acceso */}
+      {slug && (
+        <div style={{ borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
+          <div style={{ padding: '10px 14px', background: 'var(--bg3)', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 800, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            🔗 URLs de Acceso del Cliente
+          </div>
+
+          {/* URL de Testing — FUNCIONA AHORA GRATIS */}
+          <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)', background: 'var(--bg2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                  <span style={{ fontSize: 10, fontWeight: 800, background: '#dcfce7', color: '#16a34a', padding: '2px 6px', borderRadius: 4 }}>✅ FUNCIONA HOY</span>
+                  <span style={{ fontSize: 11, color: 'var(--text3)' }}>Sin dominio propio</span>
+                </div>
+                <div style={{ fontSize: 12, fontFamily: 'monospace', color: 'var(--primary)', wordBreak: 'break-all' }}>{testingUrl}</div>
+              </div>
+              <button type="button" onClick={() => copyUrl(testingUrl)} style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 7, fontSize: 12, fontWeight: 700, background: 'var(--primary)', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                Copiar
+              </button>
+            </div>
+          </div>
+
+          {/* URL de Producción */}
+          <div style={{ padding: '12px 14px', background: 'var(--bg2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                  <span style={{ fontSize: 10, fontWeight: 800, background: '#fef9c3', color: '#b45309', padding: '2px 6px', borderRadius: 4 }}>⚙️ PRODUCCIÓN</span>
+                  <span style={{ fontSize: 11, color: 'var(--text3)' }}>Requiere DNS wildcard</span>
+                </div>
+                <div style={{ fontSize: 12, fontFamily: 'monospace', color: 'var(--text2)', wordBreak: 'break-all' }}>{productionUrl}</div>
+              </div>
+              <button type="button" onClick={() => copyUrl(productionUrl)} style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 7, fontSize: 12, fontWeight: 700, background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border)', cursor: 'pointer' }}>
+                Copiar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <button type="submit" disabled={saving} className="sp-btn sp-btn-primary" style={{ padding: '13px', borderRadius: 10, fontWeight: 700, fontSize: 14 }}>
         {saving ? 'Guardando...' : '💾 Guardar Configuración de Marca'}

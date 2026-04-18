@@ -586,7 +586,12 @@ export default function SuperAdmin({ user, profile, onBack }) {
                 <>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: 20 }}>
                     {tenants.map(tenant => (
-                      <TenantCard key={tenant.id} tenant={tenant} onSelect={setSelectedTenantId} />
+                      <TenantCard
+                        key={tenant.id}
+                        tenant={tenant}
+                        isSelected={selectedTenantId === tenant.id}
+                        onClick={() => setSelectedTenantId(tenant.id)}
+                      />
                     ))}
                   </div>
                   {totalTenantPages > 1 && (
