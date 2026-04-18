@@ -8,7 +8,6 @@ const ROLES = [
   { value: 'viewer', label: 'Lector',          desc: 'Solo lectura' },
 ];
 
-// URL de la Edge Function de Supabase (usa service_role, crea usuario + perfil sin RLS)
 const EDGE_URL = import.meta.env.VITE_SUPABASE_URL + '/functions/v1/create-tenant-user';
 
 export default function UserEditModal({ user, onClose, onRefresh }) {
@@ -23,8 +22,10 @@ export default function UserEditModal({ user, onClose, onRefresh }) {
     photo_url:  user?.photo_url  || '',
     password:   '',
   });
-  const [saving, setSaving]     = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [saving, setSaving]       = useState(false);
+  const [errorMsg, setErrorMsg]   = useState('');
+  // Credenciales generadas — se muestran en el modal hasta que el admin haga clic en Cerrar
+  const [createdCreds, setCreatedCreds] = useState(null);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -38,12 +39,8 @@ export default function UserEditModal({ user, onClose, onRefresh }) {
 
     try {
       if (isNew) {
-        // ─── CREAR USUARIO VÍA EDGE FUNCTION ─────────────────────────────────
-        // supabase.auth.admin requiere service_role (no disponible en browser).
-        // La Edge Function lo tiene y también confirma el email automáticamente.
         const tempPassword = form.password || ('Xtratia@' + Math.floor(1000 + Math.random() * 9000));
 
-        // Obtener JWT actual del super admin para autorizar la Edge Function
         const { data: sessionData } = await supabase.auth.getSession();
         const token = sessionData?.session?.access_token;
         if (!token) throw new Error('Sesión expirada. Vuelve a iniciar sesión.');
@@ -69,16 +66,11 @@ export default function UserEditModal({ user, onClose, onRefresh }) {
         const result = await res.json();
         if (!res.ok) throw new Error(result.error || `Error ${res.status}`);
 
-        // Mostrar contraseña temporal al super admin para que la entregue al usuario
-        notificationService.success(
-          `✅ Usuario creado y listo para usar.\n` +
-          `📧 Correo: ${form.email}\n` +
-          `🔑 Contraseña temporal: ${tempPassword}\n` +
-          `(Compártela de forma segura con el usuario)`
-        );
+        // Mostrar credenciales DENTRO del modal — NO cerrar hasta que el admin las vea
+        setCreatedCreds({ email: form.email.trim().toLowerCase(), password: tempPassword });
+        if (onRefresh) onRefresh();
 
       } else {
-        // ─── ACTUALIZAR PERFIL EXISTENTE ──────────────────────────────────────
         const { error } = await supabase.from('profiles')
           .update({
             full_name:  form.full_name.trim(),
@@ -90,15 +82,13 @@ export default function UserEditModal({ user, onClose, onRefresh }) {
           .eq('id', user.id);
         if (error) throw error;
         notificationService.success('✅ Usuario actualizado correctamente.');
+        if (onRefresh) onRefresh();
+        if (onClose) onClose();
       }
-
-      if (onRefresh) onRefresh();
-      if (onClose) onClose();
 
     } catch (err) {
       const msg = err.message || 'Error desconocido';
       setErrorMsg(msg);
-      notificationService.error('Error: ' + msg);
     } finally {
       setSaving(false);
     }
@@ -115,6 +105,86 @@ export default function UserEditModal({ user, onClose, onRefresh }) {
     display: 'block', marginBottom: 4, textTransform: 'uppercase'
   };
 
+  // ── PANTALLA DE CREDENCIALES ── Se muestra después de crear el usuario
+  if (createdCreds) {
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 2000,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20
+      }}>
+        <div className="sp-card scale-in" style={{
+          width: '100%', maxWidth: 480, padding: 36, borderRadius: 20,
+          boxShadow: '0 24px 48px rgba(0,0,0,0.3)', textAlign: 'center'
+        }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+          <h3 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', marginBottom: 6 }}>
+            Usuario creado exitosamente
+          </h3>
+          <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 24 }}>
+            Comparte estas credenciales con el usuario de forma segura.<br/>
+            <strong style={{ color: 'var(--red)' }}>No podrás ver la contraseña de nuevo.</strong>
+          </p>
+
+          {/* Caja de credenciales */}
+          <div style={{
+            background: 'var(--bg3)', border: '2px solid var(--border)', borderRadius: 14,
+            padding: 20, marginBottom: 20, textAlign: 'left'
+          }}>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text3)', textTransform: 'uppercase', marginBottom: 6 }}>
+                📧 Correo de acceso
+              </div>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                background: 'var(--bg)', borderRadius: 8, padding: '10px 14px',
+                border: '1px solid var(--border)'
+              }}>
+                <span style={{ flex: 1, fontSize: 14, fontFamily: 'monospace', color: 'var(--text)', fontWeight: 600 }}>
+                  {createdCreds.email}
+                </span>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(createdCreds.email); notificationService.success('Correo copiado'); }}
+                  style={{ padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, background: 'var(--bg2)', border: '1px solid var(--border)', cursor: 'pointer', color: 'var(--text2)', whiteSpace: 'nowrap' }}
+                >
+                  Copiar
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text3)', textTransform: 'uppercase', marginBottom: 6 }}>
+                🔑 Contraseña temporal
+              </div>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                background: '#fef9c3', borderRadius: 8, padding: '10px 14px',
+                border: '2px solid #fbbf24'
+              }}>
+                <span style={{ flex: 1, fontSize: 16, fontFamily: 'monospace', color: '#92400e', fontWeight: 800, letterSpacing: 2 }}>
+                  {createdCreds.password}
+                </span>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(createdCreds.password); notificationService.success('Contraseña copiada'); }}
+                  style={{ padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, background: '#fbbf24', border: 'none', cursor: 'pointer', color: '#78350f', whiteSpace: 'nowrap' }}
+                >
+                  Copiar
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="sp-btn sp-btn-primary"
+            style={{ width: '100%', padding: '14px', borderRadius: 12, fontWeight: 800, fontSize: 15 }}
+          >
+            ✔ Ya guardé las credenciales — Cerrar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 2000,
@@ -129,7 +199,7 @@ export default function UserEditModal({ user, onClose, onRefresh }) {
         </h3>
         {isNew && (
           <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 20, lineHeight: 1.5 }}>
-            El usuario podrá iniciar sesión inmediatamente con el correo y contraseña que asignes.
+            El usuario podrá iniciar sesión <strong>inmediatamente</strong> sin confirmar email.
           </p>
         )}
 
