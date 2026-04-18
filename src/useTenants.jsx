@@ -110,8 +110,14 @@ export function useTenants(isSystemOwner, profile) {
 
   const currentTenant = tenants.find(t => t.id === selectedTenantId) || null;
 
+  // Helper para actualizar un campo de un tenant en el estado local
+  const updateTenant = (tenantId, key, value) => {
+    setTenants(prev => prev.map(t => t.id === tenantId ? { ...t, [key]: value } : t));
+  };
+
   return {
     tenants,
+    setTenants,
     filteredTenants,
     paginatedTenants,
     currentTenant,
@@ -124,5 +130,6 @@ export function useTenants(isSystemOwner, profile) {
     setTenantPage,
     totalTenantPages,
     loadTenants,
+    updateTenant,
   };
 }

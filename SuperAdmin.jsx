@@ -1,20 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { supabase } from './supabase.js';
-import { organizationService, emailService, objectivesService } from './services.js';
-import { useStore } from './store.js';
-import { useTenants } from './useTenants.jsx';
-import { useAuditLogs } from './useAuditLogs.jsx';
+import { supabase } from '@services/api/supabase.js';
+import { organizationService, profileService, emailService, objectivesService } from '@services/services.js';
+import { useStore } from '@store/store.js';
+import { useTenants } from '@hooks/useTenants.jsx';
+import { useAuditLogs } from '@hooks/useAuditLogs.jsx';
 import jsPDF from 'jspdf'; // Importar jsPDF
 import * as XLSX from 'xlsx';
-import TenantCard from './TenantCard.jsx'
-import UserDirectory from './UserDirectory.jsx';
-import BrandingSettings from './BrandingSettings.jsx';
-import ModuleProvisioning from './ModuleProvisioning.jsx';
-import BillingSettings from './BillingSettings.jsx';
-import RoleManagement from './RoleManagement.jsx';
-import BillingEngine from './BillingEngine.jsx';
-import { notificationService } from './services.js';
-import { TabBar } from './SharedUI.jsx';
+import UserEditModal from '@components/admin/UserEditModal.jsx';
+import TenantCard from '@components/admin/TenantCard.jsx';
+import UserDirectory from '@components/admin/UserDirectory.jsx';
+import BrandingSettings from '@components/admin/BrandingSettings.jsx';
+import ModuleProvisioning from '@components/admin/ModuleProvisioning.jsx';
+import BillingSettings from '@components/admin/BillingSettings.jsx';
+import RoleManagement from '@components/admin/RoleManagement.jsx';
+import BillingEngine from '@components/admin/BillingEngine.jsx';
+import { notificationService } from '@services/services.js';
+import { TabBar } from '@components/common/SharedUI.jsx';
 
 export default function SuperAdmin({ user, profile, onBack }) {
   const can = useStore(state => state.can);
@@ -35,7 +36,7 @@ export default function SuperAdmin({ user, profile, onBack }) {
     tenantPage,
     setTenantPage,
     totalTenantPages,
-    updateTenant: updateTenantInHook,
+    updateTenant: updateTenantInState,
   } = useTenants(isSystemOwner, profile, isUnlocked);
 
   const {
@@ -43,7 +44,9 @@ export default function SuperAdmin({ user, profile, onBack }) {
     searchLogQuery, setSearchLogQuery, currentPage, setCurrentPage, totalLogPages, exportLogsToExcel
   } = useAuditLogs(selectedTenantId);
 
+  const [editingUser, setEditingUser] = useState(null); // Modal state for Create/Edit
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [adminTab, setAdminTab] = useState('bi');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -56,7 +59,7 @@ export default function SuperAdmin({ user, profile, onBack }) {
   const [loadingMfa, setLoadingMfa] = useState(false);
   
   // Estado para el PIN de la Bóveda
-  const [vaultPin, setVaultPin] = useState(() => localStorage.getItem('sp-vault-pin') || '2315');
+  const [vaultPin, setVaultPin] = useState(() => localStorage.getItem('sp-vault-pin') || '8888');
   const [pinForm, setPinForm] = useState({ newPin: '', confirmPin: '' });
   
   const [systemTotalUsers, setSystemTotalUsers] = useState(0);
@@ -66,14 +69,8 @@ export default function SuperAdmin({ user, profile, onBack }) {
   const handleBackfillObjectiveCodes = async () => {
     if (!window.confirm("¿Estás seguro de querer asignar códigos a todos los objetivos sin código? Esto actualizará la base de datos.")) return;
     try {
-      // Obtener todos los tenants y hacer backfill por organización
-      const orgs = await organizationService.getAll();
-      let total = 0;
-      for (const org of orgs) {
-        const count = await objectivesService.backfillObjectiveCodes(org.id);
-        total += count;
-      }
-      notificationService.success(`✅ Se asignaron códigos a ${total} objetivos en ${orgs.length} organizaciones.`);
+      const updatedCount = await objectivesService.backfillObjectiveCodes();
+      notificationService.success(`✅ Se asignaron códigos a ${updatedCount} objetivos.`);
     } catch (e) { notificationService.error("Error al asignar códigos: " + e.message); }
   };
 
@@ -84,7 +81,7 @@ export default function SuperAdmin({ user, profile, onBack }) {
     let isMounted = true;
     async function fetchMetrics() {
       try {
-        const { data: orgs } = await supabase.from('organizations').select('id, modules');
+        const { data: orgs } = await supabase.from('organizations').select('id, modules, price_basic, price_premium');
         const { data: profs } = await supabase.from('profiles').select('id, organization_id');
 
         let mrr = 0; let active = 0; let atRisk = 0;
@@ -98,7 +95,7 @@ export default function SuperAdmin({ user, profile, onBack }) {
         orgs?.forEach(t => {
            const isPaidThisMonth = t.modules?.lastPaymentMonth === currentMonthStr;
            const isGracePeriod = !isPaidThisMonth && currentDay <= 10;
-           const activePrice = t.modules?.ai ? 29 : 12;
+           const activePrice = t.modules?.ai ? (t.price_premium || 29) : (t.price_basic || 12);
            const usersCount = usersPerOrg[t.id] || 0;
 
            if (isPaidThisMonth || isGracePeriod) {
@@ -108,10 +105,7 @@ export default function SuperAdmin({ user, profile, onBack }) {
              atRisk++;
            }
         });
-        if (isMounted) {
-          setGlobalMetrics({ mrr, active, atRisk });
-          setSystemTotalUsers(profs?.length || 0);
-        }
+        if (isMounted) setGlobalMetrics({ mrr, active, atRisk });
       } catch (e) { console.error("Error metrics BI:", e); }
     }
     fetchMetrics();
@@ -156,7 +150,7 @@ export default function SuperAdmin({ user, profile, onBack }) {
         name: currentTenant.name, subdomain: currentTenant.subdomain, industry: currentTenant.industry,
         size: currentTenant.size, logo_url: currentTenant.logoUrl, theme_color: currentTenant.themeColor,
         max_users: currentTenant.maxUsers, modules: currentTenant.modules,
-        
+        billing_email: currentTenant.billingEmail, price_basic: currentTenant.priceBasic, price_premium: currentTenant.pricePremium, is_paid: currentTenant.isPaid
       };
       try {
         await organizationService.update(currentTenant.id, payload);
@@ -164,7 +158,7 @@ export default function SuperAdmin({ user, profile, onBack }) {
       } catch (err) {
         // PLAN B: Si la caché de Supabase falla, guardamos todo menos la facturación para no perder el trabajo
         if (err.message?.includes('schema cache') || err.message?.includes('Could not find')) {
-          const safePayload = payload;
+          const { billing_email, price_basic, price_premium, is_paid, ...safePayload } = payload;
           await organizationService.update(currentTenant.id, safePayload);
           notificationService.success("✅ Datos base e Identidad guardados con éxito.");
           notificationService.error("⚠️ Nota: Los datos de facturación no se guardaron porque la base de datos está actualizando su memoria (caché). Por favor, espera unos minutos e intenta guardarlos nuevamente.");
@@ -261,9 +255,9 @@ export default function SuperAdmin({ user, profile, onBack }) {
 
   const currentTenant = tenants.find(t => t.id === selectedTenantId);
 
-  // Wrapper local: updateTenant(key, value, tenantId?) — usa el helper del hook
+  // Modificamos esta función para que permita actualizar cualquier inquilino de la lista global
   const updateTenant = (key, value, specificTenantId = selectedTenantId) => {
-    updateTenantInHook(specificTenantId, key, value);
+    setTenants(prev => prev.map(t => t.id === specificTenantId ? { ...t, [key]: value } : t));
   };
 
   const toggleModule = (mod) => {
@@ -292,6 +286,25 @@ export default function SuperAdmin({ user, profile, onBack }) {
     }
   };
 
+  const handleUserPhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setUploadingAvatar(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `user_${Date.now()}.${fileExt}`;
+      const { error } = await supabase.storage.from('avatars').upload(fileName, file, { upsert: true });
+      if (error) throw error;
+      const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      setEditingUser({ ...editingUser, photoUrl: data.publicUrl });
+    } catch (error) {      
+      notificationService.error("Error al subir la foto: " + error.message);
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = ''; // Limpia la memoria del input para permitir subir el mismo archivo
+    }
+  };
 
   const copyLink = (subdomain) => {
     const link = `https://${subdomain || 'empresa'}.xtratia.com`;
@@ -371,6 +384,32 @@ export default function SuperAdmin({ user, profile, onBack }) {
     doc.save(`Credenciales_${userObj.name.replace(/\s+/g, '_')}.pdf`);
   };
 
+  const handleSaveUser = async () => {
+    if (!editingUser?.name || !editingUser?.email) return notificationService.error("⚠️ Por favor completa al menos el nombre y el correo.");
+    
+    const currentUsers = currentTenant?.users || [];
+    
+    try {
+      if (editingUser.isNew) {
+        const maxLimit = currentTenant?.maxUsers || 5;
+        if (currentUsers.length >= maxLimit) return notificationService.error(`⛔ LÍMITE DE LICENCIAS ALCANZADO\n\nTu plan actual solo permite ${maxLimit} usuarios.`);
+        if (!editingUser.password) return notificationService.error("⚠️ Ingresa una contraseña temporal para el nuevo usuario.");
+        
+        const payload = { full_name: editingUser.name, email: editingUser.email, role: editingUser.role, job_title: editingUser.jobTitle, photo_url: editingUser.photoUrl, organization_id: currentTenant.id, department: editingUser.department };
+        const data = await profileService.create(payload);
+        if (data && data[0]) {
+          const newUser = { id: data[0].id, name: data[0].full_name, email: data[0].email, role: data[0].role, jobTitle: data[0].job_title, photoUrl: data[0].photo_url, department: data[0].department, createdAt: data[0].created_at || new Date().toISOString() };
+          updateTenant('users', [...currentUsers, newUser]);
+        }
+      } else {
+        const payload = { full_name: editingUser.name, email: editingUser.email, role: editingUser.role, job_title: editingUser.jobTitle, photo_url: editingUser.photoUrl, department: editingUser.department };
+        await profileService.update(editingUser.id, payload);
+        const updatedUsers = currentUsers.map(u => u.id === editingUser.id ? editingUser : u);
+        updateTenant('users', updatedUsers);
+      }
+      setEditingUser(null);
+    } catch (e) { notificationService.error("Error al guardar usuario: " + e.message); }
+  };
 
   const handleAddTenant = async () => {
     const newTenant = {
@@ -379,18 +418,10 @@ export default function SuperAdmin({ user, profile, onBack }) {
     };
     try {
       const data = await organizationService.create(newTenant);
-      // organizationService.create usa .single() → retorna objeto, no array
-      if (data) {
-        const created = {
-          id: data.id, name: data.name, subdomain: data.subdomain, industry: data.industry,
-          size: data.size, logoUrl: data.logo_url, themeColor: data.theme_color,
-          maxUsers: data.max_users, modules: data.modules,
-          billingEmail: '', priceBasic: 12, pricePremium: 29, isPaid: true,
-          status: 'active', plan: 'basic', userCount: 0, okrCount: 0, kpiCount: 0,
-        };
+      if (data && data[0]) {
+        const created = { id: data[0].id, name: data[0].name, subdomain: data[0].subdomain, industry: data[0].industry, size: data[0].size, logoUrl: data[0].logo_url, themeColor: data[0].theme_color, maxUsers: data[0].max_users, modules: data[0].modules, billingEmail: '', priceBasic: 12, pricePremium: 29, isPaid: true, users: [] };
         setTenants([created, ...tenants]);
         setSelectedTenantId(created.id);
-        notificationService.success('✅ Organización creada. Ahora configura su perfil y guarda.');
       }
     } catch(e) { notificationService.error("Error al crear empresa: " + e.message); }
   };
@@ -533,7 +564,7 @@ export default function SuperAdmin({ user, profile, onBack }) {
                       <span className="sp-badge" style={{ background: 'var(--green-light)', color: 'var(--green)' }}>● Operativo</span>
                     </li>
                     <li style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--bg3)', borderRadius: 8, border: '1px solid var(--border)' }}>
-                      <span style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 600 }}>Motor de Inteligencia (Gemini AI)</span>
+                      <span style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 600 }}>Motor de Inteligencia (Groq AI)</span>
                       <span className="sp-badge" style={{ background: 'var(--green-light)', color: 'var(--green)' }}>● Latencia Baja</span>
                     </li>
                     <li style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--bg3)', borderRadius: 8, border: '1px solid var(--border)' }}>
@@ -757,8 +788,11 @@ export default function SuperAdmin({ user, profile, onBack }) {
           />
 
           <UserDirectory
-            organizationId={currentTenant?.id}
+            tenant={currentTenant}
+            onAddUser={() => setEditingUser({ name: '', email: '', password: 'Temp' + Math.floor(1000 + Math.random() * 9000) + '*', role: 'editor', jobTitle: '', photoUrl: '', isNew: true, department: '' })}
+            onEditUser={(u) => setEditingUser({ ...u, isNew: false })}
             onDownloadPDF={(u) => downloadAccessPDF(u, currentTenant)}
+            onSendInvite={(u) => sendInvite(u, currentTenant.subdomain)}
           />
           
           <RoleManagement 
@@ -766,6 +800,19 @@ export default function SuperAdmin({ user, profile, onBack }) {
             onUpdate={updateTenant} 
           />
         </div>
+
+        {/* MODAL GIGANTE DE EDICIÓN/CREACIÓN DE USUARIO */}
+        {editingUser && (
+          <UserEditModal
+            editingUser={editingUser}
+            tenant={currentTenant}
+            setEditingUser={setEditingUser}
+            onSave={handleSaveUser}
+            onCancel={() => setEditingUser(null)}
+            onPhotoUpload={handleUserPhotoUpload}
+            uploadingAvatar={uploadingAvatar}
+          />
+        )}
 
         {/* COLUMNA DERECHA: APROVISIONAMIENTO DE MÓDULOS */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>

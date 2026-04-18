@@ -29,36 +29,34 @@ export default function UserEditModal({ user, onClose, onRefresh }) {
 
     try {
       if (isNew) {
-        // Crear usuario nuevo via Supabase Auth (requiere service role — usamos signup anónimo como fallback)
-        const tempPassword = form.password || ('Temp' + Math.floor(1000 + Math.random() * 9000) + '@');
-        
-        // Intentar crear via admin si está disponible, sino via invite
-        try {
-          const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-            email: form.email,
-            password: tempPassword,
-            email_confirm: true,
-          });
-          if (authError) throw authError;
-          
-          // Crear perfil
-          await supabase.from('profiles').insert({
+        // Crear usuario via signUp — disponible en cliente (a diferencia de auth.admin.createUser que requiere service_role)
+        const tempPassword = form.password || ('Xtratia@' + Math.floor(1000 + Math.random() * 9000));
+
+        const { data: authData, error: signUpError } = await supabase.auth.signUp({
+          email: form.email,
+          password: tempPassword,
+          options: {
+            data: { full_name: form.full_name },
+            emailRedirectTo: window.location.origin,
+          },
+        });
+
+        if (signUpError) throw signUpError;
+
+        if (authData?.user) {
+          // Crear perfil vinculado al usuario de auth
+          const { error: profileError } = await supabase.from('profiles').insert({
             id: authData.user.id,
             full_name: form.full_name,
-            role: form.role,
-            job_title: form.job_title,
-            department: form.department,
-            photo_url: form.photo_url || null,
-            organization_id: user?.organization_id,
-          });
-        } catch {
-          // Fallback: enviar invitación
-          const { error: invErr } = await supabase.auth.signInWithOtp({
             email: form.email,
-            options: { shouldCreateUser: true, emailRedirectTo: window.location.origin }
+            role: form.role,
+            job_title: form.job_title || null,
+            department: form.department || null,
+            photo_url: form.photo_url || null,
+            organization_id: user?.organization_id || null,
           });
-          if (invErr) throw invErr;
-          notificationService.success('Se envió invitación a ' + form.email);
+          // Si el perfil ya existe (usuario duplicado), no es un error fatal
+          if (profileError && !profileError.message?.includes('duplicate')) throw profileError;
         }
       } else {
         // Actualizar perfil existente
@@ -74,7 +72,11 @@ export default function UserEditModal({ user, onClose, onRefresh }) {
         if (error) throw error;
       }
 
-      notificationService.success(isNew ? '✅ Usuario creado.' : '✅ Usuario actualizado.');
+      notificationService.success(
+        isNew
+          ? `✅ Usuario creado. Se envió un correo de confirmación a ${form.email}.`
+          : '✅ Usuario actualizado.'
+      );
       if (onRefresh) onRefresh();
       if (onClose) onClose();
     } catch (err) {

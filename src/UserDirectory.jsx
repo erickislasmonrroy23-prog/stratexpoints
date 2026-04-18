@@ -11,7 +11,7 @@ const ROLE_CONFIG = {
   super_admin: { label: 'Super Admin', color: '#6366f1', bg: '#eef2ff' },
 };
 
-export default function UserDirectory({ organizationId }) {
+export default function UserDirectory({ organizationId, onDownloadPDF }) {
   const [users, setUsers]         = useState([]);
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState('');
@@ -51,15 +51,19 @@ export default function UserDirectory({ organizationId }) {
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
-    if (!newPass || newPass.length < 8) return notificationService.error('La contraseña debe tener al menos 8 caracteres.');
+    if (!passModal?.email) return notificationService.error('El usuario no tiene correo registrado.');
     setSavingPass(true);
     try {
-      const { error } = await supabase.auth.admin.updateUserById(passModal.id, { password: newPass });
+      // supabase.auth.admin requiere service_role (no disponible en cliente).
+      // Alternativa segura: enviar email de restablecimiento al usuario.
+      const { error } = await supabase.auth.resetPasswordForEmail(passModal.email, {
+        redirectTo: window.location.origin,
+      });
       if (error) throw error;
-      notificationService.success('Contraseña actualizada para ' + passModal.full_name + '.');
+      notificationService.success(`✅ Se envió un enlace de restablecimiento de contraseña a ${passModal.email}.`);
       setPassModal(null);
       setNewPass('');
-    } catch (e) { notificationService.error('Error: ' + e.message); }
+    } catch (err) { notificationService.error('Error: ' + err.message); }
     finally { setSavingPass(false); }
   };
 
@@ -161,10 +165,16 @@ export default function UserDirectory({ organizationId }) {
                     style={{ padding: '5px 8px', borderRadius: 6, fontSize: 12, background: 'var(--bg2)', border: '1px solid var(--border)', cursor: 'pointer' }}>
                     ✏️
                   </button>
-                  <button onClick={() => { setPassModal(user); setNewPass(''); }} title="Cambiar contraseña"
+                  <button onClick={() => { setPassModal(user); setNewPass(''); }} title="Restablecer contraseña"
                     style={{ padding: '5px 8px', borderRadius: 6, fontSize: 12, background: '#fef9c3', border: '1px solid #fbbf24', cursor: 'pointer' }}>
                     🔑
                   </button>
+                  {onDownloadPDF && (
+                    <button onClick={() => onDownloadPDF(user)} title="Descargar PDF de acceso"
+                      style={{ padding: '5px 8px', borderRadius: 6, fontSize: 12, background: 'var(--bg2)', border: '1px solid var(--border)', cursor: 'pointer' }}>
+                      📄
+                    </button>
+                  )}
                   <button onClick={() => handleDelete(user.id, user.full_name)} title="Eliminar"
                     style={{ padding: '5px 8px', borderRadius: 6, fontSize: 12, background: '#fee2e2', border: '1px solid #fecaca', color: '#dc2626', cursor: 'pointer' }}>
                     🗑️
@@ -194,27 +204,24 @@ export default function UserDirectory({ organizationId }) {
         />
       )}
 
-      {/* Modal cambiar contraseña */}
+      {/* Modal cambiar contraseña — envía email de restablecimiento (admin API requiere service_role) */}
       {passModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div className="sp-card" style={{ width: '100%', maxWidth: 400, padding: 28, borderRadius: 20, boxShadow: '0 24px 48px rgba(0,0,0,0.2)' }}>
-            <h3 style={{ marginBottom: 16, fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>
-              🔑 Cambiar Contraseña — {passModal.full_name}
+          <div className="sp-card" style={{ width: '100%', maxWidth: 420, padding: 28, borderRadius: 20, boxShadow: '0 24px 48px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ marginBottom: 8, fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>
+              🔑 Restablecer Contraseña
             </h3>
-            <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div>
-                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>Nueva Contraseña</label>
-                <input className="sp-input" type="password" required minLength={8} placeholder="Mínimo 8 caracteres" value={newPass} onChange={e => setNewPass(e.target.value)}
-                  style={{ padding: '10px 12px', borderRadius: 8, fontSize: 14, width: '100%', boxSizing: 'border-box' }} />
-              </div>
-              <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-                <button type="submit" disabled={savingPass} className="sp-btn sp-btn-primary" style={{ flex: 1, padding: '11px', borderRadius: 8, fontWeight: 700, fontSize: 13 }}>
-                  {savingPass ? 'Guardando...' : '✅ Actualizar'}
-                </button>
-                <button type="button" onClick={() => setPassModal(null)} className="sp-btn" style={{ flex: 1, padding: '11px', borderRadius: 8, fontSize: 13 }}>
-                  Cancelar
-                </button>
-              </div>
+            <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 20, lineHeight: 1.5 }}>
+              Se enviará un enlace de restablecimiento al correo de <strong style={{ color: 'var(--text)' }}>{passModal.full_name}</strong>:
+              <br /><span style={{ color: 'var(--primary)' }}>{passModal.email}</span>
+            </p>
+            <form onSubmit={handleChangePassword} style={{ display: 'flex', gap: 8 }}>
+              <button type="submit" disabled={savingPass} className="sp-btn sp-btn-primary" style={{ flex: 1, padding: '11px', borderRadius: 8, fontWeight: 700, fontSize: 13 }}>
+                {savingPass ? 'Enviando...' : '📧 Enviar Enlace de Acceso'}
+              </button>
+              <button type="button" onClick={() => setPassModal(null)} className="sp-btn" style={{ flex: 1, padding: '11px', borderRadius: 8, fontSize: 13 }}>
+                Cancelar
+              </button>
             </form>
           </div>
         </div>
