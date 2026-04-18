@@ -305,6 +305,9 @@ export default function SuperAdmin({ user, profile, onBack }) {
   };
 
   const downloadAccessPDF = (userObj, tenant) => {
+    // Normalizar: la BD usa full_name, pero por compatibilidad también acepta name
+    const userName  = userObj.full_name || userObj.name || 'Usuario';
+    const userEmail = userObj.email || '';
     const doc = new jsPDF();
     
     // Cabecera Corporativa
@@ -323,11 +326,11 @@ export default function SuperAdmin({ user, profile, onBack }) {
     doc.setTextColor(30, 41, 59);
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-    doc.text(`Hola, ${userObj.name}`, 20, 65);
+    doc.text(`Hola, ${userName}`, 20, 65);
     
     doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
-    doc.text(`Se ha creado tu cuenta de acceso para la plataforma de ${tenant.name}.`, 20, 75);
+    doc.text(`Se ha creado tu cuenta de acceso para la plataforma de ${tenant?.name || 'Xtratia'}.`, 20, 75);
     doc.text("A continuación, encontrarás tus credenciales de ingreso:", 20, 85);
     
     // Caja de Datos
@@ -342,7 +345,11 @@ export default function SuperAdmin({ user, profile, onBack }) {
     doc.setFontSize(13);
     doc.setTextColor(37, 99, 235);
     doc.setFont("helvetica", "normal");
-    doc.text(`https://${tenant.subdomain}.xtratia.com`, 28, 118);
+    // URL: usa subdominio propio si existe, si no la URL de testing con ?org=
+    const accessUrl = tenant?.subdomain
+      ? `https://${tenant.subdomain}.xtratia.com`
+      : window.location.origin;
+    doc.text(accessUrl, 28, 118);
     
     doc.setFontSize(10);
     doc.setTextColor(100, 116, 139);
@@ -351,7 +358,7 @@ export default function SuperAdmin({ user, profile, onBack }) {
     doc.setFontSize(13);
     doc.setTextColor(30, 41, 59);
     doc.setFont("helvetica", "normal");
-    doc.text(`${userObj.email}`, 28, 140);
+    doc.text(userEmail, 28, 140);
     
     doc.setFontSize(10);
     doc.setTextColor(100, 116, 139);
@@ -368,7 +375,7 @@ export default function SuperAdmin({ user, profile, onBack }) {
     doc.text("Guarda este documento en un lugar seguro. Por motivos de seguridad,", 20, 186);
     doc.text("te recomendamos cambiar tu contraseña una vez ingreses al sistema.", 20, 192);
     
-    doc.save(`Credenciales_${userObj.name.replace(/\s+/g, '_')}.pdf`);
+    doc.save(`Credenciales_${userName.replace(/\s+/g, '_')}.pdf`);
   };
 
 
