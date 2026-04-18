@@ -8,6 +8,9 @@ export const createAuthSlice = (set, get) => ({
   currentOrganization: null,   // alias de profile.organizations para compatibilidad con módulos
   impersonatedProfile: null,
   isSystemOwner: false,
+  // Permite establecer el tenant antes de login (detección de subdominio)
+  setCurrentOrganization: (org) => set({ currentOrganization: org }),
+
   setAuth: (newUser, newProfile) => {
     const current = get();
     // Solo actualiza si el usuario o el perfil han cambiado realmente (comparación profunda)

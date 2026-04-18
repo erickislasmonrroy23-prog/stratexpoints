@@ -22,6 +22,7 @@ import StrategicBus from "./StrategicBus.jsx";
 import IntelligentCore from "./IntelligentCore.jsx";
 import { useStore } from "./store.js";
 import { deepEqual } from 'fast-equals';
+import { useSubdomainTenant } from "./useSubdomainTenant.js";
 
 // Registrar bridge de notificaciones (evita importación circular con store)
 // useStore.getState() es seguro en nivel de módulo porque store se inicializa antes de App
@@ -785,7 +786,10 @@ function MainApp({ onLogout, onSuperAdmin }){
 export default function App(){
   const { i18n } = useTranslation();
   const [loading, setLoading] = useState(true);
-  const [superAdminActive, setSuperAdminActive] = useState(false); // Renamed to avoid confusion with the component name
+  const [superAdminActive, setSuperAdminActive] = useState(false);
+
+  // Detecta subdominio (e.g., acme.xtratia.com) y carga el tenant para el login con branding
+  useSubdomainTenant();
   const [showSuperAdminCodeModal, setShowSuperAdminCodeModal] = useState(false);
   const [superAdminCodeInput, setSuperAdminCodeInput] = useState('');
   // Se leen los datos de autenticación directamente del store de Zustand como única fuente de verdad.
