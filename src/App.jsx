@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { perspectiveService, okrService, kpiService, initiativeService, alertService, objectivesService, autoAlertService, notificationService, setNotifyFn } from "./services.js";
 import { OKRForm, KPIForm, InitiativeForm, Modal } from "./forms.jsx";
 import { AddBtn, TabBar, EmptyState, ConfirmationModal } from "./SharedUI.jsx";
-import NotificationCenter from "./NotificationCenter.jsx";
+import toast, { Toaster } from "react-hot-toast";
 import SuperAdmin from "./SuperAdmin.jsx";
 import CommandCenter from "./CommandCenter.jsx";
 import Dashboard from "./Dashboard.jsx";
@@ -25,8 +25,16 @@ import { deepEqual } from 'fast-equals';
 import { useSubdomainTenant } from "./useSubdomainTenant.js";
 
 // Registrar bridge de notificaciones (evita importación circular con store)
-// useStore.getState() es seguro en nivel de módulo porque store se inicializa antes de App
-setNotifyFn((notif) => useStore.getState().addNotification(notif));
+// Dual bridge: guarda en store (historial) + muestra toast visual inmediatamente
+setNotifyFn((notif) => {
+  useStore.getState().addNotification(notif);
+  const msg = notif.message || '';
+  const opts = { duration: 4000, style: { fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, maxWidth: 400 } };
+  if (notif.type === 'success') toast.success(msg, opts);
+  else if (notif.type === 'error')   toast.error(msg, { ...opts, duration: 6000 });
+  else if (notif.type === 'warning') toast(msg, { ...opts, icon: '⚠️' });
+  else toast(msg, opts);
+});
 
 // Lazy loaded heavy modules para optimizar el bundle (Performance)
 const BowlingChart = lazy(() => import("./BowlingChart.jsx"));
@@ -778,7 +786,16 @@ function MainApp({ onLogout, onSuperAdmin }){
         message={confirmationModal.message}
       />
 
-      <NotificationCenter />
+      {/* Toast notifications — posición bottom-right, 4s auto-dismiss */}
+      <Toaster
+        position="bottom-right"
+        gutter={8}
+        containerStyle={{ zIndex: 99999 }}
+        toastOptions={{
+          success: { iconTheme: { primary: '#16a34a', secondary: '#fff' } },
+          error:   { iconTheme: { primary: '#dc2626', secondary: '#fff' } },
+        }}
+      />
     </div>
   );
 }

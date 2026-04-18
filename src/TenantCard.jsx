@@ -21,12 +21,13 @@ export default function TenantCard({ tenant, isSelected, onClick, onEditTenant }
   const plan     = PLAN_CONFIG[tenant.plan]     || PLAN_CONFIG.basic;
   const initials = (tenant.name || 'E').substring(0, 2).toUpperCase();
 
-  // Score de salud (0-100) basado en usuarios + is_paid + status
+  // Score de salud (0-100) basado en usuarios + isPaid + status
+  // useTenants normaliza a camelCase: isPaid, userCount, logoUrl
   const healthScore = [
-    tenant.status === 'active'   ? 40 : 0,
-    tenant.is_paid               ? 30 : 0,
-    (tenant.user_count || 0) > 0 ? 20 : 0,
-    tenant.modules?.okrs         ? 10 : 0,
+    tenant.status === 'active'                    ? 40 : 0,
+    (tenant.isPaid ?? tenant.is_paid)             ? 30 : 0,
+    ((tenant.userCount ?? tenant.user_count) || 0) > 0 ? 20 : 0,
+    tenant.modules?.okrs                          ? 10 : 0,
   ].reduce((a, b) => a + b, 0);
 
   const healthColor = healthScore >= 80 ? '#16a34a' : healthScore >= 50 ? '#f59e0b' : '#dc2626';
@@ -50,8 +51,8 @@ export default function TenantCard({ tenant, isSelected, onClick, onEditTenant }
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-        {tenant.logo_url ? (
-          <img src={tenant.logo_url} alt={tenant.name}
+        {(tenant.logoUrl || tenant.logo_url) ? (
+          <img src={tenant.logoUrl || tenant.logo_url} alt={tenant.name}
             style={{ width: 40, height: 40, borderRadius: 10, objectFit: 'contain', background: 'white', padding: 4, flexShrink: 0 }} />
         ) : (
           <div style={{
@@ -80,7 +81,7 @@ export default function TenantCard({ tenant, isSelected, onClick, onEditTenant }
       {/* Métricas */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 12 }}>
         <div style={{ textAlign: 'center', padding: '8px 4px', borderRadius: 8, background: 'var(--bg)' }}>
-          <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>{tenant.user_count || 0}</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>{tenant.userCount ?? tenant.user_count ?? 0}</div>
           <div style={{ fontSize: 10, color: 'var(--text3)' }}>Usuarios</div>
         </div>
         <div style={{ textAlign: 'center', padding: '8px 4px', borderRadius: 8, background: 'var(--bg)' }}>
@@ -100,8 +101,8 @@ export default function TenantCard({ tenant, isSelected, onClick, onEditTenant }
 
       {/* Footer: pago + módulos activos */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 11, color: tenant.is_paid ? '#16a34a' : '#dc2626', fontWeight: 600 }}>
-          {tenant.is_paid ? '💳 Al corriente' : '⚠️ Pago pendiente'}
+        <span style={{ fontSize: 11, color: (tenant.isPaid ?? tenant.is_paid) ? '#16a34a' : '#dc2626', fontWeight: 600 }}>
+          {(tenant.isPaid ?? tenant.is_paid) ? '💳 Al corriente' : '⚠️ Pago pendiente'}
         </span>
         <div style={{ display: 'flex', gap: 3 }}>
           {['okrs', 'kpis', 'ai', 'analytics'].map(mod => (

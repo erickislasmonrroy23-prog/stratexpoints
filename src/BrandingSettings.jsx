@@ -51,7 +51,20 @@ export default function BrandingSettings({ tenant, onUpdate }) {
       }).eq('id', tenant?.id);
       if (error) throw error;
       notificationService.success('✅ Configuración de marca guardada.');
-      if (onUpdate) onUpdate({ ...tenant, ...form });
+      // Notificar al padre con cada campo actualizado (compatible con SuperAdmin updateTenant(key, value))
+      if (onUpdate) {
+        const fieldsToSync = {
+          name:        form.name,
+          subdomain:   form.subdomain,
+          industry:    form.industry,
+          logo_url:    form.logo_url,  logoUrl:    form.logo_url,
+          theme_color: form.theme_color, themeColor: form.theme_color,
+          mission:     form.mission,
+          vision:      form.vision,
+          values:      form.values,
+        };
+        Object.entries(fieldsToSync).forEach(([k, v]) => onUpdate(k, v));
+      }
     } catch (e) { notificationService.error('Error: ' + e.message); }
     finally { setSaving(false); }
   };

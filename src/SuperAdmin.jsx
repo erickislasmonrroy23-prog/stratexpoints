@@ -390,10 +390,19 @@ export default function SuperAdmin({ user, profile, onBack }) {
       if (data) {
         const created = {
           id: data.id, name: data.name, subdomain: data.subdomain, industry: data.industry,
-          size: data.size, logoUrl: data.logo_url, themeColor: data.theme_color,
-          maxUsers: data.max_users, modules: data.modules,
-          billingEmail: '', priceBasic: 12, pricePremium: 29, isPaid: true,
-          status: 'active', plan: 'basic', userCount: 0, okrCount: 0, kpiCount: 0,
+          size: data.size,
+          logoUrl: data.logo_url,     logo_url: data.logo_url,
+          themeColor: data.theme_color, theme_color: data.theme_color,
+          maxUsers: data.max_users,   max_users: data.max_users,
+          modules: data.modules,
+          mission: '', vision: '', values: '',
+          billingEmail: '', billing_email: '',
+          priceBasic: 12, price_basic: 12,
+          pricePremium: 29, price_premium: 29,
+          isPaid: true, is_paid: true,
+          status: 'active', plan: 'basic',
+          userCount: 0, user_count: 0,
+          okrCount: 0, kpiCount: 0,
         };
         setTenants([created, ...tenants]);
         setSelectedTenantId(created.id);
