@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { groqService, notificationService } from './services.js';
+import { claudeService, notificationService } from './services.js';
 import { useStore } from './store.js';
 
 const ANALYSIS_TYPES = [
@@ -42,7 +42,7 @@ export default function AIInsights() {
         risks: 'Eres experto en gestión de riesgos (ISO 31000/COSO). Identifica: 1) Top 5 riesgos estratégicos basados en los datos 2) Probabilidad e impacto estimado 3) Controles recomendados 4) Nivel de riesgo global (Bajo/Medio/Alto/Crítico). Español.',
       };
 
-      const analysis = await groqService.chat([
+      const analysis = await claudeService.chat([
         { role: 'system', content: prompts[selected] },
         { role: 'user', content: 'Datos de la organización ' + (ctx.org||'') + ': ' + JSON.stringify(ctx) }
       ]);

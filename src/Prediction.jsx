@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { groqService, notificationService } from './services.js';
+import { claudeService, notificationService } from './services.js';
 import { useStore } from './store.js';
 
 export default function Prediction() {
@@ -31,7 +31,7 @@ export default function Prediction() {
         }
       ];
 
-      const prediction = await groqService.chat(prompt);
+      const prediction = await claudeService.chat(prompt);
       setResult(prediction);
     } catch (e) {
       notificationService.error('Error en predicción: ' + e.message);

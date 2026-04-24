@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { groqService, notificationService } from './services.js';
+import { claudeService, notificationService } from './services.js';
 import { useStore } from './store.js';
 
 const SCENARIOS = [
@@ -43,7 +43,7 @@ export default function Simulator() {
         initiativesCount: initiatives.length,
       };
 
-      const analysis = await groqService.chat([
+      const analysis = await claudeService.chat([
         {
           role: 'system',
           content: 'Eres un consultor de estrategia y simulación organizacional. Analiza el escenario presentado y entrega: 1) Impacto proyectado en los próximos 90 días (cuantificado), 2) Variables más sensibles al cambio, 3) Acciones de mitigación o aceleración recomendadas, 4) Probabilidad de éxito con y sin intervención (%). Sé específico y cuantitativo. Responde en español, máximo 300 palabras, estructurado.'

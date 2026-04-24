@@ -27,11 +27,21 @@ export default function UserDirectory({ organizationId, onDownloadPDF, tenant })
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, role, job_title, department, photo_url, created_at')
+        .select('id, full_name, email, role, organization_roles, job_title, department, photo_url, created_at')
         .eq('organization_id', organizationId)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      setUsers(data || []);
+
+      // MEJORADO: Enriquecer datos con rol específico por organización (multi-tenant)
+      const enrichedUsers = (data || []).map(user => ({
+        ...user,
+        // Determinar el rol a mostrar: primero org-específico, luego rol global
+        displayRole: (user.organization_roles && user.organization_roles[organizationId])
+          ? user.organization_roles[organizationId]
+          : (user.role || 'viewer')
+      }));
+
+      setUsers(enrichedUsers);
     } catch (e) {
       notificationService.error('Error cargando usuarios: ' + e.message);
     } finally { setLoading(false); }
@@ -106,7 +116,7 @@ export default function UserDirectory({ organizationId, onDownloadPDF, tenant })
       <div style={{ display: 'flex', gap: 8, fontSize: 12, color: 'var(--text3)' }}>
         <span>{users.length} usuarios totales</span>
         <span>·</span>
-        <span>{users.filter(u => u.role === 'admin' || u.role === 'Admin').length} admins</span>
+        <span>{users.filter(u => (u.displayRole || u.role) === 'admin' || (u.displayRole || u.role) === 'Admin').length} admins</span>
         <span>·</span>
         <span>{filtered.length} mostrados</span>
       </div>
@@ -122,7 +132,9 @@ export default function UserDirectory({ organizationId, onDownloadPDF, tenant })
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {filtered.map(user => {
-            const roleConf = ROLE_CONFIG[user.role] || { label: user.role || 'N/A', color: '#6b7280', bg: '#f3f4f6' };
+            // MEJORADO: Usar displayRole (específico por organización) si existe, sino usar role global
+            const userRole = user.displayRole || user.role;
+            const roleConf = ROLE_CONFIG[userRole] || { label: userRole || 'N/A', color: '#6b7280', bg: '#f3f4f6' };
             return (
               <div key={user.id} style={{
                 display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',

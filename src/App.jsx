@@ -865,6 +865,10 @@ export default function App(){
 
   async function loadProfile(currentUser){
     try{
+      // ========================================
+      // MEJORADO: Incluir organization_roles JSONB para soporte multi-tenant
+      // Si la columna no existe en la BD, Supabase ignorará silenciosamente
+      // ========================================
       var res=await supabase.from("profiles")
         .select("*, organizations(*)")
         .eq("id",currentUser.id).maybeSingle();

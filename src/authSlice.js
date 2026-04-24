@@ -15,7 +15,16 @@ export const createAuthSlice = (set, get) => ({
     const current = get();
     // Solo actualiza si el usuario o el perfil han cambiado realmente (comparación profunda)
     if (!deepEqual(current.user, newUser) || !deepEqual(current.profile, newProfile)) {
-      const org = newProfile?.organizations || null;
+      // Normalizar organizations: si es un objeto sin id, usar como es; si es un array, tomar el primero
+      let org = null;
+      if (newProfile?.organizations) {
+        if (Array.isArray(newProfile.organizations)) {
+          org = newProfile.organizations[0] || null;
+        } else {
+          org = newProfile.organizations;
+        }
+      }
+
       const isOwner = !!(newProfile?.is_super_admin || newProfile?.role === 'super_admin');
       set({ user: newUser, profile: newProfile, currentOrganization: org, isSystemOwner: isOwner });
     }
@@ -23,13 +32,12 @@ export const createAuthSlice = (set, get) => ({
   setImpersonatedProfile: (profile) => set({ impersonatedProfile: profile }),
   clearImpersonation: () => set({ impersonatedProfile: null }),
 
-  // Evaluador de Permisos ABAC (Attribute-Based Access Control)
+  // Evaluador de Permisos ABAC (Attribute-Based Access Control) con soporte multi-tenant
   can: (action, resource) => {
-    const { profile, impersonatedProfile, user } = get();
+    const { profile, currentOrganization, impersonatedProfile, user } = get();
 
-    // Regla 1: El Super Administrador real (no impersonado) o el usuario específico tienen acceso a todo.
+    // Regla 1: El Super Administrador real (no impersonado) tienen acceso a TODO.
     // Este es el nivel más alto de privilegio.
-    // Si el perfil activo es de Super Administrador de la plataforma (is_super_admin: true), tiene acceso total.
     if (!impersonatedProfile && profile?.is_super_admin) {
       return true;
     }
@@ -49,15 +57,48 @@ export const createAuthSlice = (set, get) => ({
       return false;
     }
 
+    // ============================================================================
     // Regla 2: Evaluar permisos basados en el rol del usuario dentro de su organización.
-    const tenantRoles = activeProfile.organizations?.roles || [ // Roles por defecto si la organización no tiene roles personalizados definidos.
-      // Roles por defecto si la organización no tiene roles personalizados definidos.
-      { id: ROLES.ADMIN, permissions: [{ resource: '*', action: '*' }] },
-      { id: 'editor', permissions: [{ resource: 'okrs', action: '*' }, { resource: 'kpis', action: '*' }, { resource: 'initiatives', action: '*' }] },
-      { id: 'viewer', permissions: [{ resource: '*', action: 'read' }] }
-    ];
+    // MEJORADO: Soporte para roles POR ORGANIZACIÓN (multi-tenant role assignment)
+    // ============================================================================
 
-    const roleDef = tenantRoles.find(r => String(r.id).toLowerCase() === String(activeProfile.role || '').toLowerCase());
+    // Determinar el rol del usuario en la organización actual.
+    // Prioridad 1: Si existen organization_roles JSONB, usar el rol específico para esta org
+    // Prioridad 2: Si no, usar el rol global (backward compatibility)
+    const currentOrgId = currentOrganization?.id;
+    let userRoleInOrg = activeProfile.role || 'viewer'; // Default: rol global con fallback a viewer
+
+    // Si el usuario tiene roles por organización y estamos en una org específica, usar ese rol
+    if (activeProfile.organization_roles && typeof activeProfile.organization_roles === 'object' && currentOrgId) {
+      const orgSpecificRole = activeProfile.organization_roles[currentOrgId];
+      if (orgSpecificRole) {
+        userRoleInOrg = orgSpecificRole;
+      }
+    }
+
+    // Validación de seguridad: Si el usuario está en una org pero no tiene rol, denegar
+    if (currentOrgId && !userRoleInOrg) {
+      console.warn('⚠️ User has no role in current organization. Access denied.');
+      return false;
+    }
+
+    // Definición de roles y sus permisos (roles estándar de RBAC)
+    const roleDefinitions = {
+      [ROLES.ADMIN]: { id: ROLES.ADMIN, permissions: [{ resource: '*', action: '*' }] },
+      'admin': { id: 'admin', permissions: [{ resource: '*', action: '*' }] },  // Alias común
+      'editor': { id: 'editor', permissions: [
+        { resource: 'okrs', action: '*' },
+        { resource: 'kpis', action: '*' },
+        { resource: 'initiatives', action: '*' },
+        { resource: 'objectives', action: '*' },
+        { resource: 'perspectives', action: '*' }
+      ]},
+      'viewer': { id: 'viewer', permissions: [{ resource: '*', action: 'read' }] },
+      'lector': { id: 'lector', permissions: [{ resource: '*', action: 'read' }] }  // Alias español
+    };
+
+    const normalizedRole = String(userRoleInOrg || '').toLowerCase();
+    const roleDef = roleDefinitions[normalizedRole];
     const permissions = roleDef?.permissions || [];
 
     // Comprobar si algún permiso en el rol del usuario coincide con la acción/recurso solicitado.
@@ -65,6 +106,11 @@ export const createAuthSlice = (set, get) => ({
         (p.resource === resource || p.resource === '*') &&
         (p.action === action || p.action === '*')
     );
+
+    // Debug: Log si se deniega acceso
+    if (!hasPermission) {
+      console.debug(`[RBAC] Acceso denegado - Rol: ${normalizedRole}, Recurso: ${resource}, Acción: ${action}`);
+    }
 
     return hasPermission;
   },

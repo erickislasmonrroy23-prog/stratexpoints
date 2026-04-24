@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { groqService, notificationService } from './services.js';
+import { claudeService, notificationService } from './services.js';
 import { useStore } from './store.js';
 
 const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -99,7 +99,7 @@ export default function BowlingChart() {
         lastActual: r.actuals.filter(a => a !== null).slice(-1)[0],
         lastTarget: r.targets[r.actuals.filter(a => a !== null).length - 1] || r.targets[0],
       }));
-      const analysis = await groqService.chat([
+      const analysis = await claudeService.chat([
         { role: 'system', content: 'Analiza la tabla Bowling Chart y genera: 1) Tendencia general, 2) Top 3 KPIs críticos, 3) Recomendaciones de aceleración. Conciso, máximo 200 palabras. En español.' },
         { role: 'user', content: 'Bowling Chart ' + yearLabel + ': ' + JSON.stringify(summary) },
       ]);

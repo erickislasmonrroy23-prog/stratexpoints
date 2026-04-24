@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { groqService, notificationService } from './services.js';
+import { claudeService, notificationService } from './services.js';
 
 const ACCEPTED_TYPES = '.pdf,.txt,.doc,.docx,.md,.csv';
 
@@ -44,7 +44,7 @@ export default function DocAnalyzer() {
     setResult('');
     try {
       const q = question.trim() || '¿Cuáles son los puntos estratégicos más importantes de este documento?';
-      const analysis = await groqService.analyzeDocument(fileText, q);
+      const analysis = await claudeService.analyzeDocument(fileText, q);
       setResult(analysis);
     } catch (err) {
       notificationService.error('Error al analizar: ' + err.message);

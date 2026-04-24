@@ -4,8 +4,24 @@ const SC = { on_track: "var(--green)", at_risk: "var(--gold)", completed: "var(-
 const SL = { on_track: "En curso", at_risk: "En riesgo", completed: "Completado", not_started: "Sin iniciar" };
 
 const ObjectiveCard = memo(({ objective, perspective, onDelete, onSelect }) => {
+  const handleSelect = (obj) => {
+    try {
+      if (!obj || !obj.id) {
+        console.warn('⚠️ ObjectiveCard: objetivo inválido', obj);
+        return;
+      }
+      if (typeof onSelect === 'function') {
+        onSelect(obj);
+      } else {
+        console.error('❌ ObjectiveCard: onSelect no es una función', { onSelect, objective: obj });
+      }
+    } catch (err) {
+      console.error('❌ ObjectiveCard error en handleSelect:', err.message, { objective: obj });
+    }
+  };
+
   return (
-    <div onClick={() => onSelect(objective)} className="sp-card-hover scale-in" style={{ cursor: 'pointer', position: 'relative', background: 'var(--bg)', border: '1px solid var(--border)', borderTop: `4px solid ${perspective.color}`, borderRadius: 10, padding: '12px 6px', flex: '1 1 110px', maxWidth: 160, minHeight: 52, boxShadow: '0 2px 6px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 2, transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+    <div onClick={() => handleSelect(objective)} className="sp-card-hover scale-in" style={{ cursor: 'pointer', position: 'relative', background: 'var(--bg)', border: '1px solid var(--border)', borderTop: `4px solid ${perspective.color}`, borderRadius: 10, padding: '12px 6px', flex: '1 1 110px', maxWidth: 160, minHeight: 52, boxShadow: '0 2px 6px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 2, transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)' }}>
       <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: perspective.color, color: '#fff', padding: '2px 8px', borderRadius: 8, fontSize: 10, fontWeight: 800, border: '2px solid var(--bg2)', letterSpacing: 0.5, boxShadow: `0 2px 4px ${perspective.color}40` }}>
         {objective.code || `${perspective.prefix || (perspective.name||'?').substring(0,3).toUpperCase()}?`}
       </div>

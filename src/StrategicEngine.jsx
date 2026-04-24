@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { groqService, objectivesService, okrService, kpiService, initiativeService, notificationService } from './services.js';
+import { claudeService, objectivesService, okrService, kpiService, initiativeService, notificationService } from './services.js';
 import { useStore } from './store.js';
 export default function StrategicEngine() {
   const [running, setRunning] = useState(true);
@@ -41,7 +41,7 @@ export default function StrategicEngine() {
     IMPORTANTE: Devuelve SOLO el JSON válido, sin texto decorativo, Markdown ni explicaciones.`;
     
     try {
-      const res = await groqService.ask([{ role: 'user', content: prompt }], true);
+      const res = await claudeService.chat([{ role: 'user', content: prompt }]);
       const parsed = JSON.parse(res);
       let count = 0;
 

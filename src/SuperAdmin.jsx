@@ -385,11 +385,51 @@ export default function SuperAdmin({ user, profile, onBack }) {
 
 
   const handleAddTenant = async () => {
-    const newTenant = {
-      name: 'Nueva Organización', subdomain: `empresa-${Date.now().toString().slice(-4)}`, industry: 'Tecnología', size: '1-50', logo_url: '', theme_color: '#6366f1', max_users: 5,
-      modules: { strategy: true, okrs: true, kpis: true, initiatives: true, ai: true, reports: true }
+    // Generar un subdominio único y URL-safe
+    const generateUniqueSubdomain = async (baseName = 'empresa') => {
+      // Generar slug con 6 caracteres aleatorios para garantizar unicidad
+      const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+      let randomSuffix = '';
+      for (let i = 0; i < 6; i++) {
+        randomSuffix += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      const candidateSubdomain = `${baseName}-${randomSuffix}`;
+
+      // Validar que el subdominio no exista en la BD
+      try {
+        const { data: existing } = await supabase
+          .from('organizations')
+          .select('id')
+          .eq('subdomain', candidateSubdomain)
+          .limit(1);
+
+        // Si no existe, retornar el candidato; si existe, reintentar recursivamente
+        if (!existing || existing.length === 0) {
+          return candidateSubdomain;
+        } else {
+          // Reintentar con un nuevo sufijo si existe colisión
+          return generateUniqueSubdomain(baseName);
+        }
+      } catch (e) {
+        // Si hay error en validación, usar el candidato (mejor que fallar)
+        console.warn('⚠️ No se pudo validar unicidad de subdominio:', e.message);
+        return candidateSubdomain;
+      }
     };
+
     try {
+      const uniqueSubdomain = await generateUniqueSubdomain('empresa');
+      const newTenant = {
+        name: 'Nueva Organización',
+        subdomain: uniqueSubdomain,
+        industry: 'Tecnología',
+        size: '1-50',
+        logo_url: '',
+        theme_color: '#6366f1',
+        max_users: 5,
+        modules: { strategy: true, okrs: true, kpis: true, initiatives: true, ai: true, reports: true }
+      };
+
       const data = await organizationService.create(newTenant);
       // organizationService.create usa .single() → retorna objeto, no array
       if (data) {
@@ -411,7 +451,7 @@ export default function SuperAdmin({ user, profile, onBack }) {
         };
         setTenants([created, ...tenants]);
         setSelectedTenantId(created.id);
-        notificationService.success('✅ Organización creada. Ahora configura su perfil y guarda.');
+        notificationService.success(`✅ Organización creada (${data.subdomain}). Ahora configura su perfil y guarda.`);
       }
     } catch(e) { notificationService.error("Error al crear empresa: " + e.message); }
   };

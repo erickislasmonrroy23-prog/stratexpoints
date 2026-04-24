@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { groqService, initiativeService, kpiService, notificationService } from './services.js';
+import { claudeService, initiativeService, kpiService, notificationService } from './services.js';
 import { useStore } from './store.js';
 
 export default function IntelligentCore() {
@@ -24,9 +24,8 @@ export default function IntelligentCore() {
     DEVUELVE ÚNICAMENTE UN JSON válido con este formato exacto: {"initiatives": [{"title": "Nombre corto de la iniciativa", "owner": "Rol sugerido (Ej: CFO, Líder de Ventas)"}]}`;
     
     try {
-      const res = await groqService.ask(
-        [{ role: 'system', content: 'Eres un generador de iniciativas que solo responde con JSON válido.' }, { role: 'user', content: prompt }],
-        true
+      const res = await claudeService.chat(
+        [{ role: 'system', content: 'Eres un generador de iniciativas que solo responde con JSON válido.' }, { role: 'user', content: prompt }]
       );
       const parsed = JSON.parse(res);
       setRecoveryPlans(prev => ({ ...prev, [kpi.id]: parsed.initiatives || [] }));

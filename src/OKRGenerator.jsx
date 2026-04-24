@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { groqService, okrService, notificationService } from './services.js';
+import { claudeService, okrService, notificationService } from './services.js';
 import { useStore } from './store.js';
 import { deepEqual } from 'fast-equals';
 import { PREDEFINED_DEPTS } from './constants.js';
@@ -59,7 +59,7 @@ export default function OKRGenerator() {
         }
       ];
       
-      const raw = await groqService.chat(prompt);
+      const raw = await claudeService.chat(prompt);
       
       // Parsear JSON de la respuesta
       const jsonMatch = raw.match(/\[.*\]/s);
@@ -90,9 +90,8 @@ export default function OKRGenerator() {
     Devuelve ÚNICAMENTE un JSON válido: [{"obj": "Texto OKR", "department": "Área", "owner": "Dueño", "objective_id": "ID", "krs": ["KR 1", "KR 2"]}]`;
     
     try {
-      const response = await groqService.ask(
-        [{ role: 'system', content: 'Eres un generador de OKRs que solo responde con JSON válido.' }, { role: 'user', content: prompt }],
-        true
+      const response = await claudeService.chat(
+        [{ role: 'system', content: 'Eres un generador de OKRs que solo responde con JSON válido.' }, { role: 'user', content: prompt }]
       );
       const parsed = JSON.parse(response);
       setResults(processGeneratedResults(parsed));

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { groqService } from './services.js';
+import { claudeService } from './services.js';
 import { notificationService } from './services.js';
 import { useStore } from './store.js';
 
@@ -44,14 +44,14 @@ export default function Chat() {
       };
 
       const history = messages.slice(-8).map(m => ({ role: m.role, content: m.content }));
-      const reply = await groqService.chat([contextMsg, ...history, userMsg]);
+      const reply = await claudeService.chat([contextMsg, ...history, userMsg]);
 
       setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
     } catch (err) {
       const errMsg = err.message || 'Error desconocido';
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: '⚠️ Error al conectar con la IA: ' + errMsg + '\n\nVerifica que la clave VITE_GROQ_API_KEY esté configurada en Vercel.'
+        content: '⚠️ Error al conectar con la IA: ' + errMsg + '\n\nVerifica que la clave VITE_CLAUDE_API_KEY esté configurada en .env.local'
       }]);
       notificationService.error('Error IA: ' + errMsg);
     } finally {

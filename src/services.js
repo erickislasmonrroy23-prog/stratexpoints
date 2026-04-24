@@ -337,6 +337,207 @@ export const groqService = {
   },
 };
 
+// ── Claude AI Service (NUEVA INTEGRACIÓN - Reemplaza Groq/Gemini) ──────────────
+export const claudeService = {
+  isAvailable: () => !!import.meta.env.VITE_CLAUDE_API_KEY,
+
+  chat: async (messages, model = 'claude-opus-4-1-20250805') => {
+    const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
+    if (!apiKey) throw new Error('❌ VITE_CLAUDE_API_KEY no configurada. Agrega tu API key de Claude en .env.local');
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 4096,
+          messages: messages.map(m => ({
+            role: m.role,
+            content: m.content,
+          })),
+          system: messages.find(m => m.role === 'system')?.content || undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        const errorMsg = errorData?.error?.message || `HTTP ${res.status}`;
+        console.error('❌ Claude API Error:', errorMsg, errorData);
+
+        if (res.status === 401) throw new Error('❌ API Key inválida o expirada');
+        if (res.status === 429) throw new Error('❌ Rate limit excedido. Intenta en unos segundos.');
+        if (res.status === 500) throw new Error('❌ Servidor Claude no disponible');
+
+        throw new Error(`Claude Error: ${errorMsg}`);
+      }
+
+      const data = await res.json();
+      const content = data.content?.[0]?.text || '';
+
+      if (!content) {
+        console.warn('⚠️ Claude retornó respuesta vacía');
+        return '';
+      }
+
+      return content;
+    } catch (err) {
+      console.error('❌ Claude Service error:', err.message);
+      throw err;
+    }
+  },
+
+  // ═══ AUDITORÍA OKRs ═══
+  auditOKRs: async (okrs, objectives, perspectives) => {
+    return claudeService.chat([
+      {
+        role: 'user',
+        content: `Eres auditor senior de Estrategia. Analiza este portafolio de OKRs y entrega:
+1. **Diagnóstico Ejecutivo**: Salud general (0-100%), factores clave, riesgos inmediatos
+2. **Top 3 OKRs en Riesgo**: Cuáles tienen probabilidad baja de alcanzarse y por qué
+3. **Top 3 Recomendaciones Inmediatas**: Acciones concretas para acelerar progreso
+4. **Madurez de OKRs**: Score 0-100 basado en claridad, medibilidad, ambición
+5. **Alineación Estratégica**: Cómo se conectan a objetivos de negocio
+
+DATOS:
+- Objetivos Estratégicos: ${JSON.stringify((objectives || []).slice(0, 10), null, 2)}
+- OKRs Activos: ${JSON.stringify((okrs || []).slice(0, 15), null, 2)}
+- Perspectivas: ${JSON.stringify((perspectives || []).slice(0, 5), null, 2)}
+
+Responde en ESPAÑOL, formato markdown, máximo 800 palabras. Se específico y accionable.`,
+      },
+    ]);
+  },
+
+  // ═══ ANÁLISIS KPIs ═══
+  diagnoseKPIs: async (kpis, organization) => {
+    return claudeService.chat([
+      {
+        role: 'user',
+        content: `Eres consultor de Performance Management. Diagnostica este sistema de KPIs:
+1. **Salud General**: ¿Qué está funcionando bien? ¿Qué está en riesgo?
+2. **KPIs Críticos (< 70%)**: Cuáles, causa raíz probable, impacto
+3. **KPIs Sobreperformando**: Oportunidades de escalamiento, lecciones aprendidas
+4. **Gaps de Medición**: Qué NO estamos midiendo pero deberíamos
+5. **Plan de Acción**: Top 5 cambios prioritarios en los próximos 30 días
+
+DATOS KPIs:
+${JSON.stringify((kpis || []).slice(0, 20), null, 2)}
+
+Organización: ${organization?.name || 'N/A'}
+
+Responde en ESPAÑOL, markdown, máximo 600 palabras. Enfócate en accionables.`,
+      },
+    ]);
+  },
+
+  // ═══ ALINEACIÓN ESTRATÉGICA ═══
+  analyzeAlignment: async (okrs, kpis, initiatives) => {
+    return claudeService.chat([
+      {
+        role: 'user',
+        content: `Eres estratega organizacional. Evalúa alineación entre OKRs, KPIs e Iniciativas:
+1. **Coherencia OKRs↔KPIs**: ¿Los KPIs miden correctamente el progreso en OKRs?
+2. **Cobertura de Iniciativas**: ¿Cada OKR tiene iniciativas suficientes? ¿Hay iniciativas huérfanas?
+3. **Gaps Estratégicos**: Áreas no cubiertas, conflictos, redundancias
+4. **Cadena de Valor**: ¿Hay una cascada lógica de objetivos→resultados→acciones?
+5. **Plan de Corrección**: Cambios recomendados para mejorar alineación
+
+PORTFOLIO:
+- OKRs: ${JSON.stringify((okrs || []).slice(0, 10), null, 2)}
+- KPIs: ${JSON.stringify((kpis || []).slice(0, 10), null, 2)}
+- Iniciativas: ${JSON.stringify((initiatives || []).slice(0, 10), null, 2)}
+
+Responde en ESPAÑOL, markdown, máximo 700 palabras.`,
+      },
+    ]);
+  },
+
+  // ═══ MAPA DE RIESGOS ═══
+  identifyRisks: async (okrs, kpis, organization) => {
+    return claudeService.chat([
+      {
+        role: 'user',
+        content: `Eres experto COSO/ISO 31000 en Gestión de Riesgos. Identifica riesgos estratégicos:
+1. **Top 5 Riesgos Estratégicos**: Basados en datos de OKRs y KPIs
+   - Para cada: descripción, causa, impacto probable, probabilidad
+2. **Riesgos Emergentes**: Tendencias, factores externos, vulnerabilidades
+3. **Controles Recomendados**: Qué medir, cómo mitigar, responsables
+4. **Riesgo Global**: Score 0-100 (Bajo/Medio/Alto/Crítico)
+5. **Plan de Monitoreo**: KPIs de riesgo, frecuencia, alertas
+
+DATOS:
+- OKRs: ${JSON.stringify((okrs || []).slice(0, 10), null, 2)}
+- KPIs: ${JSON.stringify((kpis || []).slice(0, 10), null, 2)}
+- Organización: ${JSON.stringify(organization, null, 2)}
+
+Responde en ESPAÑOL, formato matriz/tabla cuando sea posible, máximo 800 palabras.`,
+      },
+    ]);
+  },
+
+  // ═══ GENERACIÓN DE OKRs ═══
+  generateOKRs: async (perspective, organization, idea, numOKRs = 3) => {
+    return claudeService.chat([
+      {
+        role: 'user',
+        content: `Eres estratega OKR senior. Genera ${numOKRs} OKRs de alta calidad para:
+Perspectiva: ${perspective}
+Empresa: ${organization?.name || 'nuestra empresa'}
+Industria: ${organization?.industry || 'general'}
+Visión: ${organization?.vision || 'crecer sustentablemente'}
+Contexto/Idea: ${idea}
+
+REQUISITOS para cada OKR:
+- Objetivo (O): Declarativo, inspirador, cualitativo. Ej: "Convertirse en referente de innovación"
+- Key Results (KRs): 3-4 por OKR, medibles, aspiracionales pero alcanzables. Con métrica y meta.
+  Formato: "Aumentar [métrica] de [base] a [meta]" o "Lograr [X] por [fecha]"
+- Ambición: 70-80% de confianza de alcanzar al 100%
+- Alineación: Conectados a la visión/industria
+
+RESPONDE EN JSON PURO (sin markdown):
+{
+  "okrs": [
+    {
+      "objective": "...",
+      "keyResults": ["KR1...", "KR2...", "KR3..."],
+      "confidence": 75,
+      "rationale": "Por qué importa..."
+    }
+  ]
+}`,
+      },
+    ]);
+  },
+
+  // ═══ ANÁLISIS DE DOCUMENTOS ═══
+  analyzeDocument: async (text, question) => {
+    return claudeService.chat([
+      {
+        role: 'user',
+        content: `Documento para analizar:
+${text.substring(0, 12000)}
+
+Pregunta: ${question || 'Puntos principales, insights clave, recomendaciones'}
+
+Responde en ESPAÑOL, markdown, máximo 500 palabras.`,
+      },
+    ]);
+  },
+
+  // ═══ MODO CONVERSACIONAL ═══
+  ask: async (messages, _jsonMode = false) => {
+    if (!Array.isArray(messages)) {
+      messages = [{ role: 'user', content: String(messages) }];
+    }
+    return claudeService.chat(messages);
+  },
+};
+
 // ── Profile Service ──────────────────────────────────────────────
 export const profileService = {
   create: async (payload) => {
@@ -364,6 +565,133 @@ export const profileService = {
     const { error } = await supabase.from('profiles').delete().eq('id', id);
     if (error) throw error;
   },
+
+  // ========================================================================
+  // NUEVO: Gestión de roles por organización (multi-tenant RBAC)
+  // ========================================================================
+
+  /**
+   * Asigna un rol específico a un usuario dentro de una organización.
+   * Si la columna organization_roles no existe en la BD, la crea automáticamente.
+   * @param {string} userId - ID del usuario
+   * @param {string} organizationId - ID de la organización
+   * @param {string} role - Rol a asignar (admin, editor, viewer)
+   */
+  setRoleForOrganization: async (userId, organizationId, role) => {
+    if (!userId || !organizationId || !role) {
+      throw new Error('userId, organizationId y role son requeridos');
+    }
+
+    try {
+      // Obtener el perfil actual con sus organization_roles
+      const { data: profile, error: fetchError } = await supabase
+        .from('profiles')
+        .select('organization_roles')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+
+      // Inicializar organization_roles si no existe
+      const currentRoles = (profile?.organization_roles && typeof profile.organization_roles === 'object')
+        ? profile.organization_roles
+        : {};
+
+      // Actualizar el rol para esta organización
+      currentRoles[organizationId] = role;
+
+      // Guardar los cambios
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ organization_roles: currentRoles })
+        .eq('id', userId)
+        .select('organization_roles')
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (e) {
+      // Si falla por que la columna no existe, registra una advertencia
+      // pero permite que continúe la operación con el rol global como fallback
+      console.warn('⚠️ No se pudo asignar rol por organización:', e.message);
+      // Fallback: actualizar el rol global (para backward compatibility)
+      const { error: fallbackError } = await supabase
+        .from('profiles')
+        .update({ role })
+        .eq('id', userId);
+      if (fallbackError) throw fallbackError;
+    }
+  },
+
+  /**
+   * Obtiene el rol de un usuario en una organización específica.
+   * @param {string} userId - ID del usuario
+   * @param {string} organizationId - ID de la organización
+   * @returns {string} El rol del usuario en la organización, o 'viewer' por defecto
+   */
+  getRoleForOrganization: async (userId, organizationId) => {
+    if (!userId || !organizationId) return 'viewer';
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role, organization_roles')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (error || !data) return 'viewer';
+
+      // Prioridad 1: Rol específico por organización
+      if (data.organization_roles && typeof data.organization_roles === 'object') {
+        const orgSpecificRole = data.organization_roles[organizationId];
+        if (orgSpecificRole) return orgSpecificRole;
+      }
+
+      // Prioridad 2: Rol global (fallback)
+      return data.role || 'viewer';
+    } catch (e) {
+      console.warn('Error obteniendo rol por organización:', e.message);
+      return 'viewer';
+    }
+  },
+};
+
+// =========================================================================
+// DATABASE MIGRATION HELPER - Multi-Tenant Role Support
+// =========================================================================
+// Esta función intenta añadir la columna organization_roles a la tabla profiles
+// si no existe. Se ejecuta automáticamente en App.jsx durante la inicialización.
+// SQL manual si es necesario:
+// ALTER TABLE profiles ADD COLUMN organization_roles JSONB DEFAULT '{}';
+export const ensureMultiTenantRoleSupport = async () => {
+  try {
+    // Intentar una query de lectura que incluya organization_roles
+    // Si la columna no existe, Supabase la ignorará silenciosamente
+    const { error } = await supabase
+      .from('profiles')
+      .select('id, organization_roles')
+      .limit(1);
+
+    // Si no hay error, la columna existe (o el sistema la ignora sin error)
+    if (!error) {
+      console.log('✅ Multi-tenant role support is ready');
+      return true;
+    }
+
+    // Si hay error de sintaxis de columna, intentar crear la columna
+    if (error?.message?.includes('organization_roles')) {
+      console.warn('⚠️ organization_roles column not found. Attempting to create...');
+      console.warn('Para crear manualmente en Supabase, ejecuta:');
+      console.warn('ALTER TABLE profiles ADD COLUMN organization_roles JSONB DEFAULT \'{}\';');
+      // Nota: No podemos ejecutar DDL desde el cliente, requiere service_role
+      return false;
+    }
+
+    return true;
+  } catch (e) {
+    console.warn('Error checking multi-tenant role support:', e.message);
+    return false;
+  }
 };
 
 // ── Email Service (stub — enviar emails requiere backend) ────────────

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { groqService, notificationService } from './services.js';
+import { claudeService, notificationService } from './services.js';
 import { useStore } from './store.js';
 import { deepEqual } from 'fast-equals';
 
@@ -24,7 +24,7 @@ export default function Benchmark() {
     setLoading(true);
     const prompt = `Actúa como Consultor de Competitividad. Analiza estas métricas de mi empresa frente a la industria: ${JSON.stringify(metrics)}. Dame 2 recomendaciones clave y directas para superar a la competencia en las áreas donde estamos rezagados.`;
     try {
-      const res = await groqService.ask([{ role: 'user', content: prompt }]);
+      const res = await claudeService.ask([{ role: 'user', content: prompt }]);
       setAiInsight(res);
     } catch (e) {
       notificationService.error("Error de IA: " + e.message);

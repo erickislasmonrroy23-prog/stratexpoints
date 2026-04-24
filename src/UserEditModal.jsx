@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from './supabase.js';
-import { notificationService } from './services.js';
+import { notificationService, profileService } from './services.js';
 import jsPDF from 'jspdf';
 
 const ROLES = [
@@ -170,6 +170,17 @@ export default function UserEditModal({ user, onClose, onRefresh, tenant }) {
           })
           .eq('id', user.id);
         if (error) throw error;
+
+        // MEJORADO: Asignar rol también en la organización específica (multi-tenant)
+        if (user?.id && user?.organization_id) {
+          try {
+            await profileService.setRoleForOrganization(user.id, user.organization_id, form.role);
+          } catch (roleError) {
+            // No falla la actualización si hay error en roles por org (fallback a rol global)
+            console.warn('Advertencia al actualizar rol por organización:', roleError.message);
+          }
+        }
+
         notificationService.success('✅ Usuario actualizado correctamente.');
         if (onRefresh) onRefresh();
         if (onClose) onClose();
@@ -265,9 +276,16 @@ export default function UserEditModal({ user, onClose, onRefresh, tenant }) {
           {/* Botón PDF — incluye contraseña real */}
           <button
             onClick={() => {
-              const accessUrl = tenant?.subdomain
-                ? `https://${tenant.subdomain}.xtratia.com`
-                : (tenant?.subdomain ? `${window.location.origin}/?org=${tenant.subdomain}` : window.location.origin);
+              // Genera la URL de acceso correcta: subdomain para prod, ?org= para testing
+              const getAccessUrl = (tenant) => {
+                if (!tenant?.subdomain) return window.location.origin;
+                // En producción: usar subdominio. En testing: usar query param
+                const isProdEnvironment = window.location.hostname.includes('xtratia.com');
+                return isProdEnvironment
+                  ? `https://${tenant.subdomain}.xtratia.com`
+                  : `${window.location.origin}/?org=${tenant.subdomain}`;
+              };
+              const accessUrl = getAccessUrl(tenant);
               generateCredentialsPDF({
                 fullName:   form.full_name || createdCreds.email,
                 email:      createdCreds.email,

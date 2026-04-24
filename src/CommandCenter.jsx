@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { groqService, organizationService, notificationService } from './services.js';
+import { claudeService, organizationService, notificationService } from './services.js';
 import { useStore } from './store.js';
 
 export default function CommandCenter({ globalPeriod }) {
@@ -15,7 +15,10 @@ export default function CommandCenter({ globalPeriod }) {
     setFlashLoading(true);
     try {
       const data = { okrsCount: okrs.length, kpisCount: kpis.length, orgName: currentOrganization?.name };
-      const insight = await groqService.flashInsight(data);
+      const insight = await claudeService.chat([
+        { role: 'system', content: 'Asesor ejecutivo. Da 3 insights estratégicos accionables en máximo 5 oraciones. Español.' },
+        { role: 'user', content: 'Datos: ' + JSON.stringify(data) }
+      ]);
       setFlashInsightText(insight);
     } catch (e) {
       setFlashInsightText('Error: ' + e.message);
@@ -67,7 +70,7 @@ export default function CommandCenter({ globalPeriod }) {
     setLoadingInsight(true);
     const prompt = `Actúa como Asistente de Dirección. En máximo 3 líneas directas, da un diagnóstico rápido: OKRs en ${avgOkrProgress}%, ${initiativesCompleted} proyectos completados y ${criticalAlerts.length} alertas críticas activas. Dime exactamente a qué le debo dar prioridad hoy.`;
     try {
-      const res = await groqService.ask([{ role: 'user', content: prompt }]);
+      const res = await claudeService.chat([{ role: 'user', content: prompt }]);
       setQuickInsight(res);
     } catch (e) {
       setQuickInsight("Error al conectar con el cerebro de IA.");
