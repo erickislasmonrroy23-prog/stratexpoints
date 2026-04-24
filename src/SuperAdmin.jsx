@@ -363,11 +363,16 @@ export default function SuperAdmin({ user, profile, onBack }) {
     doc.setFontSize(10);
     doc.setTextColor(100, 116, 139);
     doc.setFont("helvetica", "bold");
-    doc.text("CONTRASEÑA TEMPORAL:", 28, 154);
-    doc.setFontSize(13);
-    doc.setTextColor(30, 41, 59);
-    doc.setFont("helvetica", "normal");
-    doc.text(`(Solicítala a tu administrador de cuenta)`, 28, 162);
+    doc.text("CONTRASEÑA:", 28, 154);
+    // Para usuarios existentes la contraseña no está disponible por seguridad
+    // Para usuarios nuevos, usar el botón "Descargar PDF" del modal de credenciales
+    doc.setFontSize(11);
+    doc.setTextColor(146, 64, 14);
+    doc.setFillColor(254, 249, 195);
+    doc.setDrawColor(251, 191, 36);
+    doc.rect(20, 158, 170, 14, 'FD');
+    doc.setFont("helvetica", "bold");
+    doc.text("⚠  Solicita la contraseña a tu administrador de cuenta.", 26, 167);
     
     // Pie de página
     doc.setFontSize(11);
@@ -779,6 +784,7 @@ export default function SuperAdmin({ user, profile, onBack }) {
 
           <UserDirectory
             organizationId={currentTenant?.id}
+            tenant={currentTenant}
             onDownloadPDF={(u) => downloadAccessPDF(u, currentTenant)}
           />
           

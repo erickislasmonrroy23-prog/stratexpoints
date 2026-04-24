@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from './supabase.js';
 import { notificationService } from './services.js';
+import jsPDF from 'jspdf';
 
 const ROLES = [
   { value: 'admin',  label: 'Administrador', desc: 'Acceso completo' },
@@ -10,7 +11,95 @@ const ROLES = [
 
 const EDGE_URL = import.meta.env.VITE_SUPABASE_URL + '/functions/v1/create-tenant-user';
 
-export default function UserEditModal({ user, onClose, onRefresh }) {
+/** Genera y descarga el PDF de credenciales con todos los datos visibles */
+function generateCredentialsPDF({ fullName, email, password, accessUrl, tenantName }) {
+  const doc = new jsPDF();
+
+  // ── Encabezado corporativo ──────────────────────────────────────────────
+  doc.setFillColor(37, 99, 235);
+  doc.rect(0, 0, 210, 48, 'F');
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(22);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Bienvenido a ' + (tenantName || 'Xtratia'), 105, 22, { align: 'center' });
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Credenciales de acceso — Documento Confidencial', 105, 34, { align: 'center' });
+
+  // ── Saludo ──────────────────────────────────────────────────────────────
+  doc.setTextColor(30, 41, 59);
+  doc.setFontSize(15);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Hola, ' + fullName, 20, 66);
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(71, 85, 105);
+  doc.text('Se ha creado tu cuenta de acceso. Usa los datos siguientes para ingresar.', 20, 76);
+
+  // ── Caja de credenciales ────────────────────────────────────────────────
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(203, 213, 225);
+  doc.roundedRect(20, 86, 170, 88, 4, 4, 'FD');
+
+  // Enlace de acceso
+  doc.setFontSize(9);
+  doc.setTextColor(100, 116, 139);
+  doc.setFont('helvetica', 'bold');
+  doc.text('🔗  ENLACE DE ACCESO', 28, 100);
+  doc.setFontSize(12);
+  doc.setTextColor(37, 99, 235);
+  doc.setFont('helvetica', 'normal');
+  doc.text(accessUrl, 28, 110);
+
+  // Correo
+  doc.setFontSize(9);
+  doc.setTextColor(100, 116, 139);
+  doc.setFont('helvetica', 'bold');
+  doc.text('📧  CORREO DE ACCESO', 28, 124);
+  doc.setFontSize(12);
+  doc.setTextColor(30, 41, 59);
+  doc.setFont('helvetica', 'normal');
+  doc.text(email, 28, 134);
+
+  // Contraseña — caja amarilla destacada
+  doc.setFillColor(254, 249, 195);
+  doc.setDrawColor(251, 191, 36);
+  doc.roundedRect(20, 140, 170, 28, 3, 3, 'FD');
+  doc.setFontSize(9);
+  doc.setTextColor(100, 116, 139);
+  doc.setFont('helvetica', 'bold');
+  doc.text('🔑  CONTRASEÑA TEMPORAL', 28, 150);
+  doc.setFontSize(16);
+  doc.setTextColor(146, 64, 14);
+  doc.setFont('helvetica', 'bold');
+  doc.text(password, 28, 162);
+
+  // ── Instrucciones ───────────────────────────────────────────────────────
+  doc.setFontSize(10);
+  doc.setTextColor(71, 85, 105);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Pasos para ingresar:', 20, 184);
+  doc.setFont('helvetica', 'normal');
+  doc.text('1. Abre el enlace de acceso en tu navegador.', 24, 194);
+  doc.text('2. Ingresa tu correo y la contraseña temporal que aparece en este documento.', 24, 204);
+  doc.text('3. Por seguridad, cambia tu contraseña una vez que hayas ingresado.', 24, 214);
+
+  // ── Pie de página ───────────────────────────────────────────────────────
+  doc.setFillColor(37, 99, 235);
+  doc.rect(0, 272, 210, 25, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Documento generado automáticamente por Xtratia Enterprise OS — Confidencial.', 105, 282, { align: 'center' });
+  doc.text('Guarda este documento en un lugar seguro y no lo compartas por canales no cifrados.', 105, 289, { align: 'center' });
+
+  doc.save('Credenciales_' + fullName.replace(/\s+/g, '_') + '.pdf');
+  notificationService.success('📄 PDF de credenciales descargado.');
+}
+
+export default function UserEditModal({ user, onClose, onRefresh, tenant }) {
   const isNew = !user?.id || user?.isNew;
 
   const [form, setForm] = useState({
@@ -172,6 +261,30 @@ export default function UserEditModal({ user, onClose, onRefresh }) {
               </div>
             </div>
           </div>
+
+          {/* Botón PDF — incluye contraseña real */}
+          <button
+            onClick={() => {
+              const accessUrl = tenant?.subdomain
+                ? `https://${tenant.subdomain}.xtratia.com`
+                : (tenant?.subdomain ? `${window.location.origin}/?org=${tenant.subdomain}` : window.location.origin);
+              generateCredentialsPDF({
+                fullName:   form.full_name || createdCreds.email,
+                email:      createdCreds.email,
+                password:   createdCreds.password,
+                accessUrl,
+                tenantName: tenant?.name || 'Xtratia',
+              });
+            }}
+            className="sp-btn"
+            style={{
+              width: '100%', padding: '14px', borderRadius: 12, fontWeight: 800, fontSize: 15,
+              marginBottom: 10, background: '#1e3a8a', color: '#fff', border: 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}
+          >
+            📄 Descargar PDF de Credenciales
+          </button>
 
           <button
             onClick={onClose}

@@ -11,7 +11,7 @@ const ROLE_CONFIG = {
   super_admin: { label: 'Super Admin', color: '#6366f1', bg: '#eef2ff' },
 };
 
-export default function UserDirectory({ organizationId, onDownloadPDF }) {
+export default function UserDirectory({ organizationId, onDownloadPDF, tenant }) {
   const [users, setUsers]         = useState([]);
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState('');
@@ -195,12 +195,13 @@ export default function UserDirectory({ organizationId, onDownloadPDF }) {
         />
       )}
 
-      {/* Modal crear nuevo usuario */}
+      {/* Modal crear nuevo usuario — pasa tenant para el PDF de credenciales */}
       {showCreate && (
         <UserEditModal
           user={{ isNew: true, organization_id: organizationId }}
           onClose={() => setShowCreate(false)}
           onRefresh={loadUsers}
+          tenant={tenant}
         />
       )}
 
