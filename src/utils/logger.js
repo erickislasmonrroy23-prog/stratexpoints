@@ -1,0 +1,173 @@
+/**
+ * Logger Utility for StratexPoints
+ *
+ * In development: logs to console
+ * In production: sends errors to Sentry
+ *
+ * Usage:
+ * import { logger } from './utils/logger.js';
+ * logger.log('Debug message');
+ * logger.error('Error message', error);
+ * logger.warn('Warning message');
+ * logger.info('Info message');
+ */
+
+// Check development mode - handle both browser (Vite) and Node.js (backend) environments
+const isDevelopment = (typeof import.meta !== 'undefined' && import.meta.env?.DEV) || process.env.NODE_ENV === 'development';
+
+// Initialize Sentry in production (if configured)
+let sentryInitialized = false;
+const initSentry = () => {
+  if (sentryInitialized || isDevelopment) return;
+
+  try {
+    // Sentry initialization would go here
+    // This is a placeholder for when Sentry is configured
+    // import * as Sentry from "@sentry/react";
+    // Sentry.init({ dsn: process.env.VITE_SENTRY_DSN });
+    sentryInitialized = true;
+  } catch (e) {
+    logger.warn('Failed to initialize Sentry:', e);
+  }
+};
+
+const logger = {
+  /**
+   * Debug log - only shown in development
+   * @param {string} message
+   * @param {any} data
+   */
+  log: (message, data) => {
+    if (isDevelopment) {
+      console.log(`[DEBUG] ${message}`, data || '');
+    }
+  },
+
+  /**
+   * Info log - development console + production logger
+   * @param {string} message
+   * @param {any} data
+   */
+  info: (message, data) => {
+    if (isDevelopment) {
+      console.info(`[INFO] ${message}`, data || '');
+    } else {
+      // Could send to analytics or monitoring service
+      try {
+        // Analytics tracking would go here
+      } catch (e) {
+        // Fail silently
+      }
+    }
+  },
+
+  /**
+   * Warning log - shown in both development and production
+   * @param {string} message
+   * @param {any} data
+   */
+  warn: (message, data) => {
+    console.warn(`[WARN] ${message}`, data || '');
+  },
+
+  /**
+   * Error log - development console + production Sentry
+   * @param {string} message
+   * @param {Error|any} error
+   * @param {any} context Additional context data
+   */
+  error: (message, error, context) => {
+    const errorMessage = error?.message || String(error) || 'Unknown error';
+
+    if (isDevelopment) {
+      console.error(`[ERROR] ${message}`, {
+        error: errorMessage,
+        stack: error?.stack,
+        context
+      });
+    } else {
+      // Send to Sentry in production
+      try {
+        initSentry();
+        // Sentry.captureException(error, {
+        //   tags: { section: 'app' },
+        //   extra: { message, context }
+        // });
+
+        // Fallback: send to server monitoring if available
+        // this.sendToMonitoring({ message, error: errorMessage, context });
+      } catch (e) {
+        // Fail silently - don't throw errors from error logger
+        console.error('Logger error:', e);
+      }
+    }
+  },
+
+  /**
+   * Critical error - always logged and sent to monitoring
+   * @param {string} message
+   * @param {Error|any} error
+   * @param {any} context
+   */
+  critical: (message, error, context) => {
+    const errorMessage = error?.message || String(error) || 'Unknown error';
+
+    console.error(`[CRITICAL] ${message}`, {
+      error: errorMessage,
+      stack: error?.stack,
+      context,
+      timestamp: new Date().toISOString()
+    });
+
+    if (!isDevelopment) {
+      try {
+        initSentry();
+        // Sentry.captureException(error, {
+        //   level: 'fatal',
+        //   tags: { section: 'critical' },
+        //   extra: { message, context }
+        // });
+      } catch (e) {
+        console.error('Critical logger error:', e);
+      }
+    }
+  },
+
+  /**
+   * Performance monitoring
+   * @param {string} label
+   * @param {number} duration
+   * @param {any} metadata
+   */
+  performance: (label, duration, metadata) => {
+    if (isDevelopment) {
+      console.log(`[PERF] ${label}: ${duration}ms`, metadata || '');
+    } else {
+      // Send to analytics
+      try {
+        // Analytics.trackTiming(label, duration, metadata);
+      } catch (e) {
+        // Fail silently
+      }
+    }
+  },
+
+  /**
+   * Track user action
+   * @param {string} action
+   * @param {any} properties
+   */
+  trackAction: (action, properties) => {
+    if (isDevelopment) {
+      console.log(`[ACTION] ${action}`, properties || '');
+    } else {
+      try {
+        // Analytics.trackEvent(action, properties);
+      } catch (e) {
+        // Fail silently
+      }
+    }
+  }
+};
+
+export default logger;

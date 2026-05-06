@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabase.js';
-import { notificationService } from './services.js';
+import { apiCall, apiCallBatch, apiCallWithRetry } from './utils/apiWrapper.js';import { notificationService } from './services.js';
 
 const PLANS = [
   { id: 'trial',      label: 'Trial',      price: 0,    color: '#f59e0b', users: 3,  api: 100  },

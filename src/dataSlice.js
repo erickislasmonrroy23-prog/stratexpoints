@@ -1,4 +1,5 @@
-import { perspectiveService, okrService, kpiService, initiativeService, alertService, objectivesService, autoAlertService, notificationService } from './services.js';
+import logger from './utils/logger.js';
+import { apiCall, apiCallBatch, apiCallWithRetry } from './utils/apiWrapper.js';import { perspectiveService, okrService, kpiService, initiativeService, alertService, objectivesService, autoAlertService, notificationService } from './services.js';
 
 // The store is flattened to avoid issues with nested object references,
 // which was a primary cause of the "Maximum update depth exceeded" error.
@@ -25,7 +26,7 @@ export const createDataSlice = (set, get) => ({
     try {
       const orgId = get().profile?.organization_id;
       if (!orgId) {
-        console.warn('loadAllData: no hay organization_id en el perfil todavía.');
+        logger.warn('loadAllData: no hay organization_id en el perfil todavía.');
         set({ loadingData: false });
         return;
       }
@@ -58,7 +59,7 @@ export const createDataSlice = (set, get) => ({
         try {
           perspectives = await perspectiveService.initDefaults(orgId);
         } catch (initErr) {
-          console.warn('No se pudieron crear perspectivas por defecto:', initErr.message);
+          logger.warn('No se pudieron crear perspectivas por defecto:', initErr.message);
         }
       }
 
@@ -66,7 +67,7 @@ export const createDataSlice = (set, get) => ({
 
       await autoAlertService.checkKPIs(orgId);
     } catch (e) {
-      console.error('Error cargando datos:', e);
+      logger.error('Error cargando datos:', e);
       notificationService.error(`Error crítico de red: ${e.message}`);
       set({ loadingData: false, globalError: e.message });
     }

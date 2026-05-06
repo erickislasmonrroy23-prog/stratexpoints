@@ -1,14 +1,23 @@
+import logger from './utils/logger.js';
 import { supabase } from './supabase.js';
-import { deepEqual } from 'fast-equals'; // Importa la función de comparación profunda
+import { deepEqual } from 'fast-equals';
 import { ROLES } from './constants.js';
+import { callEdgeFunction } from './utils/jwtUtils.js';
 
 export const createAuthSlice = (set, get) => ({
   user: null,
   profile: null,
-  currentOrganization: null,   // alias de profile.organizations para compatibilidad con módulos
+  currentOrganization: null,
   impersonatedProfile: null,
   isSystemOwner: false,
-  // Permite establecer el tenant antes de login (detección de subdominio)
+
+  // NEW: Enterprise features and session management
+  enterpriseFeatures: null,
+  passwordRotationDue: false,
+  sessionInfo: null,
+  authContextLoading: false,
+  authContextError: null,
+
   setCurrentOrganization: (org) => set({ currentOrganization: org }),
 
   setAuth: (newUser, newProfile) => {
@@ -27,10 +36,92 @@ export const createAuthSlice = (set, get) => ({
 
       const isOwner = !!(newProfile?.is_super_admin || newProfile?.role === 'super_admin');
       set({ user: newUser, profile: newProfile, currentOrganization: org, isSystemOwner: isOwner });
+
+      // NEW: Automatically load auth context when user is authenticated
+      if (newUser && newProfile) {
+        get().loadAuthContext();
+      }
     }
   },
+
   setImpersonatedProfile: (profile) => set({ impersonatedProfile: profile }),
   clearImpersonation: () => set({ impersonatedProfile: null }),
+
+  // NEW: Load authentication context from Edge Function
+  loadAuthContext: async () => {
+    set({ authContextLoading: true, authContextError: null });
+    try {
+      const response = await callEdgeFunction('auth-context', {});
+
+      if (response.ok && response.data) {
+        const authContext = response.data.data || response.data;
+
+        set({
+          enterpriseFeatures: authContext.enterprise_features || null,
+          passwordRotationDue: authContext.password_rotation_due || false,
+          sessionInfo: authContext.session_info || null,
+          authContextLoading: false,
+          authContextError: null
+        });
+
+        logger.log('[Auth] Context loaded successfully:', {
+          organization: authContext.organizations?.[0]?.name,
+          features: authContext.enterprise_features,
+          passwordRotation: authContext.password_rotation_due
+        });
+
+        return true;
+      } else {
+        throw new Error(response.data?.error || 'Failed to load auth context');
+      }
+    } catch (error) {
+      logger.error('[Auth] Error loading context:', error);
+      set({
+        authContextLoading: false,
+        authContextError: error.message
+      });
+      return false;
+    }
+  },
+
+  // NEW: Refresh JWT session
+  refreshSession: async () => {
+    try {
+      const { data, error } = await supabase.auth.refreshSession();
+      if (error) {
+        logger.error('[Auth] Session refresh error:', error);
+        return false;
+      }
+
+      if (data.session) {
+        logger.log('[Auth] Session refreshed');
+        // Reload auth context with new token
+        await get().loadAuthContext();
+        return true;
+      }
+      return false;
+    } catch (err) {
+      logger.error('[Auth] Session refresh exception:', err);
+      return false;
+    }
+  },
+
+  // NEW: Check if password rotation is required
+  checkPasswordRotation: () => {
+    const { passwordRotationDue } = get();
+    return passwordRotationDue;
+  },
+
+  // NEW: Get complete auth context
+  getAuthContext: () => {
+    const { enterpriseFeatures, sessionInfo, profile, currentOrganization } = get();
+    return {
+      profile,
+      organization: currentOrganization,
+      features: enterpriseFeatures,
+      session: sessionInfo
+    };
+  },
 
   // Evaluador de Permisos ABAC (Attribute-Based Access Control) con soporte multi-tenant
   can: (action, resource) => {
@@ -78,7 +169,7 @@ export const createAuthSlice = (set, get) => ({
 
     // Validación de seguridad: Si el usuario está en una org pero no tiene rol, denegar
     if (currentOrgId && !userRoleInOrg) {
-      console.warn('⚠️ User has no role in current organization. Access denied.');
+      logger.warn('⚠️ User has no role in current organization. Access denied.');
       return false;
     }
 
@@ -109,7 +200,7 @@ export const createAuthSlice = (set, get) => ({
 
     // Debug: Log si se deniega acceso
     if (!hasPermission) {
-      console.debug(`[RBAC] Acceso denegado - Rol: ${normalizedRole}, Recurso: ${resource}, Acción: ${action}`);
+      logger.debug(`[RBAC] Acceso denegado - Rol: ${normalizedRole}, Recurso: ${resource}, Acción: ${action}`);
     }
 
     return hasPermission;

@@ -1,0 +1,243 @@
+.login-integrated-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+}
+
+.login-integrated-card {
+  background: white;
+  border-radius: 12px;
+  padding: 40px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.login-title {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a1a;
+  text-align: center;
+}
+
+.login-subtitle {
+  margin: 0 0 24px 0;
+  font-size: 14px;
+  color: #666;
+  text-align: center;
+}
+
+.login-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  margin-bottom: 20px;
+  background: #f5f5f5;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #666;
+}
+
+.status-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ccc;
+  animation: pulse 2s infinite;
+}
+
+.login-status.authenticating .status-indicator,
+.login-status.loading-context .status-indicator,
+.login-status.redirecting .status-indicator {
+  background: #667eea;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.login-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  margin-bottom: 20px;
+  background: #fee;
+  border: 1px solid #fcc;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #c00;
+}
+
+.error-icon {
+  font-size: 16px;
+}
+
+.login-form {
+  margin-bottom: 24px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.form-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: all 200ms;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-input:disabled {
+  background: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.login-button {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 200ms;
+  font-family: inherit;
+}
+
+.login-button:hover:not(:disabled) {
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+  transform: translateY(-2px);
+}
+
+.login-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  margin: 24px 0;
+  color: #999;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #ddd;
+}
+
+.login-divider span {
+  margin: 0 12px;
+}
+
+.test-users {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.test-user-button {
+  padding: 10px;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #667eea;
+  cursor: pointer;
+  transition: all 200ms;
+  font-family: inherit;
+}
+
+.test-user-button:hover:not(:disabled) {
+  background: #f0f0f0;
+  border-color: #667eea;
+}
+
+.test-user-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.login-debug {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #ddd;
+}
+
+.login-debug summary {
+  font-size: 12px;
+  color: #999;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+}
+
+.login-debug summary:hover {
+  color: #667eea;
+}
+
+.debug-info {
+  margin-top: 10px;
+  padding: 10px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: 'Monaco', 'Menlo', monospace;
+  overflow-x: auto;
+  color: #666;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+@media (max-width: 480px) {
+  .login-integrated-card {
+    padding: 24px;
+  }
+
+  .login-title {
+    font-size: 24px;
+  }
+
+  .test-users {
+    grid-template-columns: 1fr;
+  }
+}

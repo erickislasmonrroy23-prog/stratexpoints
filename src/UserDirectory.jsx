@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabase.js';
-import { notificationService } from './services.js';
+import { apiCall, apiCallBatch, apiCallWithRetry } from './utils/apiWrapper.js';import { notificationService } from './services.js';
 import UserEditModal from './UserEditModal.jsx';
 
 const ROLE_CONFIG = {

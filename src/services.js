@@ -1,3 +1,5 @@
+import logger from './utils/logger.js';
+import { apiCall } from './utils/apiWrapper.js';
 import { supabase } from './supabase.js';
 
 // ── Notification Service ─────────────────────────────────────────────────────
@@ -7,10 +9,10 @@ let _notifyBridge = null;
 export const setNotifyFn = (fn) => { _notifyBridge = fn; };
 
 export const notificationService = {
-  success: (msg) => { console.log('[OK]', msg);    _notifyBridge?.({ type: 'success', message: msg }); },
-  error:   (msg) => { console.error('[ERR]', msg); _notifyBridge?.({ type: 'error',   message: msg }); },
-  info:    (msg) => { console.info('[INFO]', msg);  _notifyBridge?.({ type: 'info',    message: msg }); },
-  warning: (msg) => { console.warn('[WARN]', msg);  _notifyBridge?.({ type: 'warning', message: msg }); },
+  success: (msg) => { logger.log('[OK]', msg);    _notifyBridge?.({ type: 'success', message: msg }); },
+  error:   (msg) => { logger.error('[ERR]', msg); _notifyBridge?.({ type: 'error',   message: msg }); },
+  info:    (msg) => { logger.info('[INFO]', msg);  _notifyBridge?.({ type: 'info',    message: msg }); },
+  warning: (msg) => { logger.warn('[WARN]', msg);  _notifyBridge?.({ type: 'warning', message: msg }); },
 };
 
 // ── OKR Service ──────────────────────────────────────────────────────────────
@@ -22,7 +24,7 @@ export const okrService = {
       .select('*')
       .eq('organization_id', orgId)
       .order('created_at', { ascending: false });
-    if (error) { console.error('okrService.getAll:', error.message); return []; }
+    if (error) { logger.error('okrService.getAll:', error.message); return []; }
     // Normalizar: la tabla usa 'objective' como campo principal
     return (data || []).map(o => ({
       ...o,
@@ -54,7 +56,7 @@ export const kpiService = {
       .select('*')
       .eq('organization_id', orgId)
       .order('created_at', { ascending: false });
-    if (error) { console.error('kpiService.getAll:', error.message); return []; }
+    if (error) { logger.error('kpiService.getAll:', error.message); return []; }
     return data || [];
   },
   create: async (payload) => {
@@ -82,7 +84,7 @@ export const initiativeService = {
       .select('*')
       .eq('organization_id', orgId)
       .order('created_at', { ascending: false });
-    if (error) { console.error('initiativeService.getAll:', error.message); return []; }
+    if (error) { logger.error('initiativeService.getAll:', error.message); return []; }
     // Normalizar: la tabla usa 'title' y 'status', traducir status a phase para UI
     return (data || []).map(i => ({
       ...i,
@@ -115,7 +117,7 @@ export const perspectiveService = {
       .select('*')
       .eq('organization_id', orgId);
     // No se ordena por created_at — la columna puede no existir en todas las instancias
-    if (error) { console.error('perspectiveService.getAll:', error.message); return []; }
+    if (error) { logger.error('perspectiveService.getAll:', error.message); return []; }
     return data || [];
   },
   initDefaults: async (orgId) => {
@@ -128,7 +130,7 @@ export const perspectiveService = {
       { name: 'Aprendizaje y Crecimiento', icon: '🚀', color: '#F59E0B', order_index: 4, organization_id: orgId },
     ];
     const { data, error } = await supabase.from('perspectives').insert(defaults).select();
-    if (error) { console.error('perspectiveService.initDefaults:', error.message); return defaults.map((d,i)=>({...d,id:i+1})); }
+    if (error) { logger.error('perspectiveService.initDefaults:', error.message); return defaults.map((d,i)=>({...d,id:i+1})); }
     return data || [];
   },
   create: async (payload) => {
@@ -149,7 +151,7 @@ export const alertService = {
       .eq('is_read', false)
       .order('created_at', { ascending: false })
       .limit(20);
-    if (error) { console.error('alertService.getAll:', error.message); return []; }
+    if (error) { logger.error('alertService.getAll:', error.message); return []; }
     return data || [];
   },
   update: async (id, payload) => {
@@ -173,7 +175,7 @@ export const objectivesService = {
       .select('*')
       .eq('organization_id', orgId);
     // Sin order('created_at') — la columna no existe en todas las instancias
-    if (error) { console.error('objectivesService.getAll:', error.message); return []; }
+    if (error) { logger.error('objectivesService.getAll:', error.message); return []; }
     return data || [];
   },
   create: async (payload) => {
@@ -218,7 +220,7 @@ export const organizationService = {
       .select('*')
       .eq('id', orgId)
       .single();
-    if (error) { console.error('organizationService.get:', error.message); return null; }
+    if (error) { logger.error('organizationService.get:', error.message); return null; }
     return data;
   },
   getAll: async () => {
@@ -226,7 +228,7 @@ export const organizationService = {
       .from('organizations')
       .select('*')
       .order('created_at', { ascending: false });
-    if (error) { console.error('organizationService.getAll:', error.message); return []; }
+    if (error) { logger.error('organizationService.getAll:', error.message); return []; }
     return data || [];
   },
   create: async (payload) => {
@@ -269,7 +271,7 @@ export const autoAlertService = {
           return { title, message: 'Avance: ' + pct + '% (Meta: ' + kpi.target + '). Responsable: ' + (kpi.owner || 'N/A') + '.', severity: pct < 50 ? 'critical' : 'warning', is_read: false, organization_id: orgId };
         }).filter(Boolean);
       if (toInsert.length > 0) await supabase.from('alerts').insert(toInsert);
-    } catch (e) { console.error('autoAlertService.checkKPIs:', e.message); }
+    } catch (e) { logger.error('autoAlertService.checkKPIs:', e.message); }
   }
 };
 
@@ -367,7 +369,7 @@ export const claudeService = {
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         const errorMsg = errorData?.error?.message || `HTTP ${res.status}`;
-        console.error('❌ Claude API Error:', errorMsg, errorData);
+        logger.error('❌ Claude API Error:', errorMsg, errorData);
 
         if (res.status === 401) throw new Error('❌ API Key inválida o expirada');
         if (res.status === 429) throw new Error('❌ Rate limit excedido. Intenta en unos segundos.');
@@ -380,13 +382,13 @@ export const claudeService = {
       const content = data.content?.[0]?.text || '';
 
       if (!content) {
-        console.warn('⚠️ Claude retornó respuesta vacía');
+        logger.warn('⚠️ Claude retornó respuesta vacía');
         return '';
       }
 
       return content;
     } catch (err) {
-      console.error('❌ Claude Service error:', err.message);
+      logger.error('❌ Claude Service error:', err.message);
       throw err;
     }
   },
@@ -552,7 +554,7 @@ export const profileService = {
       .select('*')
       .eq('organization_id', orgId)
       .order('created_at', { ascending: false });
-    if (error) { console.error('profileService.getAll:', error.message); return []; }
+    if (error) { logger.error('profileService.getAll:', error.message); return []; }
     return data || [];
   },
   update: async (id, payload) => {
@@ -613,7 +615,7 @@ export const profileService = {
     } catch (e) {
       // Si falla por que la columna no existe, registra una advertencia
       // pero permite que continúe la operación con el rol global como fallback
-      console.warn('⚠️ No se pudo asignar rol por organización:', e.message);
+      logger.warn('⚠️ No se pudo asignar rol por organización:', e.message);
       // Fallback: actualizar el rol global (para backward compatibility)
       const { error: fallbackError } = await supabase
         .from('profiles')
@@ -650,7 +652,7 @@ export const profileService = {
       // Prioridad 2: Rol global (fallback)
       return data.role || 'viewer';
     } catch (e) {
-      console.warn('Error obteniendo rol por organización:', e.message);
+      logger.warn('Error obteniendo rol por organización:', e.message);
       return 'viewer';
     }
   },
@@ -674,22 +676,22 @@ export const ensureMultiTenantRoleSupport = async () => {
 
     // Si no hay error, la columna existe (o el sistema la ignora sin error)
     if (!error) {
-      console.log('✅ Multi-tenant role support is ready');
+      logger.log('✅ Multi-tenant role support is ready');
       return true;
     }
 
     // Si hay error de sintaxis de columna, intentar crear la columna
     if (error?.message?.includes('organization_roles')) {
-      console.warn('⚠️ organization_roles column not found. Attempting to create...');
-      console.warn('Para crear manualmente en Supabase, ejecuta:');
-      console.warn('ALTER TABLE profiles ADD COLUMN organization_roles JSONB DEFAULT \'{}\';');
+      logger.warn('⚠️ organization_roles column not found. Attempting to create...');
+      logger.warn('Para crear manualmente en Supabase, ejecuta:');
+      logger.warn('ALTER TABLE profiles ADD COLUMN organization_roles JSONB DEFAULT \'{}\';');
       // Nota: No podemos ejecutar DDL desde el cliente, requiere service_role
       return false;
     }
 
     return true;
   } catch (e) {
-    console.warn('Error checking multi-tenant role support:', e.message);
+    logger.warn('Error checking multi-tenant role support:', e.message);
     return false;
   }
 };
@@ -698,7 +700,7 @@ export const ensureMultiTenantRoleSupport = async () => {
 export const emailService = {
   sendInvitation: async (email, orgName) => {
     // En producción usar Supabase Edge Functions o Resend
-    console.info('emailService.sendInvitation:', email, 'org:', orgName);
+    logger.info('emailService.sendInvitation:', email, 'org:', orgName);
     return { success: true, message: 'Invitación enviada (simulada)' };
   },
   sendPasswordReset: async (email) => {
@@ -709,7 +711,7 @@ export const emailService = {
     return { success: true };
   },
   sendNotification: async (to, subject, body) => {
-    console.info('emailService.sendNotification:', to, subject);
+    logger.info('emailService.sendNotification:', to, subject);
     return { success: true };
   },
   // Alias de sendInvitation — compatibilidad con módulos que usan sendInvite
@@ -717,7 +719,7 @@ export const emailService = {
     return emailService.sendInvitation(email, orgName);
   },
   sendInvoice: async (email, invoiceData) => {
-    console.info('emailService.sendInvoice:', email, invoiceData);
+    logger.info('emailService.sendInvoice:', email, invoiceData);
     return { success: true, message: 'Factura enviada (simulada)' };
   },
 };

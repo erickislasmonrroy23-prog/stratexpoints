@@ -1,0 +1,528 @@
+
+> stratexpoints-backend@1.0.0 dev
+> nodemon src/index.js
+
+[33m[nodemon] 3.1.14[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): *.*[39m
+[33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[32m[nodemon] starting `node src/index.js`[39m
+Initializing database schema...
+✅ Migration 001_create_schema.sql executed successfully
+✅ Migration 002_add_key_rotation.sql executed successfully
+✅ Database schema initialized successfully
+✅ Database initialized
+
+╔══════════════════════════════════════════════════════╗
+║  StratexPoints Backend - FASE 7                      ║
+║  Secrets Management & Key Rotation API               ║
+╠══════════════════════════════════════════════════════╣
+║  Server running on: http://localhost:3001
+║  Environment: development
+║  Database: undefined:undefined/undefined
+╠══════════════════════════════════════════════════════╣
+║  SECRETS MANAGEMENT (FASE 6):                        ║
+║  • POST   /api/secrets                               ║
+║  • GET    /api/secrets                               ║
+║  • GET    /api/secrets/:id                           ║
+║  • GET    /api/secrets/:id/value                     ║
+║  • PUT    /api/secrets/:id                           ║
+║  • DELETE /api/secrets/:id                           ║
+║  • GET    /api/secrets/:id/audit                     ║
+╠══════════════════════════════════════════════════════╣
+║  KEY ROTATION MANAGEMENT (FASE 7):                   ║
+║  • GET    /api/keys/:secretId/policy                 ║
+║  • POST   /api/keys/:secretId/policy                 ║
+║  • GET    /api/keys/:secretId/preview                ║
+║  • POST   /api/keys/:secretId/rotate                 ║
+║  • GET    /api/keys/:secretId/history                ║
+║  • GET    /api/keys/scheduled                        ║
+║  • DELETE /api/keys/:secretId/schedule/:scheduleId   ║
+╠══════════════════════════════════════════════════════╣
+║  SYSTEM ENDPOINTS:                                   ║
+║  • GET    /health                                    ║
+║  • GET    /api/health                                ║
+║  • GET    /api/status                                ║
+╚══════════════════════════════════════════════════════╝
+      
+Database query error: {
+  error: 'invalid input syntax for type uuid: "viewer-user-id"',
+  query: 'INSERT INTO audit_logs (\n' +
+    '          organization_id, user_id, action, resource_type, ip_address, user_agent, status, timestamp\n' +
+    '        ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())',
+  params: 7
+}
+Audit auth middleware error: error: invalid input syntax for type uuid: "viewer-user-id"
+    at /Users/erickislas/Lunes 23 marzo star/stratexpoints/backend/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async query (file:///Users/erickislas/Lunes%2023%20marzo%20star/stratexpoints/backend/src/utils/database.js:37:20)
+    at async auditAuthMiddleware (file:///Users/erickislas/Lunes%2023%20marzo%20star/stratexpoints/backend/src/middleware/auth.js:173:7) {
+  length: 146,
+  severity: 'ERROR',
+  code: '22P02',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: "unnamed portal parameter $2 = '...'",
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'uuid.c',
+  line: '133',
+  routine: 'string_to_uuid'
+}
+[GET] /scheduled - 200 (71ms)
+Database query error: {
+  error: 'invalid input syntax for type uuid: "viewer-user-id"',
+  query: 'INSERT INTO audit_logs (\n' +
+    '          organization_id, user_id, action, resource_type, ip_address, user_agent, status, timestamp\n' +
+    '        ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())',
+  params: 7
+}
+Audit auth middleware error: error: invalid input syntax for type uuid: "viewer-user-id"
+    at /Users/erickislas/Lunes 23 marzo star/stratexpoints/backend/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async query (file:///Users/erickislas/Lunes%2023%20marzo%20star/stratexpoints/backend/src/utils/database.js:37:20)
+    at async auditAuthMiddleware (file:///Users/erickislas/Lunes%2023%20marzo%20star/stratexpoints/backend/src/middleware/auth.js:173:7) {
+  length: 146,
+  severity: 'ERROR',
+  code: '22P02',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: "unnamed portal parameter $2 = '...'",
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'uuid.c',
+  line: '133',
+  routine: 'string_to_uuid'
+}
+[GET] /06ce3f85-16da-496d-abb4-971a0eb01938/policy - 200 (41ms)
+Database query error: {
+  error: 'invalid input syntax for type uuid: "viewer-user-id"',
+  query: 'INSERT INTO audit_logs (\n' +
+    '          organization_id, user_id, action, resource_type, ip_address, user_agent, status, timestamp\n' +
+    '        ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())',
+  params: 7
+}
+Audit auth middleware error: error: invalid input syntax for type uuid: "viewer-user-id"
+    at /Users/erickislas/Lunes 23 marzo star/stratexpoints/backend/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async query (file:///Users/erickislas/Lunes%2023%20marzo%20star/stratexpoints/backend/src/utils/database.js:37:20)
+    at async auditAuthMiddleware (file:///Users/erickislas/Lunes%2023%20marzo%20star/stratexpoints/backend/src/middleware/auth.js:173:7) {
+  length: 146,
+  severity: 'ERROR',
+  code: '22P02',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: "unnamed portal parameter $2 = '...'",
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'uuid.c',
+  line: '133',
+  routine: 'string_to_uuid'
+}
+[SECURITY] User viewer-user-id (viewer) attempted restricted action: POST /06ce3f85-16da-496d-abb4-971a0eb01938/policy
+[POST] /06ce3f85-16da-496d-abb4-971a0eb01938/policy - 403 (6ms)
+[POST] /06ce3f85-16da-496d-abb4-971a0eb01938/policy - 200 (39ms)
+Database query error: {
+  error: 'invalid input syntax for type uuid: "viewer-user-id"',
+  query: 'INSERT INTO audit_logs (\n' +
+    '          organization_id, user_id, action, resource_type, ip_address, user_agent, status, timestamp\n' +
+    '        ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())',
+  params: 7
+}
+Audit auth middleware error: error: invalid input syntax for type uuid: "viewer-user-id"
+    at /Users/erickislas/Lunes 23 marzo star/stratexpoints/backend/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async query (file:///Users/erickislas/Lunes%2023%20marzo%20star/stratexpoints/backend/src/utils/database.js:37:20)
+    at async auditAuthMiddleware (file:///Users/erickislas/Lunes%2023%20marzo%20star/stratexpoints/backend/src/middleware/auth.js:173:7) {
+  length: 146,
+  severity: 'ERROR',
+  code: '22P02',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: "unnamed portal parameter $2 = '...'",
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'uuid.c',
+  line: '133',
+  routine: 'string_to_uuid'
+}
+[GET] /06ce3f85-16da-496d-abb4-971a0eb01938/preview - 200 (35ms)
+[POST] /06ce3f85-16da-496d-abb4-971a0eb01938/rotate - 200 (37ms)
+Database query error: {
+  error: 'invalid input syntax for type uuid: "viewer-user-id"',
+  query: 'INSERT INTO audit_logs (\n' +
+    '          organization_id, user_id, action, resource_type, ip_address, user_agent, status, timestamp\n' +
+    '        ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())',
+  params: 7
+}
+Audit auth middleware error: error: invalid input syntax for type uuid: "viewer-user-id"
+    at /Users/erickislas/Lunes 23 marzo star/stratexpoints/backend/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async query (file:///Users/erickislas/Lunes%2023%20marzo%20star/stratexpoints/backend/src/utils/database.js:37:20)
+    at async auditAuthMiddleware (file:///Users/erickislas/Lunes%2023%20marzo%20star/stratexpoints/backend/src/middleware/auth.js:173:7) {
+  length: 146,
+  severity: 'ERROR',
+  code: '22P02',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: "unnamed portal parameter $2 = '...'",
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'uuid.c',
+  line: '133',
+  routine: 'string_to_uuid'
+}
+[GET] /06ce3f85-16da-496d-abb4-971a0eb01938/history - 200 (26ms)
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/index.js`[39m
+Initializing database schema...
+✅ Migration 001_create_schema.sql executed successfully
+✅ Migration 002_add_key_rotation.sql executed successfully
+✅ Database schema initialized successfully
+✅ Database initialized
+
+╔══════════════════════════════════════════════════════╗
+║  StratexPoints Backend - FASE 7                      ║
+║  Secrets Management & Key Rotation API               ║
+╠══════════════════════════════════════════════════════╣
+║  Server running on: http://localhost:3001
+║  Environment: development
+║  Database: undefined:undefined/undefined
+╠══════════════════════════════════════════════════════╣
+║  SECRETS MANAGEMENT (FASE 6):                        ║
+║  • POST   /api/secrets                               ║
+║  • GET    /api/secrets                               ║
+║  • GET    /api/secrets/:id                           ║
+║  • GET    /api/secrets/:id/value                     ║
+║  • PUT    /api/secrets/:id                           ║
+║  • DELETE /api/secrets/:id                           ║
+║  • GET    /api/secrets/:id/audit                     ║
+╠══════════════════════════════════════════════════════╣
+║  KEY ROTATION MANAGEMENT (FASE 7):                   ║
+║  • GET    /api/keys/:secretId/policy                 ║
+║  • POST   /api/keys/:secretId/policy                 ║
+║  • GET    /api/keys/:secretId/preview                ║
+║  • POST   /api/keys/:secretId/rotate                 ║
+║  • GET    /api/keys/:secretId/history                ║
+║  • GET    /api/keys/scheduled                        ║
+║  • DELETE /api/keys/:secretId/schedule/:scheduleId   ║
+╠══════════════════════════════════════════════════════╣
+║  SYSTEM ENDPOINTS:                                   ║
+║  • GET    /health                                    ║
+║  • GET    /api/health                                ║
+║  • GET    /api/status                                ║
+╚══════════════════════════════════════════════════════╝
+      
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/index.js`[39m
+Initializing database schema...
+✅ Migration 001_create_schema.sql executed successfully
+✅ Migration 002_add_key_rotation.sql executed successfully
+✅ Database schema initialized successfully
+✅ Database initialized
+
+╔══════════════════════════════════════════════════════╗
+║  StratexPoints Backend - FASE 7                      ║
+║  Secrets Management & Key Rotation API               ║
+╠══════════════════════════════════════════════════════╣
+║  Server running on: http://localhost:3001
+║  Environment: development
+║  Database: undefined:undefined/undefined
+╠══════════════════════════════════════════════════════╣
+║  SECRETS MANAGEMENT (FASE 6):                        ║
+║  • POST   /api/secrets                               ║
+║  • GET    /api/secrets                               ║
+║  • GET    /api/secrets/:id                           ║
+║  • GET    /api/secrets/:id/value                     ║
+║  • PUT    /api/secrets/:id                           ║
+║  • DELETE /api/secrets/:id                           ║
+║  • GET    /api/secrets/:id/audit                     ║
+╠══════════════════════════════════════════════════════╣
+║  KEY ROTATION MANAGEMENT (FASE 7):                   ║
+║  • GET    /api/keys/:secretId/policy                 ║
+║  • POST   /api/keys/:secretId/policy                 ║
+║  • GET    /api/keys/:secretId/preview                ║
+║  • POST   /api/keys/:secretId/rotate                 ║
+║  • GET    /api/keys/:secretId/history                ║
+║  • GET    /api/keys/scheduled                        ║
+║  • DELETE /api/keys/:secretId/schedule/:scheduleId   ║
+╠══════════════════════════════════════════════════════╣
+║  SYSTEM ENDPOINTS:                                   ║
+║  • GET    /health                                    ║
+║  • GET    /api/health                                ║
+║  • GET    /api/status                                ║
+╚══════════════════════════════════════════════════════╝
+      
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/index.js`[39m
+Initializing database schema...
+✅ Migration 001_create_schema.sql executed successfully
+✅ Migration 002_add_key_rotation.sql executed successfully
+✅ Database schema initialized successfully
+✅ Database initialized
+
+╔══════════════════════════════════════════════════════╗
+║  StratexPoints Backend - FASE 7                      ║
+║  Secrets Management & Key Rotation API               ║
+╠══════════════════════════════════════════════════════╣
+║  Server running on: http://localhost:3001
+║  Environment: development
+║  Database: undefined:undefined/undefined
+╠══════════════════════════════════════════════════════╣
+║  SECRETS MANAGEMENT (FASE 6):                        ║
+║  • POST   /api/secrets                               ║
+║  • GET    /api/secrets                               ║
+║  • GET    /api/secrets/:id                           ║
+║  • GET    /api/secrets/:id/value                     ║
+║  • PUT    /api/secrets/:id                           ║
+║  • DELETE /api/secrets/:id                           ║
+║  • GET    /api/secrets/:id/audit                     ║
+╠══════════════════════════════════════════════════════╣
+║  KEY ROTATION MANAGEMENT (FASE 7):                   ║
+║  • GET    /api/keys/:secretId/policy                 ║
+║  • POST   /api/keys/:secretId/policy                 ║
+║  • GET    /api/keys/:secretId/preview                ║
+║  • POST   /api/keys/:secretId/rotate                 ║
+║  • GET    /api/keys/:secretId/history                ║
+║  • GET    /api/keys/scheduled                        ║
+║  • DELETE /api/keys/:secretId/schedule/:scheduleId   ║
+╠══════════════════════════════════════════════════════╣
+║  SYSTEM ENDPOINTS:                                   ║
+║  • GET    /health                                    ║
+║  • GET    /api/health                                ║
+║  • GET    /api/status                                ║
+╚══════════════════════════════════════════════════════╝
+      
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/index.js`[39m
+Initializing database schema...
+✅ Migration 001_create_schema.sql executed successfully
+✅ Migration 002_add_key_rotation.sql executed successfully
+✅ Database schema initialized successfully
+✅ Database initialized
+
+╔══════════════════════════════════════════════════════╗
+║  StratexPoints Backend - FASE 7                      ║
+║  Secrets Management & Key Rotation API               ║
+╠══════════════════════════════════════════════════════╣
+║  Server running on: http://localhost:3001
+║  Environment: development
+║  Database: undefined:undefined/undefined
+╠══════════════════════════════════════════════════════╣
+║  SECRETS MANAGEMENT (FASE 6):                        ║
+║  • POST   /api/secrets                               ║
+║  • GET    /api/secrets                               ║
+║  • GET    /api/secrets/:id                           ║
+║  • GET    /api/secrets/:id/value                     ║
+║  • PUT    /api/secrets/:id                           ║
+║  • DELETE /api/secrets/:id                           ║
+║  • GET    /api/secrets/:id/audit                     ║
+╠══════════════════════════════════════════════════════╣
+║  KEY ROTATION MANAGEMENT (FASE 7):                   ║
+║  • GET    /api/keys/:secretId/policy                 ║
+║  • POST   /api/keys/:secretId/policy                 ║
+║  • GET    /api/keys/:secretId/preview                ║
+║  • POST   /api/keys/:secretId/rotate                 ║
+║  • GET    /api/keys/:secretId/history                ║
+║  • GET    /api/keys/scheduled                        ║
+║  • DELETE /api/keys/:secretId/schedule/:scheduleId   ║
+╠══════════════════════════════════════════════════════╣
+║  SYSTEM ENDPOINTS:                                   ║
+║  • GET    /health                                    ║
+║  • GET    /api/health                                ║
+║  • GET    /api/status                                ║
+╚══════════════════════════════════════════════════════╝
+      
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/index.js`[39m
+Initializing database schema...
+✅ Migration 001_create_schema.sql executed successfully
+✅ Migration 002_add_key_rotation.sql executed successfully
+✅ Database schema initialized successfully
+✅ Database initialized
+
+╔══════════════════════════════════════════════════════╗
+║  StratexPoints Backend - FASE 7                      ║
+║  Secrets Management & Key Rotation API               ║
+╠══════════════════════════════════════════════════════╣
+║  Server running on: http://localhost:3001
+║  Environment: development
+║  Database: undefined:undefined/undefined
+╠══════════════════════════════════════════════════════╣
+║  SECRETS MANAGEMENT (FASE 6):                        ║
+║  • POST   /api/secrets                               ║
+║  • GET    /api/secrets                               ║
+║  • GET    /api/secrets/:id                           ║
+║  • GET    /api/secrets/:id/value                     ║
+║  • PUT    /api/secrets/:id                           ║
+║  • DELETE /api/secrets/:id                           ║
+║  • GET    /api/secrets/:id/audit                     ║
+╠══════════════════════════════════════════════════════╣
+║  KEY ROTATION MANAGEMENT (FASE 7):                   ║
+║  • GET    /api/keys/:secretId/policy                 ║
+║  • POST   /api/keys/:secretId/policy                 ║
+║  • GET    /api/keys/:secretId/preview                ║
+║  • POST   /api/keys/:secretId/rotate                 ║
+║  • GET    /api/keys/:secretId/history                ║
+║  • GET    /api/keys/scheduled                        ║
+║  • DELETE /api/keys/:secretId/schedule/:scheduleId   ║
+╠══════════════════════════════════════════════════════╣
+║  SYSTEM ENDPOINTS:                                   ║
+║  • GET    /health                                    ║
+║  • GET    /api/health                                ║
+║  • GET    /api/status                                ║
+╚══════════════════════════════════════════════════════╝
+      
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/index.js`[39m
+Initializing database schema...
+✅ Migration 001_create_schema.sql executed successfully
+✅ Migration 002_add_key_rotation.sql executed successfully
+✅ Database schema initialized successfully
+✅ Database initialized
+
+╔══════════════════════════════════════════════════════╗
+║  StratexPoints Backend - FASE 7                      ║
+║  Secrets Management & Key Rotation API               ║
+╠══════════════════════════════════════════════════════╣
+║  Server running on: http://localhost:3001
+║  Environment: development
+║  Database: undefined:undefined/undefined
+╠══════════════════════════════════════════════════════╣
+║  SECRETS MANAGEMENT (FASE 6):                        ║
+║  • POST   /api/secrets                               ║
+║  • GET    /api/secrets                               ║
+║  • GET    /api/secrets/:id                           ║
+║  • GET    /api/secrets/:id/value                     ║
+║  • PUT    /api/secrets/:id                           ║
+║  • DELETE /api/secrets/:id                           ║
+║  • GET    /api/secrets/:id/audit                     ║
+╠══════════════════════════════════════════════════════╣
+║  KEY ROTATION MANAGEMENT (FASE 7):                   ║
+║  • GET    /api/keys/:secretId/policy                 ║
+║  • POST   /api/keys/:secretId/policy                 ║
+║  • GET    /api/keys/:secretId/preview                ║
+║  • POST   /api/keys/:secretId/rotate                 ║
+║  • GET    /api/keys/:secretId/history                ║
+║  • GET    /api/keys/scheduled                        ║
+║  • DELETE /api/keys/:secretId/schedule/:scheduleId   ║
+╠══════════════════════════════════════════════════════╣
+║  SYSTEM ENDPOINTS:                                   ║
+║  • GET    /health                                    ║
+║  • GET    /api/health                                ║
+║  • GET    /api/status                                ║
+╚══════════════════════════════════════════════════════╝
+      
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/index.js`[39m
+Initializing database schema...
+✅ Migration 001_create_schema.sql executed successfully
+✅ Migration 002_add_key_rotation.sql executed successfully
+✅ Database schema initialized successfully
+✅ Database initialized
+
+╔══════════════════════════════════════════════════════╗
+║  StratexPoints Backend - FASE 7                      ║
+║  Secrets Management & Key Rotation API               ║
+╠══════════════════════════════════════════════════════╣
+║  Server running on: http://localhost:3001
+║  Environment: development
+║  Database: undefined:undefined/undefined
+╠══════════════════════════════════════════════════════╣
+║  SECRETS MANAGEMENT (FASE 6):                        ║
+║  • POST   /api/secrets                               ║
+║  • GET    /api/secrets                               ║
+║  • GET    /api/secrets/:id                           ║
+║  • GET    /api/secrets/:id/value                     ║
+║  • PUT    /api/secrets/:id                           ║
+║  • DELETE /api/secrets/:id                           ║
+║  • GET    /api/secrets/:id/audit                     ║
+╠══════════════════════════════════════════════════════╣
+║  KEY ROTATION MANAGEMENT (FASE 7):                   ║
+║  • GET    /api/keys/:secretId/policy                 ║
+║  • POST   /api/keys/:secretId/policy                 ║
+║  • GET    /api/keys/:secretId/preview                ║
+║  • POST   /api/keys/:secretId/rotate                 ║
+║  • GET    /api/keys/:secretId/history                ║
+║  • GET    /api/keys/scheduled                        ║
+║  • DELETE /api/keys/:secretId/schedule/:scheduleId   ║
+╠══════════════════════════════════════════════════════╣
+║  SYSTEM ENDPOINTS:                                   ║
+║  • GET    /health                                    ║
+║  • GET    /api/health                                ║
+║  • GET    /api/status                                ║
+╚══════════════════════════════════════════════════════╝
+      
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node src/index.js`[39m
+Initializing database schema...
+✅ Migration 001_create_schema.sql executed successfully
+✅ Migration 002_add_key_rotation.sql executed successfully
+✅ Database schema initialized successfully
+✅ Database initialized
+✓ Rotation Scheduler initialized
+🚀 Rotation Scheduler started - checking every 60 seconds
+✅ Rotation Scheduler initialized and started
+
+╔══════════════════════════════════════════════════════╗
+║  StratexPoints Backend - FASE 7                      ║
+║  Secrets Management & Key Rotation API               ║
+╠══════════════════════════════════════════════════════╣
+║  Server running on: http://localhost:3001
+║  Environment: development
+║  Database: undefined:undefined/undefined
+╠══════════════════════════════════════════════════════╣
+║  SECRETS MANAGEMENT (FASE 6):                        ║
+║  • POST   /api/secrets                               ║
+║  • GET    /api/secrets                               ║
+║  • GET    /api/secrets/:id                           ║
+║  • GET    /api/secrets/:id/value                     ║
+║  • PUT    /api/secrets/:id                           ║
+║  • DELETE /api/secrets/:id                           ║
+║  • GET    /api/secrets/:id/audit                     ║
+╠══════════════════════════════════════════════════════╣
+║  KEY ROTATION MANAGEMENT (FASE 7):                   ║
+║  • GET    /api/keys/:secretId/policy                 ║
+║  • POST   /api/keys/:secretId/policy                 ║
+║  • GET    /api/keys/:secretId/preview                ║
+║  • POST   /api/keys/:secretId/rotate                 ║
+║  • GET    /api/keys/:secretId/history                ║
+║  • GET    /api/keys/scheduled                        ║
+║  • DELETE /api/keys/:secretId/schedule/:scheduleId   ║
+╠══════════════════════════════════════════════════════╣
+║  SYSTEM ENDPOINTS:                                   ║
+║  • GET    /health                                    ║
+║  • GET    /api/health                                ║
+║  • GET    /api/status                                ║
+╚══════════════════════════════════════════════════════╝
+      

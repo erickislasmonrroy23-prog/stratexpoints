@@ -1,0 +1,476 @@
+{
+  "FASE_1_CR\u00cdTICA": {
+    "nombre": "\ud83d\udd34 REPARACIONES CR\u00cdTICAS (1-2 semanas)",
+    "prioridad": "INMEDIATA",
+    "tareas": [
+      {
+        "id": "1.1",
+        "t\u00edtulo": "Crear /change-password route",
+        "descripci\u00f3n": "Implementar componente ChangePassword.jsx para password rotation",
+        "archivos": [
+          "src/components/Auth/ChangePassword.jsx",
+          "src/App.jsx"
+        ],
+        "complejidad": "MEDIA",
+        "tiempo": "2 horas",
+        "bloqueante": true
+      },
+      {
+        "id": "1.2",
+        "t\u00edtulo": "Completar logout functionality",
+        "descripci\u00f3n": "Verificar y mejorar logout en todos los m\u00f3dulos",
+        "archivos": [
+          "src/App.jsx",
+          "src/store.js"
+        ],
+        "complejidad": "BAJA",
+        "tiempo": "1 hora",
+        "bloqueante": true
+      },
+      {
+        "id": "1.3",
+        "t\u00edtulo": "Implementar Protected Routes",
+        "descripci\u00f3n": "Crear wrapper para rutas protegidas con verificaci\u00f3n de auth",
+        "archivos": [
+          "src/components/ProtectedRoute.jsx",
+          "src/App.jsx"
+        ],
+        "complejidad": "MEDIA",
+        "tiempo": "3 horas",
+        "bloqueante": true
+      },
+      {
+        "id": "1.4",
+        "t\u00edtulo": "Fix console.log en producci\u00f3n",
+        "descripci\u00f3n": "Remover/condicionalizar todos los console logs",
+        "archivos": [
+          "src/**/*.jsx",
+          "src/**/*.js"
+        ],
+        "complejidad": "MEDIA",
+        "tiempo": "4 horas",
+        "bloqueante": false
+      },
+      {
+        "id": "1.5",
+        "t\u00edtulo": "Verificar Error Handling",
+        "descripci\u00f3n": "Agregar try-catch a todas las llamadas de API",
+        "archivos": [
+          "src/**/*.jsx",
+          "src/**/*.js"
+        ],
+        "complejidad": "ALTA",
+        "tiempo": "6 horas",
+        "bloqueante": true
+      }
+    ]
+  },
+  "FASE_2_SEGURIDAD": {
+    "nombre": "\ud83d\udee1\ufe0f ENDURECIMIENTO DE SEGURIDAD (2-3 semanas)",
+    "prioridad": "ALTA",
+    "tareas": [
+      {
+        "id": "2.1",
+        "t\u00edtulo": "Implementar Rate Limiting",
+        "descripci\u00f3n": "Agregar rate limiting en login y API calls",
+        "archivos": [
+          "supabase/functions/auth-context/index.ts",
+          "src/utils/jwtUtils.js"
+        ],
+        "complejidad": "MEDIA",
+        "tiempo": "4 horas",
+        "bloqueante": false
+      },
+      {
+        "id": "2.2",
+        "t\u00edtulo": "Agregar CSRF Protection",
+        "descripci\u00f3n": "Implementar CSRF tokens en formularios",
+        "archivos": [
+          "src/components/**/*.jsx",
+          "src/utils/csrfUtils.js"
+        ],
+        "complejidad": "MEDIA",
+        "tiempo": "3 horas",
+        "bloqueante": false
+      },
+      {
+        "id": "2.3",
+        "t\u00edtulo": "Validar RLS Policies",
+        "descripci\u00f3n": "Revisar y mejorar Row Level Security en Supabase",
+        "archivos": [
+          "supabase/migrations/**/*.sql"
+        ],
+        "complejidad": "ALTA",
+        "tiempo": "6 horas",
+        "bloqueante": true
+      },
+      {
+        "id": "2.4",
+        "t\u00edtulo": "Implementar 2FA/MFA",
+        "descripci\u00f3n": "Agregar autenticaci\u00f3n multifactor con TOTP",
+        "archivos": [
+          "src/components/Auth/MFA.jsx",
+          "supabase/functions/verify-otp/index.ts"
+        ],
+        "complejidad": "ALTA",
+        "tiempo": "8 horas",
+        "bloqueante": false
+      },
+      {
+        "id": "2.5",
+        "t\u00edtulo": "Audit Logging completo",
+        "descripci\u00f3n": "Registrar todas las acciones cr\u00edticas del usuario",
+        "archivos": [
+          "supabase/functions/audit-log/index.ts",
+          "src/utils/auditUtils.js"
+        ],
+        "complejidad": "MEDIA",
+        "tiempo": "5 horas",
+        "bloqueante": false
+      }
+    ]
+  },
+  "FASE_3_ARQUITECTURA_SAAS": {
+    "nombre": "\ud83c\udfe2 ARQUITECTURA SAAS MULTI-EMPRESA (3-4 semanas)",
+    "prioridad": "ALTA",
+    "tareas": [
+      {
+        "id": "3.1",
+        "t\u00edtulo": "Implementar Multi-Tenancy completo",
+        "descripci\u00f3n": "Garantizar isolation de datos por organizaci\u00f3n en todas las queries",
+        "archivos": [
+          "src/utils/tenantUtils.js",
+          "src/store.js",
+          "supabase/migrations/010-tenant-isolation.sql"
+        ],
+        "complejidad": "ALTA",
+        "tiempo": "10 horas",
+        "bloqueante": true
+      },
+      {
+        "id": "3.2",
+        "t\u00edtulo": "Sistema de Roles y Permisos",
+        "descripci\u00f3n": "Implementar RBAC/ABAC completo con granularidad fina",
+        "archivos": [
+          "src/utils/permissionUtils.js",
+          "src/hooks/usePermissions.js",
+          "supabase/migrations/011-rbac.sql"
+        ],
+        "complejidad": "ALTA",
+        "tiempo": "12 horas",
+        "bloqueante": true
+      },
+      {
+        "id": "3.3",
+        "t\u00edtulo": "Gesti\u00f3n de Usuarios y Invitaciones",
+        "descripci\u00f3n": "CRUD de usuarios, invitaciones, asignaci\u00f3n de roles",
+        "archivos": [
+          "src/components/Admin/UserManagement.jsx",
+          "supabase/functions/invite-user/index.ts"
+        ],
+        "complejidad": "MEDIA",
+        "tiempo": "8 horas",
+        "bloqueante": false
+      },
+      {
+        "id": "3.4",
+        "t\u00edtulo": "Integraci\u00f3n de Billing y Subscripciones",
+        "descripci\u00f3n": "Integrar Stripe/Paddle para planes y pagos",
+        "archivos": [
+          "src/components/Billing/SubscriptionManager.jsx",
+          "supabase/functions/billing-webhook/index.ts"
+        ],
+        "complejidad": "ALTA",
+        "tiempo": "15 horas",
+        "bloqueante": false
+      },
+      {
+        "id": "3.5",
+        "t\u00edtulo": "Subdomain Routing por Tenant",
+        "descripci\u00f3n": "Implementar routing por subdominio (tenant.app.com)",
+        "archivos": [
+          "src/utils/subdomainUtils.js",
+          "vite.config.js"
+        ],
+        "complejidad": "MEDIA",
+        "tiempo": "6 horas",
+        "bloqueante": false
+      },
+      {
+        "id": "3.6",
+        "t\u00edtulo": "Settings por Organizaci\u00f3n",
+        "descripci\u00f3n": "Panel de configuraci\u00f3n por empresa (branding, integraciones, etc)",
+        "archivos": [
+          "src/components/Admin/OrganizationSettings.jsx"
+        ],
+        "complejidad": "MEDIA",
+        "tiempo": "7 horas",
+        "bloqueante": false
+      }
+    ]
+  },
+  "FASE_4_PERFORMANCE": {
+    "nombre": "\u26a1 OPTIMIZACI\u00d3N DE PERFORMANCE (2-3 semanas)",
+    "prioridad": "MEDIA",
+    "tareas": [
+      {
+        "id": "4.1",
+        "t\u00edtulo": "Lazy Loading de Componentes",
+        "descripci\u00f3n": "Implementar code splitting con React.lazy en m\u00f3dulos grandes",
+        "archivos": [
+          "src/App.jsx",
+          "src/**/*.jsx"
+        ],
+        "complejidad": "MEDIA",
+        "tiempo": "6 horas",
+        "bloqueante": false
+      },
+      {
+        "id": "4.2",
+        "t\u00edtulo": "Caching Inteligente",
+        "descripci\u00f3n": "Implementar React Query/SWR con estrategias de cache",
+        "archivos": [
+          "src/utils/queryClient.js",
+          "src/hooks/useQuery.js"
+        ],
+        "complejidad": "MEDIA",
+        "tiempo": "8 horas",
+        "bloqueante": false
+      },
+      {
+        "id": "4.3",
+        "t\u00edtulo": "Optimizar Bundle Size",
+        "descripci\u00f3n": "Analizar y reducir dependencies innecesarias",
+        "archivos": [
+          "package.json",
+          "vite.config.js"
+        ],
+        "complejidad": "MEDIA",
+        "tiempo": "5 horas",
+        "bloqueante": false
+      },
+      {
+        "id": "4.4",
+        "t\u00edtulo": "Database Query Optimization",
+        "descripci\u00f3n": "Revisar todas las queries, agregar indexes, evitar N+1",
+        "archivos": [
+          "supabase/migrations/**/*.sql",
+          "src/**/*.js"
+        ],
+        "complejidad": "ALTA",
+        "tiempo": "10 horas",
+        "bloqueante": false
+      },
+      {
+        "id": "4.5",
+        "t\u00edtulo": "Implementar Virtual Scrolling",
+        "descripci\u00f3n": "Para listas grandes (usuarios, registros, etc)",
+        "archivos": [
+          "src/components/**/*.jsx"
+        ],
+        "complejidad": "MEDIA",
+        "tiempo": "4 horas",
+        "bloqueante": false
+      }
+    ]
+  },
+  "FASE_5_TESTING": {
+    "nombre": "\u2705 TESTING Y QA (2-3 semanas)",
+    "prioridad": "MEDIA",
+    "tareas": [
+      {
+        "id": "5.1",
+        "t\u00edtulo": "Unit Tests",
+        "descripci\u00f3n": "Agregar Jest + React Testing Library para componentes cr\u00edticos",
+        "archivos": [
+          "src/**/__tests__/*.test.jsx",
+          "jest.config.js"
+        ],
+        "complejidad": "MEDIA",
+        "tiempo": "12 horas",
+        "bloqueante": false
+      },
+      {
+        "id": "5.2",
+        "t\u00edtulo": "Integration Tests",
+        "descripci\u00f3n": "Tests de flujos cr\u00edticos (auth, billing, data)",
+        "archivos": [
+          "__tests__/integration/**/*.test.js"
+        ],
+        "complejidad": "MEDIA",
+        "tiempo": "10 horas",
+        "bloqueante": false
+      },
+      {
+        "id": "5.3",
+        "t\u00edtulo": "E2E Tests mejorados",
+        "descripci\u00f3n": "Expandir E2E_TEST_SCRIPT.js con Playwright/Cypress",
+        "archivos": [
+          "e2e/**/*.spec.js",
+          "playwright.config.js"
+        ],
+        "complejidad": "MEDIA",
+        "tiempo": "10 horas",
+        "bloqueante": false
+      },
+      {
+        "id": "5.4",
+        "t\u00edtulo": "Load Testing",
+        "descripci\u00f3n": "Pruebas de carga con k6/Artillery",
+        "archivos": [
+          "load-tests/**/*.js"
+        ],
+        "complejidad": "MEDIA",
+        "tiempo": "8 horas",
+        "bloqueante": false
+      },
+      {
+        "id": "5.5",
+        "t\u00edtulo": "Security Testing",
+        "descripci\u00f3n": "OWASP testing, vulnerabilities scanning",
+        "archivos": [
+          "security-tests/**/*.js"
+        ],
+        "complejidad": "ALTA",
+        "tiempo": "12 horas",
+        "bloqueante": false
+      }
+    ]
+  },
+  "FASE_6_DEPLOYMENT": {
+    "nombre": "\ud83d\ude80 PREPARACI\u00d3N PARA PRODUCCI\u00d3N (1-2 semanas)",
+    "prioridad": "ALTA",
+    "tareas": [
+      {
+        "id": "6.1",
+        "t\u00edtulo": "CI/CD Pipeline",
+        "descripci\u00f3n": "Configurar GitHub Actions para testing y deployment autom\u00e1tico",
+        "archivos": [
+          ".github/workflows/**/*.yml"
+        ],
+        "complejidad": "MEDIA",
+        "tiempo": "6 horas",
+        "bloqueante": true
+      },
+      {
+        "id": "6.2",
+        "t\u00edtulo": "Environment Configuration",
+        "descripci\u00f3n": "Configurar dev, staging, production environments",
+        "archivos": [
+          ".env.example",
+          ".env.staging",
+          ".env.production"
+        ],
+        "complejidad": "BAJA",
+        "tiempo": "3 horas",
+        "bloqueante": true
+      },
+      {
+        "id": "6.3",
+        "t\u00edtulo": "Monitoring y Logging",
+        "descripci\u00f3n": "Integrar Sentry, LogRocket, CloudWatch",
+        "archivos": [
+          "src/utils/monitoring.js"
+        ],
+        "complejidad": "MEDIA",
+        "tiempo": "6 horas",
+        "bloqueante": false
+      },
+      {
+        "id": "6.4",
+        "t\u00edtulo": "Database Backups y Recovery",
+        "descripci\u00f3n": "Configurar automatic backups en Supabase",
+        "archivos": [
+          "supabase/backup-strategy.md"
+        ],
+        "complejidad": "BAJA",
+        "tiempo": "2 horas",
+        "bloqueante": true
+      },
+      {
+        "id": "6.5",
+        "t\u00edtulo": "Documentation",
+        "descripci\u00f3n": "Documentaci\u00f3n completa de API, componentes, deployment",
+        "archivos": [
+          "docs/**/*.md"
+        ],
+        "complejidad": "BAJA",
+        "tiempo": "8 horas",
+        "bloqueante": false
+      },
+      {
+        "id": "6.6",
+        "t\u00edtulo": "Disaster Recovery Plan",
+        "descripci\u00f3n": "Plan de recuperaci\u00f3n ante desastres",
+        "archivos": [
+          "docs/disaster-recovery.md"
+        ],
+        "complejidad": "MEDIA",
+        "tiempo": "4 horas",
+        "bloqueante": false
+      }
+    ]
+  },
+  "FASE_7_FEATURES_AVANZADAS": {
+    "nombre": "\ud83c\udfaf FEATURES AVANZADAS (Ongoing)",
+    "prioridad": "BAJA",
+    "tareas": [
+      {
+        "id": "7.1",
+        "t\u00edtulo": "SSO / OAuth Integrations",
+        "descripci\u00f3n": "Google, Microsoft, GitHub, custom SAML",
+        "archivos": [
+          "supabase/functions/oauth-callback/index.ts"
+        ],
+        "complejidad": "ALTA",
+        "tiempo": "12 horas",
+        "bloqueante": false
+      },
+      {
+        "id": "7.2",
+        "t\u00edtulo": "API P\u00fablica con Rate Limiting",
+        "descripci\u00f3n": "Exponer API REST con documentation (OpenAPI/Swagger)",
+        "archivos": [
+          "src/api/**/*.js",
+          "docs/api.openapi.yml"
+        ],
+        "complejidad": "ALTA",
+        "tiempo": "15 horas",
+        "bloqueante": false
+      },
+      {
+        "id": "7.3",
+        "t\u00edtulo": "Webhooks y Integraciones",
+        "descripci\u00f3n": "Sistema de webhooks para eventos importantes",
+        "archivos": [
+          "supabase/functions/webhook-dispatcher/index.ts"
+        ],
+        "complejidad": "MEDIA",
+        "tiempo": "10 horas",
+        "bloqueante": false
+      },
+      {
+        "id": "7.4",
+        "t\u00edtulo": "White-label / Custom Branding",
+        "descripci\u00f3n": "Soporte para custom domains, logos, colores por tenant",
+        "archivos": [
+          "src/components/Branding/**/*.jsx"
+        ],
+        "complejidad": "MEDIA",
+        "tiempo": "8 horas",
+        "bloqueante": false
+      },
+      {
+        "id": "7.5",
+        "t\u00edtulo": "Advanced Analytics",
+        "descripci\u00f3n": "Analytics de uso, heatmaps, user behavior tracking",
+        "archivos": [
+          "src/components/Analytics/**/*.jsx"
+        ],
+        "complejidad": "ALTA",
+        "tiempo": "15 horas",
+        "bloqueante": false
+      }
+    ]
+  }
+}

@@ -1,8 +1,11 @@
+import logger from './utils/logger.js';
 import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { supabase } from "./supabase.js";
 import { initTheme, setTheme } from "./theme.js";
 import * as XLSX from "xlsx";
-import Login from "./Login.jsx";
+import LoginIntegrated from "./components/Auth/LoginIntegrated.jsx";
+import ChangePassword from "./components/Auth/ChangePassword.jsx";
+import Unauthorized from "./pages/Unauthorized.jsx";
 import { useTranslation } from "react-i18next";
 import { perspectiveService, okrService, kpiService, initiativeService, alertService, objectivesService, autoAlertService, notificationService, setNotifyFn } from "./services.js";
 import { OKRForm, KPIForm, InitiativeForm, Modal } from "./forms.jsx";
@@ -23,6 +26,14 @@ import IntelligentCore from "./IntelligentCore.jsx";
 import { useStore } from "./store.js";
 import { deepEqual } from 'fast-equals';
 import { useSubdomainTenant } from "./useSubdomainTenant.js";
+import { ProtectedRoute, useCanAccess } from "./components/ProtectedRoute.jsx";
+import { useApiAuth } from "./hooks/useApiAuth.js";
+import { initializeApiClient } from "./services/apiClientService.js";
+import { SecretsManagementDashboard } from "./components/SecretsManagement/SecretsManagementDashboard.jsx";
+import { KeyRotationDashboard } from "./components/KeyRotation/KeyRotationDashboard.jsx";
+import { ComplianceDashboard } from "./components/Compliance/ComplianceDashboard.jsx";
+import { ProductionHardeningDashboard } from "./components/ProductionHardening/ProductionHardeningDashboard.jsx";
+import { AdvancedFeaturesDashboard } from "./components/AdvancedFeatures/AdvancedFeaturesDashboard.jsx";
 
 // Registrar bridge de notificaciones (evita importación circular con store)
 // Dual bridge: guarda en store (historial) + muestra toast visual inmediatamente
@@ -237,7 +248,7 @@ function ModuloAlertas(){
       return;
     }
     try { await alertService.update(al.id, { is_read: true }); }
-    catch(e) { console.error(e); }
+    catch(e) { logger.error(e); }
   };
 
   return(
@@ -304,7 +315,7 @@ function LanguageSwitcher() {
         const { error } = await supabase.from('profiles').update({ preferred_language: newLang }).eq('id', realProfile.id);
         if (error) throw error; // El error se registrará en la consola.
       } catch (dbError) {
-        console.error("Error al guardar preferencia de idioma:", dbError);
+        logger.error("Error al guardar preferencia de idioma:", dbError);
         notificationService.error(`No se pudo guardar el idioma: ${dbError.message}`);
       }
     }
@@ -346,6 +357,11 @@ function CommandPalette({onNavigate,onClose,data}){
     {icon:"📈",label:"Analitica — Dashboard + Radar + Benchmark",module:"analitica"},
     {icon:"📤",label:"Reportes — PDF + Excel + Word + PPT",module:"reportes"},
     {icon:"🔔",label:"Alertas — Centro de alertas",module:"alertas"},
+    {icon:"🔐",label:"Secrets Management — FASE 6 Vault + Encryption",module:"secrets"},
+    {icon:"🔄",label:"Key Rotation — FASE 7 Rotation + Scheduling",module:"rotation"},
+    {icon:"📊",label:"Compliance & Audit Trail — FASE 8 Reports + Forensics",module:"compliance"},
+    {icon:"🛡️",label:"Production Hardening — FASE 9 Security + Infrastructure",module:"hardening"},
+    {icon:"🚀",label:"Advanced Features — FASE 10 Multi-Key + Backup + Hierarchy + KMS",module:"features"},
   ];
   var filtered=query.trim()===""?ACTIONS:ACTIONS.filter(function(a){return a.label.toLowerCase().includes(query.toLowerCase());});
   useEffect(function(){
@@ -386,6 +402,9 @@ function CommandPalette({onNavigate,onClose,data}){
 // extrayendo lógica a hooks personalizados (ej. useModals, usePaymentStatus, useRealtime)
 // y componentes más pequeños.
 function MainApp({ onLogout, onSuperAdmin }){
+  // Initialize API authentication for FASE 5 backend integration
+  const { isAuthenticated: apiAuthenticated, isLoading: apiLoading, backendStatus } = useApiAuth();
+
   // Consumimos el estado global, selectores y manejadores de Zustand
   const loadingData = useStore.use.loadingData();
   const activeModule = useStore.use.activeModule();
@@ -575,7 +594,7 @@ function MainApp({ onLogout, onSuperAdmin }){
 
   const toggleZenMode = () => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(e => console.log(e));
+      document.documentElement.requestFullscreen().catch(e => logger.log(e));
       setSidebarCollapsed(true);
       setZenMode(true);
     } else {
@@ -642,6 +661,13 @@ function MainApp({ onLogout, onSuperAdmin }){
           </div>
           <div style={{width:1,height:16,background:"var(--border)"}}/>
           <span style={{fontSize:12,color:"var(--text3)",fontWeight:500}}>{orgName}</span>
+          {/* Backend API Connection Status Indicator */}
+          {apiAuthenticated && (
+            <div style={{display:"flex",alignItems:"center",gap:6,marginLeft:8,padding:"4px 10px",borderRadius:6,background:"var(--bg3)",border:"1px solid var(--border)"}}>
+              <span style={{width:6,height:6,borderRadius:"50%",background:"var(--teal)",boxShadow:"0 0 8px rgba(20,184,166,0.6)"}}/>
+              <span style={{fontSize:11,color:"var(--text3)",fontWeight:600}}>FASE 5</span>
+            </div>
+          )}
           <button className="tour-step-search" onClick={function(){setCmdOpen(true);}} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 12px",borderRadius:8,border:"1px solid var(--border)",background:"var(--bg3)",cursor:"pointer",color:"var(--text3)",fontSize:12,fontFamily:"'Plus Jakarta Sans',sans-serif",marginLeft:4}}>
             <span>🔍</span><span>Buscar...</span>
             <kbd style={{fontSize:10,padding:"1px 6px",borderRadius:4,background:"var(--bg2)",border:"1px solid var(--border)",color:"var(--text3)"}}>⌘K</kbd>
@@ -766,6 +792,11 @@ function MainApp({ onLogout, onSuperAdmin }){
               {activeModule==="analitica"&&<ModuloAnalitica />}
               {activeModule==="reportes"&&<ModuloReportes />}
               {activeModule==="alertas"&&<ModuloAlertas />}
+              {activeModule==="secrets"&&<SecretsManagementDashboard />}
+              {activeModule==="rotation"&&<KeyRotationDashboard />}
+              {activeModule==="compliance"&&<ComplianceDashboard />}
+              {activeModule==="hardening"&&<ProductionHardeningDashboard />}
+              {activeModule==="features"&&<AdvancedFeaturesDashboard />}
       </Suspense>
     </ErrorBoundary>
           </div>
@@ -804,6 +835,7 @@ export default function App(){
   const { i18n } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [superAdminActive, setSuperAdminActive] = useState(false);
+  const [showUnauthorized, setShowUnauthorized] = useState(false);
 
   // Detecta subdominio (e.g., acme.xtratia.com) y carga el tenant para el login con branding
   useSubdomainTenant();
@@ -876,7 +908,7 @@ export default function App(){
       // **MEJORA DE ROBUSTEZ**: Si un usuario está autenticado pero no tiene un perfil en la BD,
       // es un estado de error crítico. Lo notificamos y lo deslogueamos para evitar inconsistencias.
       if (!res.data) {
-        console.error(`CRITICAL: No profile found for authenticated user ID: ${currentUser.id}. Check RLS policies and data integrity in 'profiles' table.`);
+        logger.error(`CRITICAL: No profile found for authenticated user ID: ${currentUser.id}. Check RLS policies and data integrity in 'profiles' table.`);
         notificationService.error("Error de cuenta: No se pudo cargar tu perfil. Contacta a soporte.");
         // Desloguear al usuario para prevenir que la app quede en un estado roto.
         await supabase.auth.signOut();
@@ -895,15 +927,159 @@ export default function App(){
 
       setAuth(currentUser, profileData);
     } catch(e) {
-      console.error("Error cargando el perfil:",e);
+      logger.error("Error cargando el perfil:",e);
       notificationService.error(`Error de red al cargar perfil: ${e?.message}`);
     } finally { setLoading(false); }
   }
 
   async function handleLogout(){
-    await supabase.auth.signOut();
-    setAuth(null, null);
-    setSuperAdminActive(false); // Clear super admin status on logout
+    try {
+      logger.info('User logout initiated', { timestamp: new Date().toISOString() });
+
+      // FASE 1.2: Comprehensive Logout Enhancement
+      // ============================================
+
+      // 1. Stop WebSocket realtime subscriptions
+      try {
+        const unsubscribeRealtime = useStore.getState().unsubscribeRealtime;
+        if (unsubscribeRealtime) unsubscribeRealtime();
+        logger.info('Realtime subscriptions stopped');
+      } catch (e) {
+        logger.warn('Failed to stop realtime subscriptions:', e);
+      }
+
+      // 2. Cancel active subscriptions and cleanup from store
+      try {
+        const store = useStore.getState();
+        // Clear notifications queue
+        if (store.notifications) {
+          store.notifications = [];
+        }
+        logger.info('Active subscriptions cancelled');
+      } catch (e) {
+        logger.warn('Failed to cancel subscriptions:', e);
+      }
+
+      // 3. Clear localStorage comprehensively (JWT monitoring cleanup)
+      const cacheKeysToClean = [
+        'sp-theme',
+        'sp-user-session',
+        'sp-auth-token',
+        'sp-notifications',
+        'sp-preferences',
+        'xtratia-chunk-reload',
+        'xtratia-lang',
+        'user-id',
+        'organization-id',
+        'auth-timestamp',
+        'jwt-token'
+      ];
+      cacheKeysToClean.forEach(key => {
+        try {
+          localStorage.removeItem(key);
+        } catch (e) {
+          logger.warn(`Failed to remove localStorage key: ${key}`, e);
+        }
+      });
+      logger.info('localStorage cleared');
+
+      // 4. Clear sessionStorage entirely
+      try {
+        sessionStorage.clear();
+        logger.info('sessionStorage cleared');
+      } catch (e) {
+        logger.warn('Failed to clear sessionStorage:', e);
+      }
+
+      // 5. Clear cookies (Supabase auth tokens, etc)
+      try {
+        // Clear Supabase-related cookies
+        const cookieNames = [
+          'sb-auth-token',
+          'sb-refresh-token',
+          'sb-access-token',
+          'authentication'
+        ];
+        cookieNames.forEach(cookieName => {
+          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
+        });
+        logger.info('Cookies cleared');
+      } catch (e) {
+        logger.warn('Failed to clear cookies:', e);
+      }
+
+      // 6. Invalidate JWT tokens via Supabase signOut (server-side invalidation)
+      try {
+        await supabase.auth.signOut();
+        logger.info('JWT tokens invalidated via Supabase signOut');
+      } catch (e) {
+        logger.warn('Supabase signOut error:', e);
+        // Continue even if Supabase signOut fails
+      }
+
+      // 7. Reset Zustand store state completely
+      try {
+        setAuth(null, null);
+        setSuperAdminActive(false);
+
+        // Reset any other store state
+        const store = useStore.getState();
+        if (store.clearAllData) {
+          store.clearAllData();
+        }
+        logger.info('Store state reset');
+      } catch (e) {
+        logger.warn('Failed to reset store:', e);
+      }
+
+      // 8. Clear UI state (local component state)
+      try {
+        setModal(null);
+        setEditingItem(null);
+        setCmdOpen(false);
+        setDismissedToasts([]);
+        logger.info('UI state cleared');
+      } catch (e) {
+        logger.warn('Failed to clear UI state:', e);
+      }
+
+      // 9. Clear any cached data in memory
+      try {
+        if (window.___xtratia_cache___) {
+          delete window.___xtratia_cache__;
+        }
+        logger.info('Memory cache cleared');
+      } catch (e) {
+        logger.warn('Failed to clear memory cache:', e);
+      }
+
+      // 10. Reset theme to default
+      try {
+        localStorage.removeItem('sp-theme');
+        logger.info('Theme reset to default');
+      } catch (e) {
+        logger.warn('Failed to reset theme:', e);
+      }
+
+      // Show success notification
+      notificationService.success('Sesión cerrada correctamente. Has sido desconectado de forma segura.');
+      logger.info('User logout completed successfully');
+
+      // Automatic redirect to login via profile state change
+    } catch (error) {
+      logger.error('Error during logout:', error);
+
+      // Force logout even if errors occurred (fail-safe)
+      try {
+        setAuth(null, null);
+        setSuperAdminActive(false);
+      } catch (e) {
+        logger.error('Failed to force logout state:', e);
+      }
+
+      notificationService.error('Error al cerrar sesión. Intenta de nuevo o recarga la página.');
+    }
   }
 
   const activateSuperAdminMode = () => {
@@ -931,10 +1107,46 @@ export default function App(){
   if (loading) return <LoadingScreen />;
   // **MEJORA DE ROBUSTEZ**: No renderizar la app principal hasta que el perfil esté cargado.
   // Usamos `profile` como única fuente de verdad (se carga junto con `user` en setAuth).
-  if (!profile) return <Login onLogin={(u, p) => setAuth(u, p)} />;
+  if (!profile) return <LoginIntegrated />;
 
   // If superAdminActive is true, render SuperAdmin component
-  if (superAdminActive) return <SuperAdmin user={user} profile={profile} onBack={() => setSuperAdminActive(false)} isCodeActivated={true} />;
+  // FASE 1.3: Admin-only section protected with ProtectedRoute
+  if (superAdminActive) {
+    return (
+      <ProtectedRoute
+        requiredRole="admin"
+        allowSuperAdmin={true}
+        onAccessDenied={(reason) => {
+          logger.warn('[App] Access denied to SuperAdmin', { reason });
+          setSuperAdminActive(false);
+          setShowUnauthorized(true);
+        }}
+      >
+        <SuperAdmin user={user} profile={profile} onBack={() => setSuperAdminActive(false)} isCodeActivated={true} />
+      </ProtectedRoute>
+    );
+  }
+
+  // FASE 1.3: Show Unauthorized page if access was denied
+  // User can click button to go back or return to home
+  if (showUnauthorized) {
+    return (
+      <div>
+        <Unauthorized />
+        <style>{`
+          button { cursor: pointer; }
+          button:active { transform: scale(0.98); }
+        `}</style>
+      </div>
+    );
+  }
+
+  // PHASE 1.1: Check if password rotation is required (password_rotation_due flag)
+  // Force user to change password before accessing the main app
+  const passwordRotationDue = useStore(state => state.passwordRotationDue);
+  if (passwordRotationDue && profile?.password_rotation_due === true) {
+    return <ChangePassword />;
+  }
 
   // Otherwise, render MainApp and the potential code input modal
   return (
@@ -946,7 +1158,16 @@ export default function App(){
           <span>La IA está desactivada. Agrega <code style={{ background: 'rgba(0,0,0,0.25)', padding: '2px 6px', borderRadius: 4 }}>VITE_GEMINI_API_KEY</code> en Vercel → Settings → Environment Variables (key gratuita en aistudio.google.com) y redespliega.</span>
         </div>
       )}
-      <MainApp onLogout={handleLogout} onSuperAdmin={activateSuperAdminMode} />
+      {/* FASE 1.3: Route Protection Integration */}
+      <ProtectedRoute
+        requiredRole="member"
+        onAccessDenied={(reason) => {
+          logger.warn('[App] Access denied to MainApp', { reason });
+          setShowUnauthorized(true);
+        }}
+      >
+        <MainApp onLogout={handleLogout} onSuperAdmin={activateSuperAdminMode} />
+      </ProtectedRoute>
       {showSuperAdminCodeModal && (
         <Modal onClose={() => setShowSuperAdminCodeModal(false)}>
           <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg2)' }}>

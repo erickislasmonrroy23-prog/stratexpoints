@@ -1,0 +1,672 @@
+
+> stratexpoints@2.2.0 test:integration
+> jest src/tests/integration/ --coverage --verbose
+
+jest-haste-map: Haste module naming collision: stratexpoints
+  The following files share their name; please adjust your hasteImpl:
+    * <rootDir>/package.json
+    * <rootDir>/stratexpoints/package.json
+
+PASS src/tests/integration/auditLogging.test.js (6.058 s)
+  Audit Logging
+    Organization Operations Logging
+      ✓ ORGANIZATION_CREATED logged with INFO severity (9 ms)
+      ✓ ORGANIZATION_UPDATED logged with INFO severity
+      ✓ ORGANIZATION_DELETED logged with CRITICAL severity (1 ms)
+      ✓ Audit log captures organization_id (1 ms)
+      ✓ Audit log captures user_id
+      ✓ Audit log captures resource_id
+    User Operations Logging
+      ✓ USER_CREATED logged with INFO severity (1 ms)
+      ✓ PASSWORD_CHANGED logged with CRITICAL severity
+      ✓ USER_DELETED logged with CRITICAL severity (1 ms)
+      ✓ Details captured for password change
+    Invitation Logging
+      ✓ USER_INVITED logged when invitation created (1 ms)
+      ✓ Invitation action logged with INFO severity
+      ✓ Audit log captures invitee email in details (1 ms)
+    Audit Log Organization Scoping
+      ✓ User can only view their organization audit logs
+      ✓ User cannot view other org audit logs
+      ✓ Super admin can view all audit logs (1 ms)
+    Audit Log Immutability
+      ✓ Audit logs cannot be updated (403 on PUT)
+      ✓ Audit logs cannot be deleted (403 on DELETE) (1 ms)
+      ✓ Only INSERT is allowed on audit_logs
+      ✓ Application cannot delete audit trails
+    Severity Levels
+      ✓ INFO severity for routine operations (1 ms)
+      ✓ WARNING severity for unusual operations
+      ✓ ERROR severity for failed operations
+      ✓ CRITICAL severity for security events (1 ms)
+    Audit Log Schema
+      ✓ Audit log contains required fields
+      ✓ Details field stores JSON
+      ✓ Timestamp in ISO 8601 format (5 ms)
+
+PASS src/tests/integration/cascadingDelete.test.js (6.085 s)
+  Cascading Delete Operations
+    Organization Delete Cascade
+      ✓ DELETE organization cascades to profile_organizations (9 ms)
+      ✓ DELETE organization cascades to okrs (1 ms)
+      ✓ DELETE organization cascades to kpis
+      ✓ DELETE organization cascades to initiatives (1 ms)
+      ✓ DELETE organization cascades to notifications
+      ✓ DELETE organization cascades to audit_logs (1 ms)
+      ✓ Non-member cannot DELETE organization
+      ✓ Member cannot DELETE organization (1 ms)
+      ✓ Only admin/super_admin can DELETE organization
+    User Account Delete Cascade
+      ✓ DELETE user cascades to profile_organizations (1 ms)
+      ✓ DELETE user cascades to notifications
+      ✓ DELETE user cascades to pending invitations
+      ✓ User profile record deleted
+      ✓ User can delete own account
+      ✓ Super admin can delete any user (1 ms)
+    OKR Delete Cascade
+      ✓ DELETE okr cascades to initiatives
+      ✓ DELETE okr cascades to kpis
+      ✓ Non-member cannot DELETE OKR (1 ms)
+      ✓ Member cannot DELETE OKR
+      ✓ Only admin can DELETE OKR (1 ms)
+    Referential Integrity
+      ✓ No orphaned okrs after organization delete
+      ✓ No orphaned kpis after organization delete (1 ms)
+      ✓ No orphaned initiatives after okr delete
+      ✓ No orphaned profile_organizations after user delete
+      ✓ Foreign key constraints enforced at database level (1 ms)
+    Delete Authorization via RLS
+      ✓ Non-admin cannot execute DELETE SQL directly
+      ✓ Organization isolation prevents cross-org deletes
+      ✓ Super admin bypass allows delete regardless of RLS
+      ✓ Service role can delete for audit logging cleanup (1 ms)
+    Audit Trail on Delete
+      ✓ ORGANIZATION_DELETED logged with CRITICAL severity
+      ✓ USER_DELETED logged with CRITICAL severity (1 ms)
+      ✓ Audit log includes details of what was deleted
+      ✓ Deleted user cannot login after account deletion
+    Soft Delete vs Hard Delete
+      ✓ Organizations hard deleted (no soft_deleted flag) (1 ms)
+      ✓ Users hard deleted (no soft_deleted flag)
+      ✓ All cascading deletes are hard deletes
+      ✓ Deleted data cannot be recovered except from backups (1 ms)
+    Delete Performance
+      ✓ Cascading delete completes within timeout
+      ✓ Database indexes optimized for deletion
+
+PASS src/tests/integration/permissionMiddleware.test.js (6.439 s)
+  Permission Middleware
+    Middleware Chaining Order
+      ✓ Middleware order: Auth → OrgMembership → RoleCheck (9 ms)
+      ✓ First failure returns 403 immediately (fail-fast) (1 ms)
+      ✓ Non-member fails at membership check (1 ms)
+    Auth Middleware
+      ✓ Missing Authorization header returns 401 (1 ms)
+      ✓ Invalid JWT returns 401 (1 ms)
+      ✓ Expired JWT returns 401 (1 ms)
+      ✓ Valid JWT extracts claims (1 ms)
+      ✓ req.user populated with claims (1 ms)
+    Organization Membership Middleware
+      ✓ Member receives access (org membership exists) (1 ms)
+      ✓ Non-member receives 403 (no org membership)
+      ✓ Super admin receives access (bypass pattern) (1 ms)
+      ✓ Membership checked via profile_organizations join
+    Role Middleware
+      ✓ Member (read) receives 403 on write (PUT)
+      ✓ Admin receives access on CRUD
+      ✓ Super admin receives access on everything (58 ms)
+      ✓ Role checked in profile_organizations.role (25 ms)
+    Context Persistence Across Middleware
+      ✓ req.user persists through all middleware (9 ms)
+      ✓ req.organization persists through all middleware (14 ms)
+      ✓ Concurrent requests isolated (context per request) (9 ms)
+    Middleware Error Responses
+      ✓ 401 for auth failures (11 ms)
+      ✓ 403 for membership failures (9 ms)
+      ✓ 403 for role failures (7 ms)
+      ✓ Error response includes message (5 ms)
+
+FAIL src/tests/integration/invitationWorkflow.test.js (6.523 s)
+  Invitation Workflow
+    Step 1: Admin Creates Invitation
+      ✓ Admin can initiate invitation process (27 ms)
+      ✓ POST /api/invitations accepts email parameter (1 ms)
+      ✓ Invitation created with status: pending (1 ms)
+      ✓ Unique invitation token generated
+      ✓ Invitation linked to organization
+      ✓ Invitation linked to admin (inviter) (1 ms)
+      ✓ Expiration set to 7 days from creation (1 ms)
+      ✓ Response includes invitation_id
+      ✓ Response includes invite_link with token (1 ms)
+    Step 2: Email Sent to Invitee
+      ✓ Email sent to invitee with invite link
+      ✓ Email contains organization name (1 ms)
+      ✓ Email contains inviter name (27 ms)
+      ✓ Email includes accept/decline links with token (2 ms)
+      ✓ Email template is secure (no sensitive data leaked)
+    Step 3: Invitee Clicks Accept Link
+      ✓ GET /invitations/{token} validates token exists (1 ms)
+      ✓ GET /invitations/{token} validates token not expired
+      ✓ GET /invitations/{token} validates token not already used (1 ms)
+      ✓ Returns invitation details for confirmation screen
+      ✓ Returns inviter name for confirmation screen (1 ms)
+    Step 4A: Invitee Accepts Invitation
+      ✓ POST /api/invitations/{id}/accept creates account if needed (30 ms)
+      ✓ POST /api/invitations/{id}/accept creates profile_organizations (1 ms)
+      ✓ Role set to member by default (1 ms)
+      ✓ Invitation marked as accepted (1 ms)
+      ✓ Invitation cannot be accepted again (1 ms)
+      ✕ User redirected to dashboard (30 ms)
+      ✓ Session established for new user
+      ✓ Audit log: INVITATION_ACCEPTED with INFO severity
+      ✓ Audit log: USER_ADDED_TO_ORGANIZATION with INFO severity
+    Step 4B: Invitee Declines Invitation
+      ✓ POST /api/invitations/{id}/decline marks as declined
+      ✓ POST /api/invitations/{id}/decline does not create profile_organizations
+      ✓ Invitation cannot be declined again
+      ✓ Declined invitation cannot be accepted later
+      ✕ User returns to home page (1 ms)
+      ✓ Audit log: INVITATION_DECLINED with INFO severity
+    Step 5: Expired Invitation Handling
+      ✓ Expired invitation cannot be accepted
+      ✓ Expired invitation cannot be declined
+      ✓ GET /invitations/{token} returns error for expired token
+      ✓ Error message indicates expiration
+      ✓ User can request new invitation
+    Concurrent Workflow Protection
+      ✓ Cannot accept and decline simultaneously
+      ✓ Same email cannot be invited twice simultaneously
+      ✓ Invitation state is atomic
+    Workflow Security
+      ✕ Token is cryptographically secure (32-char hex) (1 ms)
+      ✓ Token cannot be guessed (no sequential patterns) (1 ms)
+      ✓ Token is single-use (invalidated after accept/decline)
+      ✓ Accept/decline actions audit logged
+      ✓ Organization context validated before accepting
+    Email Resend Workflow
+      ✓ Admin can resend invitation email (1 ms)
+      ✓ Resend uses same token (invitation not recreated)
+      ✓ Resend updates last_sent timestamp
+      ✓ Resend does not extend expiration
+    Workflow Audit Trail
+      ✓ All steps logged: CREATED, SENT, ACCEPTED/DECLINED
+      ✓ Each log entry captures admin_id, invitee_email, organization_id (1 ms)
+      ✓ Email send logged even if SMTP fails
+      ✓ Final state (accepted/declined) persisted
+
+  ● Invitation Workflow › Step 4A: Invitee Accepts Invitation › User redirected to dashboard
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 302
+    Received: undefined
+
+      123 |
+      124 |     test('User redirected to dashboard', () => {
+    > 125 |       expect(HTTP_STATUS.FOUND).toBe(302);
+          |                                 ^
+      126 |     });
+      127 |
+      128 |     test('Session established for new user', () => {
+
+      at Object.toBe (src/tests/integration/invitationWorkflow.test.js:125:33)
+
+  ● Invitation Workflow › Step 4B: Invitee Declines Invitation › User returns to home page
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 302
+    Received: undefined
+
+      157 |
+      158 |     test('User returns to home page', () => {
+    > 159 |       expect(HTTP_STATUS.FOUND).toBe(302);
+          |                                 ^
+      160 |     });
+      161 |
+      162 |     test('Audit log: INVITATION_DECLINED with INFO severity', () => {
+
+      at Object.toBe (src/tests/integration/invitationWorkflow.test.js:159:33)
+
+  ● Invitation Workflow › Workflow Security › Token is cryptographically secure (32-char hex)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      209 |     test('Token is cryptographically secure (32-char hex)', () => {
+      210 |       const token = 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6';
+    > 211 |       expect(/^[a-f0-9]{32}$/.test(token)).toBe(true);
+          |                                            ^
+      212 |     });
+      213 |
+      214 |     test('Token cannot be guessed (no sequential patterns)', () => {
+
+      at Object.toBe (src/tests/integration/invitationWorkflow.test.js:211:44)
+
+FAIL src/tests/integration/invitationBillingEndpoints.test.js (6.518 s)
+  Invitation & Billing Endpoints
+    POST /api/invitations
+      ✓ Admin can create invitation (69 ms)
+      ✓ Member cannot create invitation
+      ✓ Invitation requires valid email (1 ms)
+      ✓ Generates unique invitation token
+      ✓ Invitation includes expiration (7 days) (2 ms)
+    GET /api/invitations
+      ✓ User can view pending invitations for their org (1 ms)
+      ✓ User cannot view other org invitations
+      ✓ Super admin can view all invitations (1 ms)
+      ✓ Returns invitations with status (pending/accepted/declined)
+    POST /api/invitations/{id}/accept
+      ✓ Invitee can accept invitation
+      ✓ Acceptance creates profile_organizations entry (1 ms)
+      ✓ Role assigned to member by default (21 ms)
+      ✓ Cannot accept if already organization member (13 ms)
+      ✓ Expired invitation cannot be accepted (2 ms)
+      ✓ Audit log created: USER_INVITED (1 ms)
+    POST /api/invitations/{id}/decline
+      ✓ Invitee can decline invitation
+      ✓ Declined invitation marked as declined
+      ✓ Declined invitation does not create profile_organizations
+      ✓ Audit log created: INVITATION_DECLINED
+    Subscription Tier Member Limits
+      ✕ Free tier: max 5 members (6 ms)
+      ✓ Professional tier: max 20 members
+      ✓ Enterprise tier: unlimited members (1 ms)
+      ✓ POST invitation returns 409 if member limit exceeded
+      ✓ GET /api/organization/billing returns current member count
+    Invitation Email Validation
+      ✓ Email must be valid format (1 ms)
+      ✓ Cannot invite same email twice simultaneously
+      ✓ Invitation token sent to email address
+    Invitation Token Lifecycle
+      ✕ Token is 32-character hex string (1 ms)
+      ✓ Token expires after 7 days
+      ✓ Expired token returns 403 on accept (1 ms)
+      ✓ Used token cannot be accepted again
+    Audit Logging for Invitations
+      ✓ USER_INVITED logged with INFO severity
+      ✓ Details includes invitee_email (1 ms)
+      ✓ INVITATION_ACCEPTED logged when accepted
+      ✓ INVITATION_DECLINED logged when declined
+
+  ● Invitation & Billing Endpoints › Subscription Tier Member Limits › Free tier: max 5 members
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "free"
+    Received: "professional"
+
+      107 |   describe('Subscription Tier Member Limits', () => {
+      108 |     test('Free tier: max 5 members', () => {
+    > 109 |       expect(testOrganizations.org1.tier).toBe('free');
+          |                                           ^
+      110 |     });
+      111 |
+      112 |     test('Professional tier: max 20 members', () => {
+
+      at Object.toBe (src/tests/integration/invitationBillingEndpoints.test.js:109:43)
+
+  ● Invitation & Billing Endpoints › Invitation Token Lifecycle › Token is 32-character hex string
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      147 |     test('Token is 32-character hex string', () => {
+      148 |       const token = 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6';
+    > 149 |       expect(/^[a-f0-9]{32}$/.test(token)).toBe(true);
+          |                                            ^
+      150 |     });
+      151 |
+      152 |     test('Token expires after 7 days', () => {
+
+      at Object.toBe (src/tests/integration/invitationBillingEndpoints.test.js:149:44)
+
+FAIL src/tests/integration/subscriptionTierEnforcement.test.js (6.704 s)
+  Subscription Tier Enforcement
+    Free Tier Limits
+      ✓ Free tier allows up to 5 members (25 ms)
+      ✓ 6th member invitation returns 409 CONFLICT (15 ms)
+      ✓ Error message: "Member limit reached for this tier" (1 ms)
+      ✓ Free tier allows up to 10 OKRs
+      ✓ 11th OKR creation returns 409 CONFLICT (1 ms)
+      ✓ Free tier does not allow KPIs (feature locked)
+      ✓ Free tier does not allow initiatives (feature locked)
+      ✓ Free tier does not allow integrations (feature locked) (1 ms)
+      ✓ GET /api/organization/features returns locked feature list
+    Professional Tier Limits
+      ✓ Professional tier allows up to 20 members
+      ✓ 21st member invitation returns 409 CONFLICT
+      ✓ Professional tier allows up to 50 OKRs
+      ✓ 51st OKR creation returns 409 CONFLICT
+      ✓ Professional tier allows KPIs (feature unlocked) (1 ms)
+      ✓ Professional tier allows initiatives (feature unlocked)
+      ✓ Professional tier allows integrations (feature unlocked)
+      ✓ Professional tier allows up to 5 integrations
+      ✓ 6th integration returns 409 CONFLICT
+    Enterprise Tier Limits
+      ✓ Enterprise tier allows unlimited members (1 ms)
+      ✓ 1000+ members allowed (no 409 response)
+      ✓ Enterprise tier allows unlimited OKRs
+      ✓ Enterprise tier allows unlimited KPIs
+      ✓ Enterprise tier allows unlimited initiatives
+      ✓ Enterprise tier allows unlimited integrations (1 ms)
+      ✓ Enterprise tier includes custom features
+      ✓ Enterprise tier includes priority support
+    Tier Upgrade/Downgrade
+      ✓ Upgrade free → professional succeeds
+      ✓ Upgrade immediately increases limits (1 ms)
+      ✓ Downgrade professional → free succeeds
+      ✓ Downgrade blocks if data exceeds new tier
+      ✓ Error message: "Data exceeds limits for target tier"
+      ✓ Downgrade requires explicit confirmation
+      ✓ Upgrade audit logged with BILLING action (1 ms)
+    Feature Access Control via RLS
+      ✓ Free tier: RLS filters out KPI data
+      ✓ Free tier: POST /api/kpis returns 403 FORBIDDEN
+      ✓ Professional tier: RLS allows KPI data
+      ✓ Professional tier: POST /api/kpis returns 201 CREATED
+      ✓ Tier check happens BEFORE business logic
+    Member Count Enforcement
+      ✓ GET /api/organization/members returns current count
+      ✓ Response includes member_count and max_members fields
+      ✓ POST /api/invitations checks member count
+      ✓ Member acceptance also checked against limit
+    OKR/KPI Count Enforcement
+      ✓ GET /api/organization/usage returns current counts
+      ✓ POST /api/okrs checks count before creation
+      ✓ POST /api/kpis checks count and tier (1 ms)
+      ✓ POST /api/initiatives checks count
+      ✓ Limit exceeded returns 409 with usage details
+    Billing Integration
+      ✓ Free tier → Professional: upgrade creates invoice
+      ✓ Invoice includes: tier, price, billing_period (1 ms)
+      ✕ Payment processing required before tier activation (2 ms)
+      ✓ Tier downgrade for failed payment (1 ms)
+      ✓ Trial period (14 days) for Professional upgrade
+    Tier Limits in GET Operations
+      ✓ Free tier: GET /api/kpis returns 403 FORBIDDEN
+      ✓ Free tier: GET /api/initiatives returns 403 FORBIDDEN (1 ms)
+      ✓ Professional tier: GET /api/kpis returns data
+      ✓ Professional tier: GET /api/initiatives returns data
+    Audit Logging for Tier Enforcement
+      ✓ TIER_LIMIT_EXCEEDED logged with WARNING severity (1 ms)
+      ✓ SUBSCRIPTION_UPGRADED logged with INFO severity
+      ✓ SUBSCRIPTION_DOWNGRADED logged with INFO severity
+      ✓ Details include: old_tier, new_tier, timestamp
+    Tier Enforcement Edge Cases
+      ✓ Concurrent OKR creation respects limit (race condition)
+      ✓ Member invitation and acceptance both enforce limit (1 ms)
+      ✓ Deleted resource counts toward limit until cleanup
+      ✓ Grace period for recently downgraded tier
+
+  ● Subscription Tier Enforcement › Billing Integration › Payment processing required before tier activation
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 202
+    Received: undefined
+
+      244 |     test('Payment processing required before tier activation', () => {
+      245 |       // Upgrade pending until payment confirmed
+    > 246 |       expect(HTTP_STATUS.ACCEPTED).toBe(202);
+          |                                    ^
+      247 |     });
+      248 |
+      249 |     test('Tier downgrade for failed payment', () => {
+
+      at Object.toBe (src/tests/integration/subscriptionTierEnforcement.test.js:246:36)
+
+FAIL src/tests/integration/middlewareContextValidation.test.js (6.751 s)
+  Middleware Context Validation
+    req.user Object Population
+      ✓ req.user.id populated from JWT sub claim (20 ms)
+      ✓ req.user.email populated from JWT email claim
+      ✓ req.user.role populated from profile_organizations (1 ms)
+      ✕ req.user.organization_id populated from JWT org_id claim (3 ms)
+      ✓ req.user persists through all middleware (1 ms)
+      ✓ req.user is read-only (cannot be modified in middleware) (1 ms)
+      ✓ req.user contains correct data types (1 ms)
+    req.organization Object Population
+      ✓ req.organization.id populated from path parameter
+      ✓ req.organization.name populated from organizations table (1 ms)
+      ✓ req.organization.tier populated from organizations table
+      ✕ req.organization.created_at populated (1 ms)
+      ✓ req.organization persists through role middleware to handlers
+      ✓ req.organization is read-only (1 ms)
+      ✓ req.organization contains all necessary fields
+    req.context Object (Global Context)
+      ✓ req.context contains req.user (1 ms)
+      ✓ req.context contains req.organization (5 ms)
+      ✓ req.context contains bypass_organization_check for super_admin
+      ✓ req.context does not contain bypass_organization_check for regular users (1 ms)
+      ✓ req.context.timestamp set to request start time
+      ✓ req.context accessible throughout request lifecycle
+    Context Availability at Each Middleware Layer
+      ✓ Auth middleware sets req.user (1 ms)
+      ✓ Membership middleware sets req.organization
+      ✓ Role middleware can access req.user and req.organization
+      ✓ Request handler receives populated context
+      ✓ Error handlers receive context for logging (1 ms)
+    Concurrent Request Isolation
+      ✓ Request 1 admin context isolated from Request 2 member context
+      ✓ Request 1 cannot access Request 2 organization
+      ✓ req.user contamination prevented between requests
+      ✓ req.organization contamination prevented between requests (1 ms)
+      ✓ Concurrent requests with same user maintain separate tokens
+      ✓ Rate limiter maintains per-IP context without cross-contamination
+    Super Admin Context Special Handling
+      ✓ Super admin req.user includes role: super_admin
+      ✓ Super admin req.context includes bypass_organization_check flag
+      ✓ Super admin context allows access to any organization (1 ms)
+      ✓ Super admin context still respects audit logging
+      ✓ Super admin organization_id may be null (unrestricted)
+    Context Data Types and Validation
+      ✓ req.user.id is string (UUID format)
+      ✓ req.user.email is string (valid email) (1 ms)
+      ✓ req.user.role is enum (member|admin|super_admin)
+      ✓ req.organization.id is string (UUID format)
+      ✓ req.organization.tier is enum (free|professional|enterprise)
+      ✓ req.context.timestamp is ISO 8601 date string (5 ms)
+    Context Mutation Prevention
+      ✓ Modifying req.user in one handler does not affect others
+      ✓ Modifying req.organization does not persist
+      ✓ Context is frozen after auth middleware
+      ✓ Attempting to modify context throws error in strict mode (1 ms)
+    Context Access Patterns
+      ✓ Handlers access context via req.user
+      ✓ Handlers access context via req.organization
+      ✓ Middleware chains pass context via req property
+      ✓ Error handlers access context for audit logging (1 ms)
+      ✓ Rate limiter middleware accesses context without interfering
+    Context Lifecycle
+      ✓ Context created at request start (auth middleware)
+      ✓ Context enriched at each middleware step (1 ms)
+      ✓ Context available during route handler execution
+      ✓ Context available in error handlers
+      ✓ Context cleaned up after response sent (1 ms)
+    Context for Logging and Monitoring
+      ✓ Audit logger accesses context for user_id
+      ✓ Audit logger accesses context for organization_id
+      ✓ Rate limiter accesses context for action tracking (1 ms)
+      ✓ Error logger accesses context for error context
+      ✓ All logging captures context without side effects
+
+  ● Middleware Context Validation › req.user Object Population › req.user.organization_id populated from JWT org_id claim
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "org-1"
+    Received: undefined
+
+      32 |
+      33 |     test('req.user.organization_id populated from JWT org_id claim', () => {
+    > 34 |       expect(adminContext.user.organization_id).toBe(testOrganizations.org1.id);
+         |                                                 ^
+      35 |     });
+      36 |
+      37 |     test('req.user persists through all middleware', () => {
+
+      at Object.toBe (src/tests/integration/middlewareContextValidation.test.js:34:49)
+
+  ● Middleware Context Validation › req.organization Object Population › req.organization.created_at populated
+
+    expect(received).toBeDefined()
+
+    Received: undefined
+
+      65 |
+      66 |     test('req.organization.created_at populated', () => {
+    > 67 |       expect(adminContext.organization.created_at).toBeDefined();
+         |                                                    ^
+      68 |     });
+      69 |
+      70 |     test('req.organization persists through role middleware to handlers', () => {
+
+      at Object.toBeDefined (src/tests/integration/middlewareContextValidation.test.js:67:52)
+
+PASS src/tests/integration/crossTenantIsolation.test.js
+  Cross-Tenant Isolation (CRITICAL SECURITY)
+    Organization GET Access Control
+      ✓ Non-member cannot GET organization details (1 ms)
+      ✓ Non-member cannot GET organization OKRs (1 ms)
+      ✓ Non-member cannot GET organization KPIs
+      ✓ Non-member cannot GET organization members
+      ✓ Super admin CAN view all organizations (1 ms)
+    Organization PUT Access Control
+      ✓ Non-member cannot PUT organization settings
+      ✓ Non-member cannot PUT organization name
+      ✓ Member cannot PUT (only admin)
+      ✓ Super admin CAN PUT any organization (1 ms)
+    Organization DELETE Access Control
+      ✓ Non-member cannot DELETE organization
+      ✓ Admin of other org cannot DELETE
+      ✓ Member cannot DELETE organization
+      ✓ Super admin CAN DELETE any organization (1 ms)
+    Resource-Level Isolation
+      ✓ OKR from org1 not accessible by org2 members
+      ✓ KPI from org1 not accessible by org2 members
+      ✓ Initiative from org1 not accessible by org2 members (1 ms)
+      ✓ Audit logs from org1 not visible to org2 members
+    Database RLS Enforcement
+      ✓ RLS policies enforce organization_id filtering
+      ✓ Service role can bypass RLS for audit logging (1 ms)
+
+PASS src/tests/integration/roleBasedAccessControl.test.js
+  Role-Based Access Control (RBAC)
+    Member Role - Read-Only Access
+      ✓ Member CAN view organization (1 ms)
+      ✓ Member CAN view OKRs
+      ✓ Member CAN view KPIs
+      ✓ Member CANNOT create OKR (POST) (1 ms)
+      ✓ Member CANNOT update OKR (PUT) (1 ms)
+      ✓ Member CANNOT delete OKR (DELETE) (1 ms)
+      ✓ Member CANNOT manage organization members
+    Admin Role - Full CRUD Access
+      ✓ Admin CAN view organization
+      ✓ Admin CAN create OKR (POST) (1 ms)
+      ✓ Admin CAN update OKR (PUT)
+      ✓ Admin CAN delete OKR (DELETE)
+      ✓ Admin CAN manage organization members (1 ms)
+      ✓ Admin CAN update organization settings
+      ✓ Admin CANNOT perform super-admin actions
+    Super Admin Role - Unrestricted Access
+      ✓ Super admin CAN view all organizations
+      ✓ Super admin CAN view all OKRs across all orgs
+      ✓ Super admin CAN create/update/delete in any organization (1 ms)
+      ✓ Super admin CAN manage any organization members
+      ✓ Super admin CAN delete any organization (1 ms)
+      ✓ Super admin bypass pattern works correctly
+    Permission Enforcement Pattern (Fail-Fast)
+      ✓ Permission check happens BEFORE business logic
+      ✓ First permission denial returns 403 immediately
+      ✓ Audit log created for access denial (1 ms)
+    Role Hierarchy Validation
+      ✓ Role hierarchy: member < admin < super_admin
+      ✓ Member cannot escalate to admin
+      ✓ Admin cannot escalate to super_admin (1 ms)
+
+PASS src/tests/integration/organizationEndpoints.test.js
+  Organization Endpoints
+    POST /api/organizations
+      ✓ Admin can create organization (1 ms)
+      ✓ Member cannot create organization
+      ✓ Validates organization data
+    GET /api/organizations
+      ✓ User can view their organizations
+      ✓ User cannot view other organizations (1 ms)
+      ✓ Super admin can view all organizations (1 ms)
+    PUT /api/organizations/:id
+      ✓ Admin can update their organization
+      ✓ Member cannot update organization
+      ✓ Non-member cannot update organization (1 ms)
+    DELETE /api/organizations/:id
+      ✓ Admin can delete their organization (1 ms)
+      ✓ Member cannot delete organization
+      ✓ Deletion cascades to related data
+
+PASS src/tests/integration/userEndpoints.test.js
+  User Endpoints
+    GET /api/users/profile
+      ✓ User can view their own profile (1 ms)
+      ✓ User cannot view other user profiles (1 ms)
+      ✓ Super admin can view all profiles
+    PUT /api/users/profile
+      ✓ User can update their own profile
+      ✓ User cannot update other user profiles (1 ms)
+      ✓ Name update succeeds
+    POST /api/users/change-password
+      ✓ User can change their password (1 ms)
+      ✓ Password change invalidates existing JWT
+      ✓ New password must meet complexity requirements
+      ✓ Cannot change password with wrong current password
+    DELETE /api/users/account
+      ✓ User can delete their own account
+      ✓ Account deletion cascades to profile_organizations
+      ✓ Deleted user cannot authenticate
+      ✓ Audit log created for account deletion
+
+------------------------|---------|----------|---------|---------|-------------------
+File                    | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+------------------------|---------|----------|---------|---------|-------------------
+All files               |       0 |        0 |       0 |       0 |                   
+ src                    |       0 |        0 |       0 |       0 |                   
+  authSlice.js          |       0 |        0 |       0 |       0 | 6-212             
+  constants.js          |       0 |      100 |     100 |       0 | 1-12              
+  dataSlice.js          |       0 |        0 |       0 |       0 | 6-71              
+  i18n.js               |       0 |        0 |       0 |       0 | 6-90              
+  notificationSlice.js  |       0 |      100 |       0 |       0 | 7-20              
+  services.js           |       0 |        0 |       0 |       0 | 6-721             
+  store.js              |       0 |      100 |       0 |       0 | 8-25              
+  supabase.js           |       0 |        0 |       0 |       0 | 3-13              
+  theme.js              |       0 |        0 |       0 |       0 | 2-59              
+  uiSlice.js            |       0 |      100 |       0 |       0 | 1-10              
+  useFormHandlers.js    |       0 |        0 |       0 |       0 | 11-59             
+  usePaymentStatus.js   |       0 |        0 |       0 |       0 | 9-28              
+  useSubdomainTenant.js |       0 |        0 |       0 |       0 | 32-111            
+  useZenMode.js         |       0 |        0 |       0 |       0 | 8-23              
+  utils.js              |       0 |        0 |       0 |       0 | 7-137             
+ src/hooks              |       0 |        0 |       0 |       0 |                   
+  useAuditLog.js        |       0 |        0 |       0 |       0 | 46-341            
+  useInvitation.js      |       0 |        0 |       0 |       0 | 48-385            
+ src/utils              |       0 |        0 |       0 |       0 |                   
+  apiInterceptor.js     |       0 |        0 |       0 |       0 | 28-373            
+  apiWrapper.js         |       0 |        0 |       0 |       0 | 28-305            
+  auditLogger.js        |       0 |        0 |       0 |       0 | 48-423            
+  csrfUtils.js          |       0 |        0 |       0 |       0 | 29-161            
+  jwtUtils.js           |       0 |        0 |       0 |       0 | 12-256            
+  logger.js             |       0 |        0 |       0 |       0 | 15-163            
+  twoFactorAuth.js      |       0 |        0 |       0 |       0 | 35-331            
+------------------------|---------|----------|---------|---------|-------------------
+Jest: "global" coverage threshold for statements (85%) not met: 0%
+Jest: "global" coverage threshold for branches (75%) not met: 0%
+Jest: "global" coverage threshold for lines (85%) not met: 0%
+Jest: "global" coverage threshold for functions (80%) not met: 0%
+Test Suites: 4 failed, 7 passed, 11 total
+Tests:       8 failed, 367 passed, 375 total
+Snapshots:   0 total
+Time:        13.065 s
+Ran all test suites matching /src\/tests\/integration\//i.

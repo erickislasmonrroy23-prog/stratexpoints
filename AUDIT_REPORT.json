@@ -1,0 +1,27 @@
+{
+  "timestamp": "2026-04-30T11:04:04.236524",
+  "metrics": {
+    "total_files": 18301,
+    "js_files": 14209,
+    "jsx_files": 135,
+    "ts_files": 3957,
+    "total_lines": 1557
+  },
+  "security_issues": [
+    "\u26a0\ufe0f  Falta variable de ambiente: SERVICE_ROLE_KEY",
+    "\u274c RLS policies no implementadas correctamente",
+    "\u274c RLS policies no implementadas correctamente",
+    "\u274c RLS policies no implementadas correctamente"
+  ],
+  "performance_issues": [
+    "\ud83d\udcca src/App.jsx: Componente muy grande (975 l\u00edneas) - considerar split",
+    "\ud83d\udcca Oportunidad: Implementar Lazy loading (React.lazy)",
+    "\ud83d\udcca Oportunidad: Implementar Code splitting (import())",
+    "\ud83d\udcca Oportunidad: Implementar Caching (React.memo)",
+    "\ud83d\udcca Oportunidad: Implementar Virtual lists (virtualized)"
+  ],
+  "architecture_issues": [
+    "\u274c src/supabase.js: fetch() sin manejo de errores",
+    "\u26a0\ufe0f  SAAS Feature faltante: Data Isolation"
+  ]
+}
