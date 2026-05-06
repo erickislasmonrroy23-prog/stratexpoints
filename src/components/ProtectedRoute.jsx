@@ -16,7 +16,9 @@ export const ProtectedRoute = ({
   allowSuperAdmin = true,
   onAccessDenied = null
 }) => {
-  const { user, profile, authContextLoading } = useStore();
+  const user = useStore.use.user();
+  const profile = useStore.use.profile();
+  const authContextLoading = useStore.use.authContextLoading();
 
   // Log access attempt
   React.useEffect(() => {
@@ -116,7 +118,8 @@ export const withProtectedRoute = (Component, routeProps = {}) => {
  * Hook to check if user can access a route
  */
 export const useCanAccess = ({ requiredRole = null, requiredOrganization = null } = {}) => {
-  const { user, profile } = useStore();
+  const user = useStore.use.user();
+  const profile = useStore.use.profile();
 
   if (!user || !profile) {
     return false;

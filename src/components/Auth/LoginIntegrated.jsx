@@ -28,7 +28,9 @@ const TEST_USERS = [
 
 export const LoginIntegrated = () => {
   const navigate = useNavigate();
-  const { setAuth, checkPasswordRotation, getAuthContext } = useStore();
+  const setAuth = useStore((state) => state.setAuth);
+  const checkPasswordRotation = useStore((state) => state.checkPasswordRotation);
+  const getAuthContext = useStore((state) => state.getAuthContext);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -261,7 +263,11 @@ export const LoginIntegrated = () => {
  * Debug Component: Show current auth context
  */
 const DebugAuthContext = () => {
-  const { user, profile, enterpriseFeatures, passwordRotationDue, sessionInfo } = useStore();
+  const user = useStore.use.user();
+  const profile = useStore.use.profile();
+  const enterpriseFeatures = useStore.use.enterpriseFeatures();
+  const passwordRotationDue = useStore.use.passwordRotationDue();
+  const sessionInfo = useStore.use.sessionInfo();
 
   return (
     <pre className="debug-info">
