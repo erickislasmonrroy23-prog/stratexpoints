@@ -1,3 +1,4 @@
+import logger from '../utils/logger.js';
 import React, { useState } from 'react';
 import { useTenant } from './TenantContext';
 

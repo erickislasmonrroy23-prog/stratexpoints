@@ -1,13 +1,6 @@
-/**
- * FASE 1.3: Protected Route Component
- * Enforces authentication and authorization checks
- * Validates user role and organization access
- */
-
-import React from 'react';
-import { Navigate } from 'react-router-dom';
-import { useStore } from '../store';
 import logger from '../utils/logger.js';
+import React from 'react';
+import { useStore } from '../store';
 
 export const ProtectedRoute = ({
   children,
@@ -44,13 +37,12 @@ export const ProtectedRoute = ({
     );
   }
 
-  // 1. Check authentication - must be logged in
+  // 1. Check authentication — App.jsx guarantees this is only rendered when authenticated.
+  // Return null instead of Navigate (no /login route exists in this SPA).
   if (!user || !profile) {
     logger.warn('[ProtectedRoute] Access denied: Not authenticated');
-    if (onAccessDenied) {
-      onAccessDenied('not_authenticated');
-    }
-    return <Navigate to="/login" replace />;
+    if (onAccessDenied) onAccessDenied('not_authenticated');
+    return null;
   }
 
   // 2. Check role - if required, verify user has required role

@@ -1,4 +1,5 @@
 import { supabase } from '../supabase.js';
+import logger from './logger.js';
 
 /**
  * JWT Token Management Utilities
