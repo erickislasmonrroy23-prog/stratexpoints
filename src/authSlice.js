@@ -37,9 +37,9 @@ export const createAuthSlice = (set, get) => ({
       const isOwner = !!(newProfile?.is_super_admin || newProfile?.role === 'super_admin');
       set({ user: newUser, profile: newProfile, currentOrganization: org, isSystemOwner: isOwner });
 
-      // NEW: Automatically load auth context when user is authenticated
+      // Fire-and-forget: auth context enriches the session but is not required
       if (newUser && newProfile) {
-        get().loadAuthContext();
+        get().loadAuthContext().catch(() => {});
       }
     }
   },
@@ -47,11 +47,13 @@ export const createAuthSlice = (set, get) => ({
   setImpersonatedProfile: (profile) => set({ impersonatedProfile: profile }),
   clearImpersonation: () => set({ impersonatedProfile: null }),
 
-  // NEW: Load authentication context from Edge Function
   loadAuthContext: async () => {
     set({ authContextLoading: true, authContextError: null });
     try {
-      const response = await callEdgeFunction('auth-context', {});
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('auth-context timeout')), 8000)
+      );
+      const response = await Promise.race([callEdgeFunction('auth-context', {}), timeout]);
 
       if (response.ok && response.data) {
         const authContext = response.data.data || response.data;

@@ -948,16 +948,15 @@ export default function App(){
         logger.warn('Failed to stop realtime subscriptions:', e);
       }
 
-      // 2. Cancel active subscriptions and cleanup from store
+      // 2. Clear notification queue via store action
       try {
         const store = useStore.getState();
-        // Clear notifications queue
-        if (store.notifications) {
-          store.notifications = [];
+        if (store.notifications?.length) {
+          store.notifications.forEach(n => store.removeNotification?.(n.id));
         }
-        logger.info('Active subscriptions cancelled');
+        logger.info('Notifications cleared');
       } catch (e) {
-        logger.warn('Failed to cancel subscriptions:', e);
+        logger.warn('Failed to clear notifications:', e);
       }
 
       // 3. Clear localStorage comprehensively (JWT monitoring cleanup)
@@ -1033,16 +1032,8 @@ export default function App(){
         logger.warn('Failed to reset store:', e);
       }
 
-      // 8. Clear UI state (local component state)
-      try {
-        setModal(null);
-        setEditingItem(null);
-        setCmdOpen(false);
-        setDismissedToasts([]);
-        logger.info('UI state cleared');
-      } catch (e) {
-        logger.warn('Failed to clear UI state:', e);
-      }
+      // 8. UI state (modal/sidebar) is reset automatically when profile becomes null
+      // and MainApp unmounts — no local state refs needed here.
 
       // 9. Clear any cached data in memory
       try {

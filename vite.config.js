@@ -6,11 +6,15 @@ import path from 'path'
 // Reactivar cuando se resuelva: npm install vite-plugin-pwa@latest
 // import { VitePWA } from 'vite-plugin-pwa'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     // VitePWA({ registerType: 'autoUpdate', ... })  // TODO: reactivar con versión estable
   ],
+  define: {
+    // Polyfill process.env for any dual-env utilities (logger, etc.)
+    'process.env.NODE_ENV': JSON.stringify(mode === 'production' ? 'production' : 'development'),
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -42,5 +46,5 @@ export default defineConfig({
       }
     }
   }
-})
+}))
 // Cache buster: 1778095627
