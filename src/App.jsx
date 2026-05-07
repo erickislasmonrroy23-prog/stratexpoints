@@ -4,7 +4,7 @@ import { supabase } from "./supabase.js";
 import { initTheme, setTheme } from "./theme.js";
 import * as XLSX from "xlsx";
 import LoginIntegrated from "./components/Auth/LoginIntegrated.jsx";
-import ChangePassword from "./components/Auth/ChangePassword.jsx";
+import ChangePassword from "./ChangePassword.jsx";
 import Unauthorized from "./pages/Unauthorized.jsx";
 import { useTranslation } from "react-i18next";
 import { perspectiveService, okrService, kpiService, initiativeService, alertService, objectivesService, autoAlertService, notificationService, setNotifyFn } from "./services.js";

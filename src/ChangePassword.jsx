@@ -113,11 +113,6 @@ export default function ChangePassword() {
       setConfirmPassword('');
 
       toast.success('✅ Contraseña actualizada correctamente');
-
-      // Redirect to main app after 2 seconds
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 2000);
     } catch (error) {
       logger.error('Error in handlePasswordChange:', error);
       toast.error(`Error inesperado: ${error.message}`);

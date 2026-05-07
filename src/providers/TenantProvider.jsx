@@ -174,8 +174,7 @@ export const useTenantProviderReady = () => {
         // Auth token should exist (if user is authenticated)
         const authToken = sessionStorage.getItem('sb-auth-token');
 
-        // Provider is ready if we have auth token or are on login page
-        const isReady = !!authToken || window.location.pathname === '/login';
+        const isReady = !!authToken;
         setIsReady(isReady);
       } catch (error) {
         logger.warn('Failed to check TenantProvider readiness', error);

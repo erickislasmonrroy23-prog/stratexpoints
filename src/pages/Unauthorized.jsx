@@ -5,11 +5,10 @@
  */
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import logger from '../utils/logger.js';
 
 export default function Unauthorized() {
-  const navigate = useNavigate();
+  const handleGoHome = () => window.location.reload();
 
   React.useEffect(() => {
     logger.warn('User attempted to access unauthorized resource', {
@@ -105,7 +104,7 @@ export default function Unauthorized() {
           justifyContent: 'center',
         }}>
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => history.back()}
             style={{
               padding: '10px 24px',
               background: 'var(--bg3)',
@@ -130,7 +129,7 @@ export default function Unauthorized() {
             ← Volver Atrás
           </button>
           <button
-            onClick={() => navigate('/')}
+            onClick={handleGoHome}
             style={{
               padding: '10px 24px',
               background: 'var(--primary)',
