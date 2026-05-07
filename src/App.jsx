@@ -847,6 +847,7 @@ export default function App(){
   const user = useStore(state => state.user);
   const profile = useStore(state => state.profile);
   const setAuth = useStore(state => state.setAuth);
+  const passwordRotationDue = useStore(state => state.passwordRotationDue);
   const SUPER_ADMIN_SECRET_CODE = import.meta.env.VITE_SUPER_ADMIN_SECRET_CODE || null;
 
   const profileLoadingRef = useRef(false);
@@ -1132,9 +1133,6 @@ export default function App(){
     );
   }
 
-  // PHASE 1.1: Check if password rotation is required (password_rotation_due flag)
-  // Force user to change password before accessing the main app
-  const passwordRotationDue = useStore(state => state.passwordRotationDue);
   if (passwordRotationDue && profile?.password_rotation_due === true) {
     return <ChangePassword />;
   }
