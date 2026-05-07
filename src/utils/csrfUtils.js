@@ -26,6 +26,7 @@
  *
  * @returns {string} Hexadecimal-encoded CSRF token (64 characters)
  */
+import logger from './logger.js';
 export const generateCSRFToken = () => {
   // Generate 32 bytes of cryptographically secure random data
   const tokenBytes = crypto.getRandomValues(new Uint8Array(32));
