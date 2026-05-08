@@ -24,9 +24,11 @@ export const createDataSlice = (set, get) => ({
   loadAllData: async () => {
     set({ loadingData: true, globalError: null });
     try {
-      const orgId = get().profile?.organization_id;
+      // Lee el ID desde currentOrganization (seteado por setAuth via join organizations(*))
+      // profile.organization_id no existe — la FK viene del join, no de la columna directa
+      const orgId = get().currentOrganization?.id || get().profile?.organizations?.id || get().profile?.organizations?.[0]?.id;
       if (!orgId) {
-        logger.warn('loadAllData: no hay organization_id en el perfil todavía.');
+        logger.warn('loadAllData: no hay organización activa todavía. Asegúrate de que el perfil tenga una organización asignada.');
         set({ loadingData: false });
         return;
       }

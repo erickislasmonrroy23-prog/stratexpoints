@@ -10,7 +10,9 @@ export default function ModuloKPIs({ onModal, onEdit, onCreateOkrFromKpi, onDele
   const { t } = useTranslation();
   const kpis    = useStore(state => state.kpis);
   const profile = useStore.use.profile();
+  const currentOrganization = useStore(state => state.currentOrganization);
   const can     = useStore.use.can();
+  const orgId   = currentOrganization?.id || profile?.organizations?.id || profile?.organizations?.[0]?.id;
 
   const [tab, setTab] = useState('list');
 
@@ -33,13 +35,13 @@ export default function ModuloKPIs({ onModal, onEdit, onCreateOkrFromKpi, onDele
         department:      kpiForm.department,
         owner:           kpiForm.owner,
         frequency:       kpiForm.frequency,
-        organization_id: profile?.organization_id,
+        organization_id: orgId,
       });
       if (error) throw error;
       notificationService.success('✅ KPI creado correctamente.');
       setShowKpiModal(false);
       setKpiForm({ name: '', target: '', value: '', unit: '%', department: '', owner: '', frequency: 'monthly' });
-      const newKPIs = await kpiService.getAll(profile?.organization_id);
+      const newKPIs = await kpiService.getAll(orgId);
       useStore.getState().setKPIs(newKPIs || []);
     } catch (err) {
       notificationService.error('Error: ' + err.message);

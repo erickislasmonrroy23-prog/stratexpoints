@@ -80,7 +80,7 @@ export default function CommandCenter({ globalPeriod }) {
 
   const handleSaveIdentity = async () => {
     try {
-      await organizationService.update(profile.organization_id, identity);
+      await organizationService.update(currentOrganization?.id || profile?.organizations?.id || profile?.organizations?.[0]?.id, identity);
       setIsEditingIdentity(false);
       loadAllData(); // Recargar para que el perfil se actualice en el store y en toda la app.
       notificationService.success("Identidad corporativa guardada con éxito.");

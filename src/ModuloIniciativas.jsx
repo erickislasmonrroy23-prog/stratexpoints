@@ -10,7 +10,9 @@ export default function ModuloIniciativas({onModal, onDelete}){
   const { t } = useTranslation();
   const initiatives = useStore(state => state.initiatives);
   const profile = useStore.use.profile();
+  const currentOrganization = useStore(state => state.currentOrganization);
   const can = useStore.use.can();
+  const orgId = currentOrganization?.id || profile?.organizations?.id || profile?.organizations?.[0]?.id;
   const [tab,setTab]=useState("list");
   const [showInitModal, setShowInitModal] = useState(false);
   const [initForm, setInitForm] = useState({ name: '', description: '', phase: 'planning', owner: '', start_date: '', end_date: '', budget: '', status: 'active' });
@@ -31,7 +33,7 @@ export default function ModuloIniciativas({onModal, onDelete}){
         end_date: initForm.end_date || null,
         budget: parseFloat(initForm.budget) || 0,
         status: initForm.status,
-        organization_id: profile?.organization_id,
+        organization_id: orgId,
       });
       if (error) throw error;
       notificationService.success('✅ Iniciativa creada correctamente.');
@@ -39,7 +41,6 @@ export default function ModuloIniciativas({onModal, onDelete}){
       setInitForm({ name: '', description: '', phase: 'planning', owner: '', start_date: '', end_date: '', budget: '', status: 'active' });
       // Recargar iniciativas en el store desde Supabase
       const { initiativeService: svc } = await import('./services.js');
-      const orgId = profile?.organization_id;
       if (orgId) {
         const newInits = await svc.getAll(orgId);
         useStore.getState().setInitiatives(newInits || []);

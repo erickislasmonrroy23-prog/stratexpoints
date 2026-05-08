@@ -421,6 +421,7 @@ function MainApp({ onLogout, onSuperAdmin }){
   const realProfile = useStore(state => state.profile);
   const user = useStore(state => state.user);
   const impersonatedProfile = useStore(state => state.impersonatedProfile);
+  const currentOrganization = useStore(state => state.currentOrganization);
 
   const clearImpersonation = useStore.use.clearImpersonation();
   const setAuth = useStore(state => state.setAuth);
@@ -529,19 +530,26 @@ function MainApp({ onLogout, onSuperAdmin }){
     localStorage.setItem("sp-theme", next);
   }
 
+  // Helper centralizado: resuelve el orgId desde el store (currentOrganization es la fuente canónica)
+  function getActiveOrgId() {
+    const state = useStore.getState();
+    return state.currentOrganization?.id
+      || state.profile?.organizations?.id
+      || state.profile?.organizations?.[0]?.id;
+  }
+
   async function handleSaveOKR(form){
     if (!checkPaymentStatus()) return;
     try {
-      const payload = { ...form }; // Create a mutable copy
-      if (!payload.objective_id || payload.objective_id === "") {
-        payload.objective_id = null; // Explicitly set to null for unlinking
-      }
+      const payload = { ...form };
+      if (!payload.objective_id || payload.objective_id === "") payload.objective_id = null;
       if (payload.id) {
         const id = payload.id;
-        delete payload.id; // No enviamos el ID en el cuerpo a Supabase
+        delete payload.id;
         await okrService.update(id, payload);
         notificationService.success("OKR actualizado exitosamente.");
       } else {
+        if (!payload.organization_id) payload.organization_id = getActiveOrgId();
         await okrService.create(payload);
         notificationService.success("OKR creado exitosamente.");
       }
@@ -560,6 +568,7 @@ function MainApp({ onLogout, onSuperAdmin }){
         await kpiService.update(id, payload);
         notificationService.success("KPI actualizado exitosamente.");
       } else {
+        if (!payload.organization_id) payload.organization_id = getActiveOrgId();
         await kpiService.create(payload);
         notificationService.success("KPI creado exitosamente.");
       }
@@ -571,7 +580,9 @@ function MainApp({ onLogout, onSuperAdmin }){
   async function handleSaveInitiative(form){
     if (!checkPaymentStatus()) return;
     try {
-      await initiativeService.create(form);
+      const payload = { ...form };
+      if (!payload.organization_id) payload.organization_id = getActiveOrgId();
+      await initiativeService.create(payload);
       setModal(null);
       notificationService.success("Iniciativa creada exitosamente.");
     } catch(e) { notificationService.error("Error al guardar Iniciativa: " + e?.message); }
@@ -583,14 +594,15 @@ function MainApp({ onLogout, onSuperAdmin }){
   
   var todayObj = new Date();
   var currentMonthStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}`;
-  var org=profile&&profile.organizations;
+  // currentOrganization es la fuente de verdad; profile.organizations es el fallback del join
+  var org = currentOrganization || (profile && profile.organizations && !Array.isArray(profile.organizations) ? profile.organizations : profile?.organizations?.[0]) || null;
   var isPaidThisMonth = org?.modules?.lastPaymentMonth === currentMonthStr;
   var isInGracePeriod = !isPaidThisMonth && todayObj.getDate() <= 10;
   var isBlocked = !isGlobalView && !isPaidThisMonth && todayObj.getDate() > 10 && !realProfile?.is_super_admin;
 
   var unreadAlerts=(alerts || []).filter(function(a){return !a.is_read;}).length;
   var criticalToasts=(alerts || []).filter(function(a){return a.severity==="critical"&&!a.is_read&&!dismissedToasts.includes(a.id);});
-  var orgName=org&&org.name||"Mi Organizacion";
+  var orgName=org?.name||"Mi Organización";
 
   const toggleZenMode = () => {
     if (!document.fullscreenElement) {
@@ -763,7 +775,7 @@ function MainApp({ onLogout, onSuperAdmin }){
               </div>
             </div>
             <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-              <button onClick={() => loadAllData(profile?.organization_id)} className="sp-btn" style={{ background: '#fff', color: 'var(--red)', border: 'none', padding: '8px 16px', fontSize: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <button onClick={() => loadAllData()} className="sp-btn" style={{ background: '#fff', color: 'var(--red)', border: 'none', padding: '8px 16px', fontSize: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
                 🔄 Reintentar
               </button>
               <button onClick={clearError} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 24, opacity: 0.7, padding: 0, lineHeight: 1 }} title="Ocultar advertencia" onMouseEnter={e => e.target.style.opacity = 1} onMouseLeave={e => e.target.style.opacity = 0.7}>×</button>
