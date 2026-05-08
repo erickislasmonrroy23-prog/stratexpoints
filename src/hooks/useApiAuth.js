@@ -9,15 +9,13 @@ import { supabase } from '../supabase.js';
 import logger from '../utils/logger.js';
 import {
   apiAuthService,
-  setAuthToken,
   getAuthToken,
-  apiHealthService,
 } from '../services/apiClientService.js';
 
 export const useApiAuth = () => {
   const [isAuthenticated, isAuthenticatedSet] = useState(false);
   const [isLoading, isLoadingSet] = useState(true);
-  const [backendStatus, backendStatusSet] = useState(null);
+  const [backendStatus] = useState({ status: 'supabase-only' });
 
   useEffect(() => {
     const initAuth = async () => {
@@ -32,18 +30,13 @@ export const useApiAuth = () => {
           return;
         }
 
-        // Extract JWT from session
+        // Extract JWT from session and store it for API calls
         const idToken = session.access_token;
-
-        // Set API token (in production, exchange for service token)
         await apiAuthService.generateApiToken(idToken);
 
-        // Verify backend connectivity
-        const health = await apiHealthService.checkHealth();
-        backendStatusSet(health);
-
+        // No backend server — app uses Supabase directly
         isAuthenticatedSet(true);
-        logger.info('[useApiAuth] Authenticated and connected to backend');
+        logger.info('[useApiAuth] Supabase session active');
       } catch (err) {
         logger.error('[useApiAuth] Auth initialization failed', {
           error: err.message,

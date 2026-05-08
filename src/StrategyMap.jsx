@@ -13,7 +13,7 @@ const SL = { on_track: "En curso", at_risk: "En riesgo", completed: "Completado"
 function ObjectiveDetailModal({ objective, perspectives, onClose, onUpdate }) {
     const [status, setStatus] = useState(objective.status);
     const [theme, setTheme] = useState(objective.theme || 'auto');
-    const perspective = perspectives.find(p => p.id === objective.perspective_id);
+    const perspective = perspectives.find(p => p.id === objective.perspective_id) || { color: 'var(--text3)', name: 'Sin perspectiva', prefix: '?' };
 
     const handleUpdate = () => {
         onUpdate(objective.id, { status, theme: theme === 'auto' ? null : theme });
