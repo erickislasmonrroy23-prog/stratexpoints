@@ -3,6 +3,8 @@ import { supabase } from './supabase.js';
 import { notificationService } from './services.js';
 import UserEditModal from './UserEditModal.jsx';
 
+const CHANGE_PASS_URL = import.meta.env.VITE_SUPABASE_URL + '/functions/v1/change-user-password';
+
 const ROLE_CONFIG = {
   admin:       { label: 'Admin',       color: '#dc2626', bg: '#fee2e2' },
   Admin:       { label: 'Admin',       color: '#dc2626', bg: '#fee2e2' },
@@ -61,16 +63,26 @@ export default function UserDirectory({ organizationId, onDownloadPDF, tenant })
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
-    if (!passModal?.email) return notificationService.error('El usuario no tiene correo registrado.');
+    if (!passModal?.id) return notificationService.error('Usuario inválido.');
+    if (!newPass || newPass.length < 8) return notificationService.error('La contraseña debe tener al menos 8 caracteres.');
     setSavingPass(true);
     try {
-      // supabase.auth.admin requiere service_role (no disponible en cliente).
-      // Alternativa segura: enviar email de restablecimiento al usuario.
-      const { error } = await supabase.auth.resetPasswordForEmail(passModal.email, {
-        redirectTo: window.location.origin,
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) throw new Error('Sesión expirada. Vuelve a iniciar sesión.');
+
+      const res = await fetch(CHANGE_PASS_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userId: passModal.id, newPassword: newPass }),
       });
-      if (error) throw error;
-      notificationService.success(`✅ Se envió un enlace de restablecimiento de contraseña a ${passModal.email}.`);
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || `Error ${res.status}`);
+
+      notificationService.success(`✅ Contraseña de ${passModal.full_name} actualizada correctamente.`);
       setPassModal(null);
       setNewPass('');
     } catch (err) { notificationService.error('Error: ' + err.message); }
@@ -217,24 +229,43 @@ export default function UserDirectory({ organizationId, onDownloadPDF, tenant })
         />
       )}
 
-      {/* Modal cambiar contraseña — envía email de restablecimiento (admin API requiere service_role) */}
+      {/* Modal cambiar contraseña — directo vía Edge Function con service_role */}
       {passModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div className="sp-card" style={{ width: '100%', maxWidth: 420, padding: 28, borderRadius: 20, boxShadow: '0 24px 48px rgba(0,0,0,0.2)' }}>
-            <h3 style={{ marginBottom: 8, fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>
-              🔑 Restablecer Contraseña
+          <div className="sp-card" style={{ width: '100%', maxWidth: 440, padding: 28, borderRadius: 20, boxShadow: '0 24px 48px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ marginBottom: 4, fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>
+              🔑 Cambiar Contraseña
             </h3>
             <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 20, lineHeight: 1.5 }}>
-              Se enviará un enlace de restablecimiento al correo de <strong style={{ color: 'var(--text)' }}>{passModal.full_name}</strong>:
-              <br /><span style={{ color: 'var(--primary)' }}>{passModal.email}</span>
+              Cambia la contraseña de <strong style={{ color: 'var(--text)' }}>{passModal.full_name}</strong>
+              <br /><span style={{ fontSize: 12, color: 'var(--primary)' }}>{passModal.email}</span>
             </p>
-            <form onSubmit={handleChangePassword} style={{ display: 'flex', gap: 8 }}>
-              <button type="submit" disabled={savingPass} className="sp-btn sp-btn-primary" style={{ flex: 1, padding: '11px', borderRadius: 8, fontWeight: 700, fontSize: 13 }}>
-                {savingPass ? 'Enviando...' : '📧 Enviar Enlace de Acceso'}
-              </button>
-              <button type="button" onClick={() => setPassModal(null)} className="sp-btn" style={{ flex: 1, padding: '11px', borderRadius: 8, fontSize: 13 }}>
-                Cancelar
-              </button>
+            <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>
+                  Nueva Contraseña
+                </label>
+                <input
+                  className="sp-input"
+                  type="text"
+                  value={newPass}
+                  onChange={e => setNewPass(e.target.value)}
+                  placeholder="Mín. 8 caracteres"
+                  autoFocus
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'monospace', letterSpacing: 1 }}
+                />
+                <p style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
+                  💡 El usuario podrá entrar inmediatamente con esta contraseña.
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button type="submit" disabled={savingPass || newPass.length < 8} className="sp-btn sp-btn-primary" style={{ flex: 1, padding: '11px', borderRadius: 8, fontWeight: 700, fontSize: 13 }}>
+                  {savingPass ? '⏳ Guardando...' : '✅ Guardar Contraseña'}
+                </button>
+                <button type="button" onClick={() => { setPassModal(null); setNewPass(''); }} className="sp-btn" style={{ flex: 1, padding: '11px', borderRadius: 8, fontSize: 13 }}>
+                  Cancelar
+                </button>
+              </div>
             </form>
           </div>
         </div>
