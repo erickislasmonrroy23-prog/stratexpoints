@@ -331,14 +331,16 @@ export default function StrategyMap({ onCreateObjective, onDeleteObjective, onUp
       </div>
 
       {selectedObjective && (
-        <Modal onClose={() => setSelectedObjective(null)}>
-            <ObjectiveDetailModal 
-                objective={selectedObjective} 
-                perspectives={perspectives}
-                onClose={() => setSelectedObjective(null)}
-                onUpdate={onUpdateObjective}
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => setSelectedObjective(null)}>
+          <div style={{ background: 'var(--bg)', borderRadius: 20, width: '100%', maxWidth: 520, border: '1px solid var(--border)', boxShadow: '0 25px 50px rgba(0,0,0,0.5)', padding: 32, maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <ObjectiveDetailModal
+              objective={selectedObjective}
+              perspectives={perspectives}
+              onClose={() => setSelectedObjective(null)}
+              onUpdate={onUpdateObjective}
             />
-        </Modal>
+          </div>
+        </div>
       )}
     </div>
   );
