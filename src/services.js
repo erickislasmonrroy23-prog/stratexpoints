@@ -342,9 +342,17 @@ export const groqService = {
 export const claudeService = {
   isAvailable: () => !!import.meta.env.VITE_CLAUDE_API_KEY,
 
-  chat: async (messages, model = 'claude-opus-4-1-20250805') => {
+  chat: async (messages, model = 'claude-sonnet-4-5') => {
     const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
     if (!apiKey) throw new Error('❌ VITE_CLAUDE_API_KEY no configurada. Agrega tu API key de Claude en .env.local');
+
+    // Separar system prompt de los mensajes — la API de Anthropic solo acepta
+    // role:'user' y role:'assistant' en el array messages. role:'system' va en
+    // el campo top-level `system`, no dentro del array.
+    const systemMsg = messages.find(m => m.role === 'system')?.content;
+    const chatMessages = messages
+      .filter(m => m.role !== 'system')
+      .map(m => ({ role: m.role, content: m.content }));
 
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -357,11 +365,8 @@ export const claudeService = {
         body: JSON.stringify({
           model,
           max_tokens: 4096,
-          messages: messages.map(m => ({
-            role: m.role,
-            content: m.content,
-          })),
-          system: messages.find(m => m.role === 'system')?.content || undefined,
+          ...(systemMsg ? { system: systemMsg } : {}),
+          messages: chatMessages,
         }),
       });
 

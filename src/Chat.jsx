@@ -9,6 +9,7 @@ export default function Chat() {
   const okrs      = useStore(s => s.okrs      || []);
   const kpis      = useStore(s => s.kpis      || []);
   const org       = useStore(s => s.currentOrganization);
+  const aiEnabled = claudeService.isAvailable();
 
   const [messages, setMessages] = useState([
     {
@@ -51,7 +52,7 @@ export default function Chat() {
       const errMsg = err.message || 'Error desconocido';
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: '⚠️ Error al conectar con la IA: ' + errMsg + '\n\nVerifica que la clave VITE_CLAUDE_API_KEY esté configurada en .env.local'
+        content: '⚠️ No pude conectar con la IA en este momento. ' + errMsg
       }]);
       notificationService.error('Error IA: ' + errMsg);
     } finally {
@@ -65,6 +66,22 @@ export default function Chat() {
     '¿Qué KPIs están en riesgo?',
     'Sugiere acciones para mejorar el avance',
   ];
+
+  if (!aiEnabled) return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 400, gap: 16, padding: 32, textAlign: 'center' }}>
+      <div style={{ fontSize: 48 }}>🤖</div>
+      <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>IA no configurada</div>
+      <div style={{ fontSize: 14, color: 'var(--text3)', maxWidth: 420, lineHeight: 1.6 }}>
+        Para activar el asistente estratégico, agrega tu API key de Claude en<br/>
+        <strong>Vercel → Settings → Environment Variables</strong><br/>
+        Variable: <code style={{ background: 'var(--bg2)', padding: '2px 6px', borderRadius: 4 }}>VITE_CLAUDE_API_KEY</code>
+      </div>
+      <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer"
+        style={{ padding: '10px 20px', borderRadius: 8, background: 'var(--violet)', color: '#fff', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+        Obtener API Key →
+      </a>
+    </div>
+  );
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 500, maxHeight: 700 }}>
