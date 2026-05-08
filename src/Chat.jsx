@@ -1,15 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { claudeService } from './services.js';
-import { notificationService } from './services.js';
+import { claudeService, geminiService, notificationService } from './services.js';
 import { useStore } from './store.js';
 
 const SYSTEM_PROMPT = `Eres Xtratia AI, un asistente estratégico experto en OKRs, KPIs, Balanced Scorecard, Hoshin Kanri e iniciativas estratégicas. Ayudas a equipos directivos a tomar mejores decisiones. Responde siempre en español, de forma concisa y accionable. Cuando sea relevante, estructura tu respuesta con puntos clave.`;
+
+// Usa Claude si está configurado, Gemini como fallback gratuito
+const getAIService = () => claudeService.isAvailable() ? claudeService : geminiService;
 
 export default function Chat() {
   const okrs      = useStore(s => s.okrs      || []);
   const kpis      = useStore(s => s.kpis      || []);
   const org       = useStore(s => s.currentOrganization);
-  const aiEnabled = claudeService.isAvailable();
+  const aiService = getAIService();
+  const aiEnabled = aiService.isAvailable();
+  const aiLabel   = claudeService.isAvailable() ? 'Claude' : 'Gemini';
 
   const [messages, setMessages] = useState([
     {
@@ -45,7 +49,7 @@ export default function Chat() {
       };
 
       const history = messages.slice(-8).map(m => ({ role: m.role, content: m.content }));
-      const reply = await claudeService.chat([contextMsg, ...history, userMsg]);
+      const reply = await aiService.chat([contextMsg, ...history, userMsg]);
 
       setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
     } catch (err) {
@@ -70,21 +74,36 @@ export default function Chat() {
   if (!aiEnabled) return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 400, gap: 16, padding: 32, textAlign: 'center' }}>
       <div style={{ fontSize: 48 }}>🤖</div>
-      <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>IA no configurada</div>
-      <div style={{ fontSize: 14, color: 'var(--text3)', maxWidth: 420, lineHeight: 1.6 }}>
-        Para activar el asistente estratégico, agrega tu API key de Claude en<br/>
-        <strong>Vercel → Settings → Environment Variables</strong><br/>
-        Variable: <code style={{ background: 'var(--bg2)', padding: '2px 6px', borderRadius: 4 }}>VITE_CLAUDE_API_KEY</code>
+      <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>Activa el Asistente IA</div>
+      <div style={{ fontSize: 14, color: 'var(--text3)', maxWidth: 440, lineHeight: 1.7 }}>
+        Agrega una de estas keys en <strong>Vercel → Settings → Environment Variables</strong> y redespliega:
       </div>
-      <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer"
-        style={{ padding: '10px 20px', borderRadius: 8, background: 'var(--violet)', color: '#fff', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
-        Obtener API Key →
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 400 }}>
+        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 16px', textAlign: 'left' }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--green)', marginBottom: 4 }}>✅ GRATIS — Recomendado para pruebas</div>
+          <code style={{ fontSize: 13, color: 'var(--text)' }}>VITE_GEMINI_API_KEY</code>
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>Google Gemini 2.0 Flash · aistudio.google.com</div>
+        </div>
+        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 16px', textAlign: 'left' }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--violet)', marginBottom: 4 }}>⚡ Premium</div>
+          <code style={{ fontSize: 13, color: 'var(--text)' }}>VITE_CLAUDE_API_KEY</code>
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>Claude Sonnet · console.anthropic.com</div>
+        </div>
+      </div>
+      <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer"
+        style={{ padding: '10px 24px', borderRadius: 8, background: 'var(--green)', color: '#fff', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+        Obtener key de Gemini GRATIS →
       </a>
     </div>
   );
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 500, maxHeight: 700 }}>
+      {/* Badge IA activa */}
+      <div style={{ padding: '6px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)', display: 'inline-block' }}/>
+        <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600 }}>Powered by {aiLabel}</span>
+      </div>
       {/* Mensajes */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         {messages.map((msg, i) => (

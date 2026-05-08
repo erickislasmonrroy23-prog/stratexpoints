@@ -338,6 +338,9 @@ export const groqService = {
   },
 };
 
+// Alias semántico — groqService usa Gemini internamente
+export const geminiService = groqService;
+
 // ── Claude AI Service (NUEVA INTEGRACIÓN - Reemplaza Groq/Gemini) ──────────────
 export const claudeService = {
   isAvailable: () => !!import.meta.env.VITE_CLAUDE_API_KEY,
