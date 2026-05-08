@@ -50,11 +50,14 @@ export default function Chat() {
       setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
     } catch (err) {
       const errMsg = err.message || 'Error desconocido';
+      const isRateLimit = errMsg.toLowerCase().includes('429') || errMsg.toLowerCase().includes('límite') || errMsg.toLowerCase().includes('rate');
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: '⚠️ No pude conectar con la IA en este momento. ' + errMsg
+        content: isRateLimit
+          ? '⏳ Límite de peticiones alcanzado en todos los proveedores de IA. Espera 1 minuto e intenta de nuevo.'
+          : '⚠️ No pude conectar con la IA en este momento. ' + errMsg
       }]);
-      notificationService.error('Error IA: ' + errMsg);
+      if (!isRateLimit) notificationService.error('Error IA: ' + errMsg);
     } finally {
       setLoading(false);
     }
