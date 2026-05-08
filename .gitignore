@@ -20,3 +20,6 @@ yarn-error.log*
 # Misc
 .DS_Store
 .vercel
+.claude/worktrees/
+build-output.txt
+vite.config.minify.js
