@@ -88,8 +88,11 @@ const en = {
   language: { es: 'Spanish', en: 'English' }
 };
 
+// Silenciar el mensaje promocional de Locize ANTES de que i18next lo imprima
+const _ci = console.info.bind(console);
+console.info = (...a) => { if (typeof a[0] === 'string' && a[0].includes('i18next')) return; _ci(...a); };
+
 i18n
-  .use(silentLogger)
   .use(initReactI18next)
   .init({
     resources: {
