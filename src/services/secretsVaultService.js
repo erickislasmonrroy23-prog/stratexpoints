@@ -14,7 +14,7 @@ const SECRETS_CONFIG = {
   vaultEnabled: true,
   encryptionEnabled: true,
   encryptionAlgorithm: 'aes-256-cbc',
-  masterKey: process.env.SECRETS_MASTER_KEY || 'change-me-in-production-with-env-var',
+  masterKey: import.meta.env.VITE_SECRETS_MASTER_KEY || 'change-me-in-production-with-env-var',
   accessControlEnabled: true,
   secretVersioningEnabled: true,
   auditLoggingEnabled: true,

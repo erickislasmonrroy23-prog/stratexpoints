@@ -67,7 +67,10 @@ export const createDataSlice = (set, get) => ({
 
       set({ okrs, kpis, initiatives, alerts, objectives, perspectives, loadingData: false });
 
-      await autoAlertService.checkKPIs(orgId);
+      // Aislado del bloque principal — si falla no contamina globalError
+      autoAlertService.checkKPIs(orgId).catch(err =>
+        logger.warn('[autoAlert] checkKPIs falló (no crítico):', err.message)
+      );
     } catch (e) {
       logger.error('Error cargando datos:', e);
       notificationService.error(`Error crítico de red: ${e.message}`);
