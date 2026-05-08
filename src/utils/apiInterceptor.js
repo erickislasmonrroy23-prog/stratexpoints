@@ -25,7 +25,7 @@ import { getCSRFToken } from './csrfUtils.js';
 import logger from './logger.js';
 
 // Configuration
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || '';
 const AUTH_TOKEN_STORAGE_KEY = 'sb-auth-token';
 const ORGANIZATION_ID_STORAGE_KEY = 'current-organization-id';
 const MAX_RETRIES = 2;
@@ -82,7 +82,7 @@ const createApiClient = () => {
         config.headers['X-Request-ID'] = generateRequestId();
 
         // 5. Log request in development
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env.DEV) {
           logger.debug('API Request', {
             method: config.method?.toUpperCase(),
             url: config.url,
@@ -112,7 +112,7 @@ const createApiClient = () => {
   client.interceptors.response.use(
     (response) => {
       // Log successful responses in development
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         logger.debug('API Response', {
           status: response.status,
           url: response.config.url,

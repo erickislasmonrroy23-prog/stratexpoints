@@ -104,7 +104,7 @@ export default function Unauthorized() {
           justifyContent: 'center',
         }}>
           <button
-            onClick={() => history.back()}
+            onClick={() => window.history.back()}
             style={{
               padding: '10px 24px',
               background: 'var(--bg3)',

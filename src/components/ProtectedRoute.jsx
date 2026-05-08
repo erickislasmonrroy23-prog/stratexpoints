@@ -68,9 +68,10 @@ export const ProtectedRoute = ({
     const isSuperAdmin = profile.is_super_admin && allowSuperAdmin;
 
     if (!isSuperAdmin) {
-      const hasOrgAccess = profile.organizations?.some(
-        org => org.id === requiredOrganization
-      );
+      const orgsArray = Array.isArray(profile.organizations)
+        ? profile.organizations
+        : profile.organizations ? [profile.organizations] : [];
+      const hasOrgAccess = orgsArray.some(org => org.id === requiredOrganization);
 
       if (!hasOrgAccess) {
         logger.warn('[ProtectedRoute] Access denied: No organization access', {

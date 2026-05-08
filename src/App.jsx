@@ -2,7 +2,6 @@ import logger from './utils/logger.js';
 import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { supabase } from "./supabase.js";
 import { initTheme, setTheme } from "./theme.js";
-import * as XLSX from "xlsx";
 import LoginIntegrated from "./components/Auth/LoginIntegrated.jsx";
 import ChangePassword from "./ChangePassword.jsx";
 import Unauthorized from "./pages/Unauthorized.jsx";
@@ -17,18 +16,14 @@ import Dashboard from "./Dashboard.jsx";
 import AIInsights from "./AIInsights.jsx";
 import ExecutivePanel from "./ExecutivePanel.jsx";
 import Chat from "./Chat.jsx";
-import Prediction from "./Prediction.jsx";
-import OKRGenerator from "./OKRGenerator.jsx";
 import Benchmark from "./Benchmark.jsx";
 import StrategicEngine from "./StrategicEngine.jsx";
 import StrategicBus from "./StrategicBus.jsx";
 import IntelligentCore from "./IntelligentCore.jsx";
 import { useStore } from "./store.js";
-import { deepEqual } from 'fast-equals';
 import { useSubdomainTenant } from "./useSubdomainTenant.js";
-import { ProtectedRoute, useCanAccess } from "./components/ProtectedRoute.jsx";
+import { ProtectedRoute } from "./components/ProtectedRoute.jsx";
 import { useApiAuth } from "./hooks/useApiAuth.js";
-import { initializeApiClient } from "./services/apiClientService.js";
 import { SecretsManagementDashboard } from "./components/SecretsManagement/SecretsManagementDashboard.jsx";
 import { KeyRotationDashboard } from "./components/KeyRotation/KeyRotationDashboard.jsx";
 import { ComplianceDashboard } from "./components/Compliance/ComplianceDashboard.jsx";
@@ -1118,7 +1113,7 @@ export default function App(){
   if (superAdminActive) {
     return (
       <ProtectedRoute
-        requiredRole="admin"
+        requiredRole="Admin"
         allowSuperAdmin={true}
         onAccessDenied={(reason) => {
           logger.warn('[App] Access denied to SuperAdmin', { reason });
@@ -1159,16 +1154,8 @@ export default function App(){
           <span>La IA está desactivada. Agrega <code style={{ background: 'rgba(0,0,0,0.25)', padding: '2px 6px', borderRadius: 4 }}>VITE_GEMINI_API_KEY</code> en Vercel → Settings → Environment Variables (key gratuita en aistudio.google.com) y redespliega.</span>
         </div>
       )}
-      {/* FASE 1.3: Route Protection Integration */}
-      <ProtectedRoute
-        requiredRole="member"
-        onAccessDenied={(reason) => {
-          logger.warn('[App] Access denied to MainApp', { reason });
-          setShowUnauthorized(true);
-        }}
-      >
-        <MainApp onLogout={handleLogout} onSuperAdmin={activateSuperAdminMode} />
-      </ProtectedRoute>
+      {/* Cualquier usuario autenticado puede acceder — el if (!profile) de arriba ya protege */}
+      <MainApp onLogout={handleLogout} onSuperAdmin={activateSuperAdminMode} />
       {showSuperAdminCodeModal && (
         <Modal onClose={() => setShowSuperAdminCodeModal(false)}>
           <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg2)' }}>

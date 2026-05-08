@@ -1,5 +1,4 @@
 import logger from './utils/logger.js';
-import { apiCall } from './utils/apiWrapper.js';
 import { supabase } from './supabase.js';
 
 // ── Notification Service ─────────────────────────────────────────────────────
