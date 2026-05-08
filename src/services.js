@@ -275,71 +275,91 @@ export const autoAlertService = {
 };
 
 // ── Gemini AI Service (Google — gratis hasta 1,500 req/día) ──────────────────
-// Usa el endpoint OpenAI-compatible de Google para máxima compatibilidad.
-// Key gratuita en: https://aistudio.google.com → Get API Key
-const AI_KEY_MISSING = '⚠️ La IA no está disponible. Configura VITE_GEMINI_API_KEY en Vercel → Settings → Environment Variables y vuelve a desplegar. Key gratuita en: aistudio.google.com';
-
-export const groqService = {
+export const geminiService = {
   isAvailable: () => !!import.meta.env.VITE_GEMINI_API_KEY,
-
-  // _model se ignora intencionalmente — siempre se usa gemini-2.0-flash
-  // (los módulos viejos pasaban 'llama3-70b-8192' etc que Gemini no acepta)
-  chat: async (messages, _model = 'gemini-2.0-flash') => {
+  chat: async (messages) => {
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    if (!apiKey) throw new Error(AI_KEY_MISSING);
-    const model = 'gemini-2.0-flash';
-
+    if (!apiKey) throw new Error('VITE_GEMINI_API_KEY no configurada');
     const res = await fetch(
       'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + apiKey,
-        },
-        body: JSON.stringify({ model, messages, max_tokens: 2048, temperature: 0.7 }),
-      }
+      { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+        body: JSON.stringify({ model: 'gemini-2.0-flash', messages, max_tokens: 2048, temperature: 0.7 }) }
     );
-
     if (!res.ok) {
       const e = await res.json().catch(() => ({}));
-      if (res.status === 400) throw new Error('VITE_GEMINI_API_KEY inválida. Verifica la key en aistudio.google.com.');
-      if (res.status === 429) throw new Error('Límite de solicitudes Gemini alcanzado. Intenta en unos segundos.');
+      if (res.status === 429) throw new Error('Límite Gemini alcanzado');
       throw new Error(e?.error?.message || 'Error Gemini HTTP ' + res.status);
     }
-
-    const data = await res.json();
-    return data.choices?.[0]?.message?.content || '';
-  },
-
-  analyzeOKRs: async (okrs, kpis) => {
-    return groqService.chat([
-      { role: 'system', content: 'Eres consultor experto en OKRs y KPIs. Analiza y entrega: 1) Salud general 2) Top 3 riesgos 3) Top 3 recomendaciones. Español, máximo 400 palabras.' },
-      { role: 'user', content: 'OKRs: ' + JSON.stringify((okrs||[]).slice(0,10)) + ' | KPIs: ' + JSON.stringify((kpis||[]).slice(0,10)) },
-    ]);
-  },
-
-  flashInsight: async (data) => {
-    return groqService.chat([
-      { role: 'system', content: 'Asesor ejecutivo. Da 3 insights estratégicos accionables en máximo 5 oraciones. Español.' },
-      { role: 'user', content: 'Datos: ' + JSON.stringify(data) },
-    ]);
-  },
-
-  analyzeDocument: async (text, question) => {
-    return groqService.chat([
-      { role: 'system', content: 'Analista experto. Responde de forma concisa y estructurada. Español.' },
-      { role: 'user', content: 'Documento:\n' + text.substring(0, 8000) + '\n\nPregunta: ' + (question || 'Puntos principales del documento') },
-    ]);
-  },
-
-  ask: async (messages, _jsonMode = false) => {
-    return groqService.chat(Array.isArray(messages) ? messages : [{ role: 'user', content: String(messages) }]);
+    return (await res.json()).choices?.[0]?.message?.content || '';
   },
 };
 
-// Alias semántico — groqService usa Gemini internamente
-export const geminiService = groqService;
+// ── Groq AI Service (gratis — llama3, mixtral) ────────────────────────────────
+export const groqService = {
+  isAvailable: () => !!import.meta.env.VITE_GROQ_API_KEY,
+  chat: async (messages) => {
+    const apiKey = import.meta.env.VITE_GROQ_API_KEY;
+    if (!apiKey) throw new Error('VITE_GROQ_API_KEY no configurada');
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+      body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages, max_tokens: 2048, temperature: 0.7 }),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      if (res.status === 429) throw new Error('Límite Groq alcanzado');
+      throw new Error(e?.error?.message || 'Error Groq HTTP ' + res.status);
+    }
+    return (await res.json()).choices?.[0]?.message?.content || '';
+  },
+};
+
+// ── Cadena de fallback automática: Claude → Gemini → Groq ─────────────────────
+// Intenta cada servicio en orden; si falla (rate limit, key inválida) pasa al siguiente.
+// Los módulos que antes usaban groqService ahora usan aiChain automáticamente.
+export const aiChain = {
+  isAvailable: () => claudeService.isAvailable() || geminiService.isAvailable() || groqService.isAvailable(),
+  activeLabel: () => {
+    if (claudeService.isAvailable()) return 'Claude';
+    if (geminiService.isAvailable()) return 'Gemini';
+    if (groqService.isAvailable()) return 'Groq';
+    return null;
+  },
+  chat: async (messages) => {
+    const chain = [
+      { name: 'Claude',  svc: claudeService  },
+      { name: 'Gemini',  svc: geminiService  },
+      { name: 'Groq',    svc: groqService    },
+    ].filter(s => s.svc.isAvailable());
+
+    if (!chain.length) throw new Error('⚠️ Sin IA configurada. Agrega VITE_GEMINI_API_KEY o VITE_GROQ_API_KEY en Vercel → Settings → Environment Variables.');
+
+    let lastErr;
+    for (const { name, svc } of chain) {
+      try {
+        logger.info('[AI] Usando ' + name);
+        return await svc.chat(messages);
+      } catch (err) {
+        logger.warn('[AI] ' + name + ' falló, intentando siguiente...', err.message);
+        lastErr = err;
+      }
+    }
+    throw lastErr;
+  },
+  analyzeOKRs: async (okrs, kpis) => aiChain.chat([
+    { role: 'system', content: 'Eres consultor experto en OKRs y KPIs. Analiza y entrega: 1) Salud general 2) Top 3 riesgos 3) Top 3 recomendaciones. Español, máximo 400 palabras.' },
+    { role: 'user', content: 'OKRs: ' + JSON.stringify((okrs||[]).slice(0,10)) + ' | KPIs: ' + JSON.stringify((kpis||[]).slice(0,10)) },
+  ]),
+  flashInsight: async (data) => aiChain.chat([
+    { role: 'system', content: 'Asesor ejecutivo. Da 3 insights estratégicos accionables en máximo 5 oraciones. Español.' },
+    { role: 'user', content: 'Datos: ' + JSON.stringify(data) },
+  ]),
+  analyzeDocument: async (text, question) => aiChain.chat([
+    { role: 'system', content: 'Analista experto. Responde de forma concisa y estructurada. Español.' },
+    { role: 'user', content: 'Documento:\n' + text.substring(0, 8000) + '\n\nPregunta: ' + (question || 'Puntos principales del documento') },
+  ]),
+  ask: async (messages) => aiChain.chat(Array.isArray(messages) ? messages : [{ role: 'user', content: String(messages) }]),
+};
 
 // ── Claude AI Service (NUEVA INTEGRACIÓN - Reemplaza Groq/Gemini) ──────────────
 export const claudeService = {

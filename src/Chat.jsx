@@ -1,19 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { claudeService, geminiService, notificationService } from './services.js';
+import { aiChain, notificationService } from './services.js';
 import { useStore } from './store.js';
 
 const SYSTEM_PROMPT = `Eres Xtratia AI, un asistente estratégico experto en OKRs, KPIs, Balanced Scorecard, Hoshin Kanri e iniciativas estratégicas. Ayudas a equipos directivos a tomar mejores decisiones. Responde siempre en español, de forma concisa y accionable. Cuando sea relevante, estructura tu respuesta con puntos clave.`;
-
-// Usa Claude si está configurado, Gemini como fallback gratuito
-const getAIService = () => claudeService.isAvailable() ? claudeService : geminiService;
 
 export default function Chat() {
   const okrs      = useStore(s => s.okrs      || []);
   const kpis      = useStore(s => s.kpis      || []);
   const org       = useStore(s => s.currentOrganization);
-  const aiService = getAIService();
-  const aiEnabled = aiService.isAvailable();
-  const aiLabel   = claudeService.isAvailable() ? 'Claude' : 'Gemini';
+  const aiEnabled = aiChain.isAvailable();
+  const aiLabel   = aiChain.activeLabel() || 'IA';
 
   const [messages, setMessages] = useState([
     {
@@ -49,7 +45,7 @@ export default function Chat() {
       };
 
       const history = messages.slice(-8).map(m => ({ role: m.role, content: m.content }));
-      const reply = await aiService.chat([contextMsg, ...history, userMsg]);
+      const reply = await aiChain.chat([contextMsg, ...history, userMsg]);
 
       setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
     } catch (err) {
