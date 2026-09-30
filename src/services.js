@@ -1,6 +1,16 @@
 import logger from './utils/logger.js';
 import { supabase } from './supabase.js';
 
+// ── Instancia única: la base ya no maneja organization_id (migración single_tenant, jul-2026) ──
+// Se conserva la firma setOrgIdResolver para compatibilidad; los registros se limpian de ese campo.
+export const setOrgIdResolver = () => {};
+const withOrg = (payload) => {
+  if (!payload || typeof payload !== 'object') return payload;
+  const { organization_id, organization_roles, ...rest } = payload;
+  return rest;
+};
+
+
 // ── Notification Service ─────────────────────────────────────────────────────
 // Usa un bridge lazy para evitar importación circular con el store.
 // App.jsx llama setNotifyFn() una vez montado el store.
@@ -17,11 +27,9 @@ export const notificationService = {
 // ── OKR Service ──────────────────────────────────────────────────────────────
 export const okrService = {
   getAll: async (orgId) => {
-    if (!orgId) return [];
     const { data, error } = await supabase
       .from('okrs')
       .select('*')
-      .eq('organization_id', orgId)
       .order('created_at', { ascending: false });
     if (error) { logger.error('okrService.getAll:', error.message); return []; }
     // Normalizar: la tabla usa 'objective' como campo principal
@@ -31,12 +39,12 @@ export const okrService = {
     }));
   },
   create: async (payload) => {
-    const { data, error } = await supabase.from('okrs').insert(payload).select().single();
+    const { data, error } = await supabase.from('okrs').insert(withOrg(payload)).select().single();
     if (error) throw error;
     return { ...data, title: data.title || data.objective || '' };
   },
   update: async (id, payload) => {
-    const { data, error } = await supabase.from('okrs').update(payload).eq('id', id).select().single();
+    const { data, error } = await supabase.from('okrs').update(withOrg(payload)).eq('id', id).select().single();
     if (error) throw error;
     return data;
   },
@@ -49,22 +57,20 @@ export const okrService = {
 // ── KPI Service ──────────────────────────────────────────────────────────────
 export const kpiService = {
   getAll: async (orgId) => {
-    if (!orgId) return [];
     const { data, error } = await supabase
       .from('kpis')
       .select('*')
-      .eq('organization_id', orgId)
       .order('created_at', { ascending: false });
     if (error) { logger.error('kpiService.getAll:', error.message); return []; }
     return data || [];
   },
   create: async (payload) => {
-    const { data, error } = await supabase.from('kpis').insert(payload).select().single();
+    const { data, error } = await supabase.from('kpis').insert(withOrg(payload)).select().single();
     if (error) throw error;
     return data;
   },
   update: async (id, payload) => {
-    const { data, error } = await supabase.from('kpis').update(payload).eq('id', id).select().single();
+    const { data, error } = await supabase.from('kpis').update(withOrg(payload)).eq('id', id).select().single();
     if (error) throw error;
     return data;
   },
@@ -77,11 +83,9 @@ export const kpiService = {
 // ── Initiative Service ────────────────────────────────────────────────────────
 export const initiativeService = {
   getAll: async (orgId) => {
-    if (!orgId) return [];
     const { data, error } = await supabase
       .from('initiatives')
       .select('*')
-      .eq('organization_id', orgId)
       .order('created_at', { ascending: false });
     if (error) { logger.error('initiativeService.getAll:', error.message); return []; }
     // Normalizar: la tabla usa 'title' y 'status', traducir status a phase para UI
@@ -92,12 +96,12 @@ export const initiativeService = {
     }));
   },
   create: async (payload) => {
-    const { data, error } = await supabase.from('initiatives').insert(payload).select().single();
+    const { data, error } = await supabase.from('initiatives').insert(withOrg(payload)).select().single();
     if (error) throw error;
     return data;
   },
   update: async (id, payload) => {
-    const { data, error } = await supabase.from('initiatives').update(payload).eq('id', id).select().single();
+    const { data, error } = await supabase.from('initiatives').update(withOrg(payload)).eq('id', id).select().single();
     if (error) throw error;
     return data;
   },
@@ -110,30 +114,27 @@ export const initiativeService = {
 // ── Perspective Service ────────────────────────────────────────────────────────
 export const perspectiveService = {
   getAll: async (orgId) => {
-    if (!orgId) return [];
     const { data, error } = await supabase
       .from('perspectives')
-      .select('*')
-      .eq('organization_id', orgId);
+      .select('*');
     // No se ordena por created_at — la columna puede no existir en todas las instancias
     if (error) { logger.error('perspectiveService.getAll:', error.message); return []; }
     return data || [];
   },
   initDefaults: async (orgId) => {
-    if (!orgId) return [];
-    // Solo columnas que existen en la tabla: id, organization_id, name, icon, color, order_index, created_at
+    // Columnas de la tabla: id, name, icon, color, order_index, created_at
     const defaults = [
-      { name: 'Financiera',                icon: '💰', color: '#10B981', order_index: 1, organization_id: orgId },
-      { name: 'Clientes',                  icon: '🤝', color: '#3B82F6', order_index: 2, organization_id: orgId },
-      { name: 'Procesos Internos',         icon: '⚙️', color: '#8B5CF6', order_index: 3, organization_id: orgId },
-      { name: 'Aprendizaje y Crecimiento', icon: '🚀', color: '#F59E0B', order_index: 4, organization_id: orgId },
+      { name: 'Financiera',                icon: '💰', color: '#10B981', order_index: 1 },
+      { name: 'Clientes',                  icon: '🤝', color: '#3B82F6', order_index: 2 },
+      { name: 'Procesos Internos',         icon: '⚙️', color: '#8B5CF6', order_index: 3 },
+      { name: 'Aprendizaje y Crecimiento', icon: '🚀', color: '#F59E0B', order_index: 4 },
     ];
     const { data, error } = await supabase.from('perspectives').insert(defaults).select();
     if (error) { logger.error('perspectiveService.initDefaults:', error.message); return defaults.map((d,i)=>({...d,id:i+1})); }
     return data || [];
   },
   create: async (payload) => {
-    const { data, error } = await supabase.from('perspectives').insert(payload).select().single();
+    const { data, error } = await supabase.from('perspectives').insert(withOrg(payload)).select().single();
     if (error) throw error;
     return data;
   },
@@ -142,11 +143,9 @@ export const perspectiveService = {
 // ── Alert Service ─────────────────────────────────────────────────────────────
 export const alertService = {
   getAll: async (orgId) => {
-    if (!orgId) return [];
     const { data, error } = await supabase
       .from('alerts')
       .select('*')
-      .eq('organization_id', orgId)
       .eq('is_read', false)
       .order('created_at', { ascending: false })
       .limit(20);
@@ -154,12 +153,12 @@ export const alertService = {
     return data || [];
   },
   update: async (id, payload) => {
-    const { data, error } = await supabase.from('alerts').update(payload).eq('id', id).select().single();
+    const { data, error } = await supabase.from('alerts').update(withOrg(payload)).eq('id', id).select().single();
     if (error) throw error;
     return data;
   },
   create: async (payload) => {
-    const { data, error } = await supabase.from('alerts').insert(payload).select().single();
+    const { data, error } = await supabase.from('alerts').insert(withOrg(payload)).select().single();
     if (error) throw error;
     return data;
   },
@@ -168,11 +167,9 @@ export const alertService = {
 // ── Objectives Service ─────────────────────────────────────────────────────────
 export const objectivesService = {
   getAll: async (orgId) => {
-    if (!orgId) return [];
     const { data, error } = await supabase
       .from('objectives')
-      .select('*')
-      .eq('organization_id', orgId);
+      .select('*');
     // Sin order('created_at') — la columna no existe en todas las instancias
     if (error) { logger.error('objectivesService.getAll:', error.message); return []; }
     return data || [];
@@ -180,12 +177,12 @@ export const objectivesService = {
   create: async (payload) => {
     // Quitar campos que no existen en la tabla objectives
     const { progress, created_at, updated_at, ...safePayload } = payload;
-    const { data, error } = await supabase.from('objectives').insert(safePayload).select().single();
+    const { data, error } = await supabase.from('objectives').insert(withOrg(safePayload)).select().single();
     if (error) throw error;
     return data;
   },
   update: async (id, payload) => {
-    const { data, error } = await supabase.from('objectives').update(payload).eq('id', id).select().single();
+    const { data, error } = await supabase.from('objectives').update(withOrg(payload)).eq('id', id).select().single();
     if (error) throw error;
     return data;
   },
@@ -194,10 +191,8 @@ export const objectivesService = {
     if (error) throw error;
   },
   backfillObjectiveCodes: async (orgId) => {
-    if (!orgId) return 0;
     const { data, error } = await supabase
-      .from('objectives').select('id, code, perspective_id')
-      .eq('organization_id', orgId).is('code', null);
+      .from('objectives').select('id, code, perspective_id').is('code', null);
     if (error || !data || data.length === 0) return 0;
     const counters = {};
     await Promise.allSettled(data.map(obj => {
@@ -211,37 +206,22 @@ export const objectivesService = {
 };
 
 // ── Organization Service ───────────────────────────────────────────────────────
+// Configuración institucional (registro único en instance_settings, id = 1)
 export const organizationService = {
-  get: async (orgId) => {
-    if (!orgId) return null;
-    const { data, error } = await supabase
-      .from('organizations')
-      .select('*')
-      .eq('id', orgId)
-      .single();
+  get: async () => {
+    const { data, error } = await supabase.from('instance_settings').select('*').eq('id', 1).maybeSingle();
     if (error) { logger.error('organizationService.get:', error.message); return null; }
     return data;
   },
   getAll: async () => {
-    const { data, error } = await supabase
-      .from('organizations')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (error) { logger.error('organizationService.getAll:', error.message); return []; }
-    return data || [];
+    const one = await organizationService.get();
+    return one ? [one] : [];
   },
-  create: async (payload) => {
-    const { data, error } = await supabase.from('organizations').insert(payload).select().single();
-    if (error) throw error;
-    return data;
-  },
-  update: async (orgId, payload) => {
-    const { data, error } = await supabase
-      .from('organizations')
-      .update(payload)
-      .eq('id', orgId)
-      .select()
-      .single();
+  update: async (_id, payload) => {
+    const allowed = ['name', 'logo_url', 'theme_color', 'mission', 'vision', 'values'];
+    const clean = Object.fromEntries(Object.entries(payload || {}).filter(([k]) => allowed.includes(k)));
+    clean.updated_at = new Date().toISOString();
+    const { data, error } = await supabase.from('instance_settings').update(clean).eq('id', 1).select().single();
     if (error) throw error;
     return data;
   },
@@ -250,24 +230,22 @@ export const organizationService = {
 // ── Auto Alert Service ──────────────────────────────────────────────────────
 export const autoAlertService = {
   checkKPIs: async (orgId) => {
-    if (!orgId) return;
     try {
       const { data: kpis } = await supabase
         .from('kpis')
-        .select('id, name, value, target, owner, organization_id')
-        .eq('organization_id', orgId);
+        .select('id, name, value, target, owner');
       if (!kpis || kpis.length === 0) return;
       const criticalKpis = kpis.filter(k => k.target > 0 && (k.value / k.target) * 100 < 70);
       if (criticalKpis.length === 0) return;
       const { data: existing } = await supabase
-        .from('alerts').select('title').eq('organization_id', orgId).eq('is_read', false);
+        .from('alerts').select('title').eq('is_read', false);
       const existingTitles = new Set((existing || []).map(a => a.title));
       const toInsert = criticalKpis
         .map(kpi => {
           const pct = kpi.target > 0 ? Math.round((kpi.value / kpi.target) * 100) : 0;
           const title = 'KPI en riesgo: ' + kpi.name;
           if (existingTitles.has(title)) return null;
-          return { title, message: 'Avance: ' + pct + '% (Meta: ' + kpi.target + '). Responsable: ' + (kpi.owner || 'N/A') + '.', severity: pct < 50 ? 'critical' : 'warning', is_read: false, organization_id: orgId };
+          return { title, message: 'Avance: ' + pct + '% (Meta: ' + kpi.target + '). Responsable: ' + (kpi.owner || 'N/A') + '.', severity: pct < 50 ? 'critical' : 'warning', is_read: false };
         }).filter(Boolean);
       if (toInsert.length > 0) await supabase.from('alerts').insert(toInsert);
     } catch (e) { logger.error('autoAlertService.checkKPIs:', e.message); }
@@ -575,11 +553,9 @@ export const profileService = {
     return data;
   },
   getAll: async (orgId) => {
-    if (!orgId) return [];
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('organization_id', orgId)
       .order('created_at', { ascending: false });
     if (error) { logger.error('profileService.getAll:', error.message); return []; }
     return data || [];

@@ -205,7 +205,7 @@ export default function BowlingChart() {
       {/* Análisis IA */}
       {aiAnalysis && (
         <div style={{ padding: 18, borderRadius: 12, background: '#f5f3ff', border: '1px solid #e0d7ff' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed', marginBottom: 8, textTransform: 'uppercase' }}>🤖 Análisis Bowling Chart — Xtratia AI</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed', marginBottom: 8, textTransform: 'uppercase' }}>🤖 Análisis Bowling Chart — Asistente C&C</div>
           <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{aiAnalysis}</div>
         </div>
       )}

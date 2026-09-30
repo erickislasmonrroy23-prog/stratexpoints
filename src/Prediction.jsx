@@ -22,7 +22,7 @@ export default function Prediction() {
         },
         {
           role: 'user',
-          content: 'Organización: ' + (org?.name || 'Xtratia') +
+          content: 'Organización: ' + (org?.name || 'Cabrera & Consultores') +
             '\nOKRs activos: ' + okrs.length +
             '\nKPIs monitoreados: ' + kpis.length +
             '\nAvance promedio OKRs: ' + (okrs.length > 0 ? Math.round(okrs.reduce((a,o) => a + (o.progress || 0), 0) / okrs.length) : 0) + '%' +
@@ -97,7 +97,7 @@ export default function Prediction() {
       {result && (
         <div style={{ padding: '20px', borderRadius: 14, background: 'var(--bg2)', border: '1px solid var(--border)' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            🔮 Predicción a {horizon} días — Xtratia AI
+            🔮 Predicción a {horizon} días — Asistente C&C
           </div>
           <div style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>
             {result}

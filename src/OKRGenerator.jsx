@@ -45,34 +45,34 @@ export default function OKRGenerator() {
     });
   };
 
+  // Extrae el arreglo JSON aunque la IA lo envuelva en texto o bloques ```json
+  const parseAIJson = (raw) => {
+    const text = String(raw || '').replace(/```json|```/g, '').trim();
+    const match = text.match(/\[[\s\S]*\]/);
+    return JSON.parse(match ? match[0] : text);
+  };
+
   const handleGenerate = async () => {
+    if (!idea.trim()) return notificationService.error('Escribe primero la meta o idea a desarrollar.');
     setLoading(true);
-    setGeneratedOKRs([]);
+    setResults(null);
     try {
+      const mapObjectives = (objectives || []).map(o => ({ id: o.id, name: o.name, code: o.code }));
+      const org = useStore.getState().currentOrganization || {};
       const prompt = [
-        {
-          role: 'system',
-          content: 'Eres experto en OKRs. Genera ' + (numOKRs || 3) + ' OKRs estratégicos para la perspectiva "' + (selectedPerspective || 'Financiera') + '" basados en el contexto dado. Responde SOLO con JSON válido: [{"objective": "...", "keyResults": ["...", "...", "..."]}]. Sin texto adicional.'
-        },
-        {
-          role: 'user',
-          content: 'Empresa: ' + (orgName || 'nuestra empresa') + '. Industria: ' + (industry || 'general') + '. Visión: ' + (vision || 'crecer sustentablemente') + '. Período: ' + (period || 'Q2 2026') + '.'
-        }
+        { role: 'system', content: 'Eres experto en OKRs y Balanced Scorecard. Respondes SOLO con JSON válido, sin texto adicional.' },
+        { role: 'user', content:
+          'Organización: ' + (org.name || 'Cabrera & Consultores') + '. Misión: ' + (org.mission || 'no definida') + '. Visión: ' + (org.vision || 'no definida') + '.\n' +
+          'Meta o idea: ' + idea.trim() + '\n' +
+          'Objetivos estratégicos disponibles: ' + JSON.stringify(mapObjectives) + '\n' +
+          'Genera de 2 a 4 OKRs para esa meta. Vincula cada uno al objetivo más pertinente usando su "objective_id" (o null si ninguno aplica). ' +
+          'Formato exacto: [{"obj":"Objetivo","department":"Área","owner":"Puesto responsable","objective_id":"ID o null","krs":["KR medible 1","KR medible 2","KR medible 3"]}]' },
       ];
-      
       const raw = await claudeService.chat(prompt);
-      
-      // Parsear JSON de la respuesta
-      const jsonMatch = raw.match(/\[.*\]/s);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        setGeneratedOKRs(parsed);
-      } else {
-        // Fallback: mostrar texto crudo formateado
-        setGeneratedOKRs([{ objective: raw, keyResults: [] }]);
-      }
+      setResults(processGeneratedResults(parseAIJson(raw)));
     } catch (e) {
-      notificationService.error('Error generando OKRs: ' + e.message);
+      logger.error('Error generando OKRs:', e);
+      notificationService.error('No se pudieron generar los OKRs: ' + e.message);
     } finally {
       setLoading(false);
     }
@@ -94,8 +94,7 @@ export default function OKRGenerator() {
       const response = await claudeService.chat(
         [{ role: 'system', content: 'Eres un generador de OKRs que solo responde con JSON válido.' }, { role: 'user', content: prompt }]
       );
-      const parsed = JSON.parse(response);
-      setResults(processGeneratedResults(parsed));
+      setResults(processGeneratedResults(parseAIJson(response)));
     } catch (err) {
       logger.error("Error auto-generando:", err);
       notificationService.error("Error de IA: " + err.message);
@@ -124,7 +123,8 @@ export default function OKRGenerator() {
       owner: okrData.owner || 'Sin asignar',
       status: 'not_started',
       progress: 0, // El progreso inicial siempre es 0
-      period: getQuarterFromDate(new Date()), // Usar el trimestre actual dinámicamente
+      period: getQuarterFromDate(new Date()).label, // Texto del trimestre actual, ej. Q3-2026
+      organization_id: useStore.getState().currentOrganization?.id,
       krs: okrData.krs || [],
       confidence_level: 8
     };

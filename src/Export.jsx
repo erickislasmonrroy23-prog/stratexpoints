@@ -16,7 +16,7 @@ export default function Export() {
     setLoading('pdf');
     try {
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const orgName = org?.name || 'Xtratia Enterprise';
+      const orgName = org?.name || 'Cabrera & Consultores';
       const dateStr = new Date().toLocaleDateString('es-MX');
 
       // Header
@@ -28,7 +28,7 @@ export default function Export() {
       doc.text('Reporte Estratégico — ' + orgName, 14, 12);
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text('Generado: ' + dateStr + ' | Xtratia Enterprise OS v3.0', 14, 22);
+      doc.text('Generado: ' + dateStr + ' | Cabrera & Consultores en Estrategia y Riesgos', 14, 22);
 
       let y = 38;
       doc.setTextColor(0, 0, 0);
@@ -97,7 +97,7 @@ export default function Export() {
         doc.setPage(p);
         doc.setFontSize(8);
         doc.setTextColor(180, 180, 180);
-        doc.text('Xtratia Enterprise OS — Confidencial | Página ' + p + ' de ' + pageCount, 14, 290);
+        doc.text('Cabrera & Consultores — Uso interno y confidencial | Página ' + p + ' de ' + pageCount, 14, 290);
       }
 
       doc.save('Reporte_Estrategico_' + orgName.replace(/\s+/g, '_') + '_' + dateStr.replace(/\//g, '-') + '.pdf');
@@ -155,7 +155,7 @@ export default function Export() {
 
       // Hoja 4: Resumen
       const summary = [
-        ['Reporte Estratégico — ' + (org?.name || 'Xtratia'), ''],
+        ['Reporte Estratégico — ' + (org?.name || 'Cabrera & Consultores'), ''],
         ['Fecha de Generación', dateStr],
         ['', ''],
         ['Métrica', 'Valor'],
@@ -167,7 +167,7 @@ export default function Export() {
       ];
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summary), 'Resumen');
 
-      XLSX.writeFile(wb, 'Reporte_Estrategico_' + (org?.name||'Xtratia').replace(/\s+/g,'_') + '_' + dateStr.replace(/\//g,'-') + '.xlsx');
+      XLSX.writeFile(wb, 'Reporte_Estrategico_' + (org?.name||'Cabrera_Consultores').replace(/\s+/g,'_') + '_' + dateStr.replace(/\//g,'-') + '.xlsx');
       notificationService.success('✅ Excel generado correctamente.');
     } catch (e) {
       notificationService.error('Error al generar Excel: ' + e.message);

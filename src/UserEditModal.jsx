@@ -10,20 +10,20 @@ const ROLES = [
   { value: 'viewer', label: 'Lector',          desc: 'Solo lectura' },
 ];
 
-const EDGE_URL = import.meta.env.VITE_SUPABASE_URL + '/functions/v1/create-tenant-user';
+const EDGE_URL = import.meta.env.VITE_SUPABASE_URL + '/functions/v1/create-tenant-user'; // nombre heredado, crea usuario interno
 
 /** Genera y descarga el PDF de credenciales con todos los datos visibles */
 function generateCredentialsPDF({ fullName, email, password, accessUrl, tenantName }) {
   const doc = new jsPDF();
 
   // ── Encabezado corporativo ──────────────────────────────────────────────
-  doc.setFillColor(37, 99, 235);
+  doc.setFillColor(10, 32, 41);
   doc.rect(0, 0, 210, 48, 'F');
 
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(22);
   doc.setFont('helvetica', 'bold');
-  doc.text('Bienvenido a ' + (tenantName || 'Xtratia'), 105, 22, { align: 'center' });
+  doc.text('Bienvenido a ' + (tenantName || 'Cabrera & Consultores'), 105, 22, { align: 'center' });
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
   doc.text('Credenciales de acceso — Documento Confidencial', 105, 34, { align: 'center' });
@@ -50,7 +50,7 @@ function generateCredentialsPDF({ fullName, email, password, accessUrl, tenantNa
   doc.setFont('helvetica', 'bold');
   doc.text('🔗  ENLACE DE ACCESO', 28, 100);
   doc.setFontSize(12);
-  doc.setTextColor(37, 99, 235);
+  doc.setTextColor(142, 99, 33);
   doc.setFont('helvetica', 'normal');
   doc.text(accessUrl, 28, 110);
 
@@ -88,19 +88,19 @@ function generateCredentialsPDF({ fullName, email, password, accessUrl, tenantNa
   doc.text('3. Por seguridad, cambia tu contraseña una vez que hayas ingresado.', 24, 214);
 
   // ── Pie de página ───────────────────────────────────────────────────────
-  doc.setFillColor(37, 99, 235);
+  doc.setFillColor(10, 32, 41);
   doc.rect(0, 272, 210, 25, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text('Documento generado automáticamente por Xtratia Enterprise OS — Confidencial.', 105, 282, { align: 'center' });
+  doc.text('Cabrera & Consultores en Estrategia y Riesgos — Sistema de Gestión Estratégica. Uso interno y confidencial.', 105, 282, { align: 'center' });
   doc.text('Guarda este documento en un lugar seguro y no lo compartas por canales no cifrados.', 105, 289, { align: 'center' });
 
   doc.save('Credenciales_' + fullName.replace(/\s+/g, '_') + '.pdf');
   notificationService.success('📄 PDF de credenciales descargado.');
 }
 
-export default function UserEditModal({ user, onClose, onRefresh, tenant }) {
+export default function UserEditModal({ user, onClose, onRefresh }) {
   const isNew = !user?.id || user?.isNew;
 
   const [form, setForm] = useState({
@@ -129,7 +129,7 @@ export default function UserEditModal({ user, onClose, onRefresh, tenant }) {
 
     try {
       if (isNew) {
-        const tempPassword = form.password || ('Xtratia@' + Math.floor(1000 + Math.random() * 9000));
+        const tempPassword = form.password || ('CyC@' + Math.floor(100000 + Math.random() * 900000));
 
         const { data: sessionData } = await supabase.auth.getSession();
         const token = sessionData?.session?.access_token;
@@ -146,7 +146,6 @@ export default function UserEditModal({ user, onClose, onRefresh, tenant }) {
             password:        tempPassword,
             full_name:       form.full_name.trim(),
             role:            form.role,
-            organization_id: user?.organization_id || null,
             job_title:       form.job_title  || null,
             department:      form.department || null,
             photo_url:       form.photo_url  || null,
@@ -171,16 +170,6 @@ export default function UserEditModal({ user, onClose, onRefresh, tenant }) {
           })
           .eq('id', user.id);
         if (error) throw error;
-
-        // MEJORADO: Asignar rol también en la organización específica (multi-tenant)
-        if (user?.id && user?.organization_id) {
-          try {
-            await profileService.setRoleForOrganization(user.id, user.organization_id, form.role);
-          } catch (roleError) {
-            // No falla la actualización si hay error en roles por org (fallback a rol global)
-            logger.warn('Advertencia al actualizar rol por organización:', roleError.message);
-          }
-        }
 
         notificationService.success('✅ Usuario actualizado correctamente.');
         if (onRefresh) onRefresh();
@@ -277,22 +266,13 @@ export default function UserEditModal({ user, onClose, onRefresh, tenant }) {
           {/* Botón PDF — incluye contraseña real */}
           <button
             onClick={() => {
-              // Genera la URL de acceso correcta: subdomain para prod, ?org= para testing
-              const getAccessUrl = (tenant) => {
-                if (!tenant?.subdomain) return window.location.origin;
-                // En producción: usar subdominio. En testing: usar query param
-                const isProdEnvironment = window.location.hostname.includes('xtratia.com');
-                return isProdEnvironment
-                  ? `https://${tenant.subdomain}.xtratia.com`
-                  : `${window.location.origin}/?org=${tenant.subdomain}`;
-              };
-              const accessUrl = getAccessUrl(tenant);
+              const accessUrl = window.location.origin;
               generateCredentialsPDF({
                 fullName:   form.full_name || createdCreds.email,
                 email:      createdCreds.email,
                 password:   createdCreds.password,
                 accessUrl,
-                tenantName: tenant?.name || 'Xtratia',
+                tenantName: 'Cabrera & Consultores',
               });
             }}
             className="sp-btn"

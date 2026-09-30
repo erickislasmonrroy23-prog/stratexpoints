@@ -127,7 +127,7 @@ export default function DocAnalyzer() {
       {result && (
         <div style={{ padding: 20, borderRadius: 12, background: 'var(--bg2)', border: '1px solid var(--border)' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', marginBottom: 10, textTransform: 'uppercase' }}>
-            🤖 Análisis de Xtratia AI
+            🤖 Análisis del Asistente C&C
           </div>
           <div style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
             {result}

@@ -20,10 +20,6 @@ export function useAuditLogs(selectedTenantId) {
     try {
       let query = supabase.from('audit_logs').select('*', { count: 'exact' });
 
-      if (selectedTenantId) {
-        query = query.eq('organization_id', selectedTenantId);
-      }
-
       if (startDate) {
         query = query.gte('created_at', startDate);
       }
@@ -32,7 +28,7 @@ export function useAuditLogs(selectedTenantId) {
       }
 
       if (searchLogQuery) {
-        query = query.or(`table_name.ilike.%${searchLogQuery}%,action.ilike.%${searchLogQuery}%,record_id.ilike.%${searchLogQuery}%`);
+        query = query.or(`table_name.ilike.%${searchLogQuery}%,action.ilike.%${searchLogQuery}%`);
       }
 
       const { data, count, error } = await query
@@ -60,10 +56,6 @@ export function useAuditLogs(selectedTenantId) {
     try {
       let query = supabase.from('audit_logs').select('*');
 
-      if (selectedTenantId) {
-        query = query.eq('organization_id', selectedTenantId);
-      }
-
       if (startDate) {
         query = query.gte('created_at', startDate);
       }
@@ -72,7 +64,7 @@ export function useAuditLogs(selectedTenantId) {
       }
 
       if (searchLogQuery) {
-        query = query.or(`table_name.ilike.%${searchLogQuery}%,action.ilike.%${searchLogQuery}%,record_id.ilike.%${searchLogQuery}%`);
+        query = query.or(`table_name.ilike.%${searchLogQuery}%,action.ilike.%${searchLogQuery}%`);
       }
 
       const { data, error } = await query.order('created_at', { ascending: false });
@@ -85,18 +77,18 @@ export function useAuditLogs(selectedTenantId) {
       }
 
       const rows = [
-        ["ID Log", "Organización ID", "Usuario ID", "Acción", "Tabla", "Registro ID", "Cambios", "Fecha"]
+        ["ID Log", "Usuario ID", "Acción", "Tabla", "Registro ID", "Valor anterior", "Valor nuevo", "Fecha"]
       ];
 
       data.forEach(log => {
         rows.push([
           log.id,
-          log.organization_id,
-          log.impersonated_user_id,
+          log.user_id,
           log.action,
           log.table_name,
           log.record_id,
-          JSON.stringify(log.changes),
+          JSON.stringify(log.old_value || {}),
+          JSON.stringify(log.new_value || {}),
           new Date(log.created_at).toLocaleString()
         ]);
       });
@@ -104,7 +96,7 @@ export function useAuditLogs(selectedTenantId) {
       const ws = XLSX.utils.aoa_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "AuditLogs");
-      XLSX.writeFile(wb, `AuditLogs_${selectedTenantId || 'Global'}_${new Date().toISOString().split('T')[0]}.xlsx`);
+      XLSX.writeFile(wb, `Bitacora_CyC_${new Date().toISOString().split('T')[0]}.xlsx`);
       notificationService.success("Logs exportados a Excel.");
 
     } catch (error) {

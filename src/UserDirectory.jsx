@@ -4,16 +4,17 @@ import { notificationService } from './services.js';
 import UserEditModal from './UserEditModal.jsx';
 
 const CHANGE_PASS_URL = import.meta.env.VITE_SUPABASE_URL + '/functions/v1/change-user-password';
+const DELETE_USER_URL = import.meta.env.VITE_SUPABASE_URL + '/functions/v1/delete-user';
 
 const ROLE_CONFIG = {
   admin:       { label: 'Admin',       color: '#dc2626', bg: '#fee2e2' },
   Admin:       { label: 'Admin',       color: '#dc2626', bg: '#fee2e2' },
   editor:      { label: 'Editor',      color: '#f59e0b', bg: '#fef9c3' },
   viewer:      { label: 'Lector',      color: '#16a34a', bg: '#dcfce7' },
-  super_admin: { label: 'Super Admin', color: '#6366f1', bg: '#eef2ff' },
+  super_admin: { label: 'Administrador', color: '#dc2626', bg: '#fee2e2' },
 };
 
-export default function UserDirectory({ organizationId, onDownloadPDF, tenant }) {
+export default function UserDirectory({ organizationId, onDownloadPDF, currentUserId }) {
   const [users, setUsers]         = useState([]);
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState('');
@@ -24,23 +25,17 @@ export default function UserDirectory({ organizationId, onDownloadPDF, tenant })
   const [savingPass, setSavingPass] = useState(false);
 
   const loadUsers = async () => {
-    if (!organizationId) { setLoading(false); return; }
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, role, organization_roles, job_title, department, photo_url, created_at')
-        .eq('organization_id', organizationId)
+        .select('id, full_name, email, role, is_super_admin, job_title, department, photo_url, created_at')
         .order('created_at', { ascending: false });
       if (error) throw error;
 
-      // MEJORADO: Enriquecer datos con rol específico por organización (multi-tenant)
       const enrichedUsers = (data || []).map(user => ({
         ...user,
-        // Determinar el rol a mostrar: primero org-específico, luego rol global
-        displayRole: (user.organization_roles && user.organization_roles[organizationId])
-          ? user.organization_roles[organizationId]
-          : (user.role || 'viewer')
+        displayRole: user.is_super_admin ? 'admin' : (user.role || 'viewer'),
       }));
 
       setUsers(enrichedUsers);
@@ -49,16 +44,25 @@ export default function UserDirectory({ organizationId, onDownloadPDF, tenant })
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { loadUsers(); }, [organizationId]);
+  useEffect(() => { loadUsers(); }, []);
 
   const handleDelete = async (userId, userName) => {
-    if (!window.confirm('¿Eliminar a ' + userName + '? Esta acción no se puede deshacer.')) return;
+    if (userId === currentUserId) return notificationService.error('No puedes eliminar tu propia cuenta.');
+    if (!window.confirm('¿Revocar el acceso de ' + userName + '? Se eliminará su cuenta y ya no podrá entrar.')) return;
     try {
-      const { error } = await supabase.from('profiles').delete().eq('id', userId);
-      if (error) throw error;
-      notificationService.success('Usuario eliminado.');
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) throw new Error('Sesión expirada. Vuelve a iniciar sesión.');
+      const res = await fetch(DELETE_USER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ userId }),
+      });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(result.error || `Error ${res.status}`);
+      notificationService.success('Acceso de ' + userName + ' revocado.');
       setUsers(prev => prev.filter(u => u.id !== userId));
-    } catch (e) { notificationService.error('Error: ' + e.message); }
+    } catch (e) { notificationService.error('No se pudo eliminar: ' + e.message); }
   };
 
   const handleChangePassword = async (e) => {
@@ -219,13 +223,12 @@ export default function UserDirectory({ organizationId, onDownloadPDF, tenant })
         />
       )}
 
-      {/* Modal crear nuevo usuario — pasa tenant para el PDF de credenciales */}
+      {/* Modal crear nuevo usuario */}
       {showCreate && (
         <UserEditModal
-          user={{ isNew: true, organization_id: organizationId }}
+          user={{ isNew: true }}
           onClose={() => setShowCreate(false)}
           onRefresh={loadUsers}
-          tenant={tenant}
         />
       )}
 

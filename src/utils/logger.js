@@ -1,5 +1,5 @@
 /**
- * Logger Utility for StratexPoints
+ * Logger — Sistema de Gestión Estratégica C&C
  *
  * In development: logs to console
  * In production: sends errors to Sentry
