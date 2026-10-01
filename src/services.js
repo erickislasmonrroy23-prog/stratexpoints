@@ -1,4 +1,5 @@
 import logger from './utils/logger.js';
+import { rolDe, permite } from './roles.js';
 import { supabase } from './supabase.js';
 
 // ── Instancia única: la base ya no maneja organization_id (migración single_tenant, jul-2026) ──
@@ -726,3 +727,33 @@ export const emailService = {
     return { success: true, message: 'Factura enviada (simulada)' };
   },
 };
+
+// ── Red de seguridad por rol ─────────────────────────────────────────────
+// La base (RLS) es la autoridad; esto solo traduce un rechazo a un mensaje claro
+// antes de llamar al servidor. App.jsx registra cómo obtener el perfil activo.
+let _perfilActivo = () => null;
+export const setPerfilActivoResolver = (fn) => { _perfilActivo = typeof fn === 'function' ? fn : () => null; };
+
+const MENSAJE_PERMISO = {
+  viewer: 'Tu rol es Lector: puedes consultar, pero no crear, editar ni eliminar.',
+  editor: 'Solo un Administrador puede eliminar registros.',
+  noAdmin: 'Solo un Administrador puede modificar la identidad institucional.',
+};
+
+function exigirPermiso(accion, soloAdmin = false) {
+  const rol = rolDe(_perfilActivo());
+  if (!rol) return; // sin sesión cargada: que decida la base
+  if (soloAdmin && rol !== 'admin') throw new Error(MENSAJE_PERMISO.noAdmin);
+  if (!permite(rol, accion)) throw new Error(rol === 'viewer' ? MENSAJE_PERMISO.viewer : MENSAJE_PERMISO.editor);
+}
+
+function protegerServicio(svc, { soloAdmin = false } = {}) {
+  [['create', 'create'], ['update', 'update'], ['delete', 'delete'], ['remove', 'delete']].forEach(([metodo, accion]) => {
+    const original = svc[metodo];
+    if (typeof original !== 'function') return;
+    svc[metodo] = async (...args) => { exigirPermiso(accion, soloAdmin); return original(...args); };
+  });
+}
+
+[okrService, kpiService, initiativeService, perspectiveService, objectivesService].forEach((s) => protegerServicio(s));
+protegerServicio(organizationService, { soloAdmin: true });

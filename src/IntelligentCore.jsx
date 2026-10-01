@@ -106,7 +106,7 @@ export default function IntelligentCore() {
                         <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: 'var(--text2)', marginBottom: 16, lineHeight: 1.6 }}>
                           {recoveryPlans[a.id].map((ini, i) => <li key={i}>{ini.title} <span style={{color: 'var(--primary)', fontWeight: 600}}>(👤 {ini.owner})</span></li>)}
                         </ul>
-                        <button className="sp-btn" onClick={() => handleApplyRecovery(a.id, recoveryPlans[a.id])} style={{ background: 'var(--primary)', width: '100%', justifyContent: 'center', fontSize: 12, padding: '8px' }}>
+                        <button className="sp-btn solo-edicion" onClick={() => handleApplyRecovery(a.id, recoveryPlans[a.id])} style={{ background: 'var(--primary)', width: '100%', justifyContent: 'center', fontSize: 12, padding: '8px' }}>
                           📥 Aprobar e inyectar al tablero de Iniciativas
                         </button>
                       </div>
@@ -130,7 +130,7 @@ export default function IntelligentCore() {
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Ajuste de Metas por Temporada</div>
                   <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 12 }}>Ajusta las métricas +10% según historial predictivo.</div>
-                  <button onClick={handleSeasonalAdjustment} disabled={adjusting} className="sp-btn" style={{ fontSize: 11, padding: '4px 12px', background: 'transparent', border: '1px solid var(--primary)', color: 'var(--primary)' }}>{adjusting ? 'Recalculando base de datos...' : '▶ Ejecutar Recalibración IA'}</button>
+                  <button onClick={handleSeasonalAdjustment} disabled={adjusting} className="sp-btn solo-edicion" style={{ fontSize: 11, padding: '4px 12px', background: 'transparent', border: '1px solid var(--primary)', color: 'var(--primary)' }}>{adjusting ? 'Recalculando base de datos...' : '▶ Ejecutar Recalibración IA'}</button>
                 </div>
                 <input type="checkbox" defaultChecked style={{ accentColor: 'var(--violet)', width: 18, height: 18, cursor: 'pointer' }}/>
               </div>

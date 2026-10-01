@@ -71,3 +71,9 @@
 .brand-display{font-family:var(--font-display);font-weight:400;letter-spacing:.01em;}
 .sp-btn:focus-visible,.nav-item:focus-visible,.icon-btn:focus-visible,.header-action:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;}}
+
+/* ===== Controles por rol (espejo de las políticas de la base) =====
+   .solo-edicion → Editor y Administrador · .solo-admin y .delete-btn → solo Administrador */
+html[data-rol="viewer"] .solo-edicion,
+html:not([data-rol="admin"]) .solo-admin,
+html:not([data-rol="admin"]) .delete-btn { display: none !important; }

@@ -5,13 +5,14 @@ import { initTheme, setTheme } from "./theme.js";
 import LoginIntegrated, { needsSecondFactor, NewPasswordScreen } from "./components/Auth/LoginIntegrated.jsx";
 import ChangePassword from "./ChangePassword.jsx";
 import { useTranslation } from "react-i18next";
-import { perspectiveService, okrService, kpiService, initiativeService, alertService, objectivesService, autoAlertService, notificationService, setNotifyFn } from "./services.js";
+import { perspectiveService, okrService, kpiService, initiativeService, alertService, objectivesService, autoAlertService, notificationService, setNotifyFn, setPerfilActivoResolver } from "./services.js";
 import { OKRForm, KPIForm, InitiativeForm, Modal } from "./forms.jsx";
 import { AddBtn, TabBar, EmptyState, ConfirmationModal } from "./SharedUI.jsx";
 import toast, { Toaster } from "react-hot-toast";
 import AdminPanel from "./AdminPanel.jsx";
 import BrandLogo from "./BrandLogo.jsx";
 import { BRAND } from "./brand.js";
+import { rolDe, ROL_ETIQUETA } from "./roles.js";
 import CommandCenter from "./CommandCenter.jsx";
 import Dashboard from "./Dashboard.jsx";
 import AIInsights from "./AIInsights.jsx";
@@ -25,6 +26,9 @@ import { useStore } from "./store.js";
 
 // Registrar bridge de notificaciones (evita importación circular con store)
 // Dual bridge: guarda en store (historial) + muestra toast visual inmediatamente
+// La capa de datos consulta el perfil activo para mensajes de permiso claros
+setPerfilActivoResolver(() => { const st = useStore.getState(); return st.impersonatedProfile || st.profile; });
+
 setNotifyFn((notif) => {
   useStore.getState().addNotification(notif);
   const msg = notif.message || '';
@@ -409,6 +413,12 @@ function MainApp({ onLogout, onSuperAdmin }){
 
   const setupSubscriptions = useStore.use.setupSubscriptions();
   const can = useStore.use.can();
+  const rolActivo = rolDe(profile);
+  const soloConsulta = rolActivo === 'viewer';
+  useEffect(() => {
+    document.documentElement.setAttribute('data-rol', rolActivo || 'viewer');
+    return () => document.documentElement.removeAttribute('data-rol');
+  }, [rolActivo]);
   const unsubscribeRealtime = useStore.use.unsubscribeRealtime();
   const requestPushNotifications = useStore.use.requestPushNotifications();
   // La visibilidad del botón depende SOLO del rol en la base de datos (is_super_admin o Admin).
@@ -641,8 +651,14 @@ function MainApp({ onLogout, onSuperAdmin }){
           <div style={{display:"flex",alignItems:"center",gap:8,padding:"5px 10px",borderRadius:8,background:"var(--bg3)",border:"1px solid var(--border)"}}>
             <Avatar name={profile&&profile.full_name}/>
             <span style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{profile&&profile.full_name||"Usuario"}</span>
-            <span className="sp-badge" style={{background:"var(--primary-light)",color:"var(--primary)",padding:"2px 7px",fontSize:10}}>{profile?.is_super_admin ? "Administrador" : ({admin:"Administrador",Admin:"Administrador",editor:"Editor",viewer:"Lector"}[profile&&profile.role]||"Lector")}</span>
+            <span className="sp-badge" style={{background:"var(--primary-light)",color:"var(--primary)",padding:"2px 7px",fontSize:10}}>{ROL_ETIQUETA[rolActivo] || "Lector"}</span>
           </div>
+          {soloConsulta && (
+            <span className="sp-badge" title="Tu rol permite consultar la información, no modificarla"
+              style={{background:"var(--gold-light)",color:"var(--gold)",padding:"4px 10px",fontSize:11,fontWeight:600,border:"1px solid var(--gold)"}}>
+              👁️ Modo consulta
+            </span>
+          )}
           {/* El acceso al panel de Super Admin se controla con el sistema de permisos `can()` */}
           {/* Esto centraliza la lógica de autorización y elimina la duplicación de roles. */}
           {canTrySuperAdmin && <button className="header-action" onClick={onSuperAdmin} title="Usuarios, identidad y seguridad">⚙️ Administración</button>}
@@ -724,12 +740,12 @@ function MainApp({ onLogout, onSuperAdmin }){
               {activeModule==="home"&&<CommandCenter />}
               {activeModule==="centro"&&<CentroEstrategico />}
               {activeModule==="estrategia"&&<ModuloEstrategia onDeleteObjective={handleDeleteObjective} />}
-              {activeModule==="okrs"&&<ModuloOKRs onModal={function(m){setEditingItem(null);setModal(m);}} onEdit={function(item){setEditingItem(item);setModal("okr");}} onDelete={handleDeleteOKR} />}
-              {activeModule==="kpis"&&<ModuloKPIs onModal={function(m){setEditingItem(null);setModal(m);}} onEdit={function(item){setEditingItem(item);setModal("kpi");}} onDelete={handleDeleteKPI} onCreateOkrFromKpi={function(kpi){
-                setEditingItem({ objective: `Optimizar indicador: ${kpi.name}`, status: 'not_started', progress: 0, period: 'Q1 2024', department: '', owner: kpi.owner || '', confidence_level: 8, krs: [{title: `Llevar ${kpi.name} de ${kpi.value||0}${kpi.unit} a la meta de ${kpi.target}${kpi.unit}`, owner: kpi.owner || '', completed: false, deadline: ''}] });
+              {activeModule==="okrs"&&<ModuloOKRs onModal={function(m){if(!can("create","okrs"))return;setEditingItem(null);setModal(m);}} onEdit={function(item){if(!can("update","okrs"))return;setEditingItem(item);setModal("okr");}} onDelete={handleDeleteOKR} />}
+              {activeModule==="kpis"&&<ModuloKPIs onModal={function(m){if(!can("create","kpis"))return;setEditingItem(null);setModal(m);}} onEdit={function(item){if(!can("update","kpis"))return;setEditingItem(item);setModal("kpi");}} onDelete={handleDeleteKPI} onCreateOkrFromKpi={function(kpi){
+                setEditingItem({ objective: `Optimizar indicador: ${kpi.name}`, status: 'not_started', progress: 0, period: 'Q' + (Math.floor(new Date().getMonth() / 3) + 1) + '-' + new Date().getFullYear(), department: '', owner: kpi.owner || '', confidence_level: 8, krs: [{title: `Llevar ${kpi.name} de ${kpi.value||0}${kpi.unit} a la meta de ${kpi.target}${kpi.unit}`, owner: kpi.owner || '', completed: false, deadline: ''}] });
                 setModal("okr");
               }}/>}
-              {activeModule==="iniciativas"&&<ModuloIniciativas onModal={setModal} onDelete={handleDeleteInitiative} />}
+              {activeModule==="iniciativas"&&<ModuloIniciativas onModal={function(m){if(!can("create","initiatives"))return;setModal(m);}} onDelete={handleDeleteInitiative} />}
               {activeModule==="ia"&&<ModuloIA />}
               {activeModule==="analitica"&&<ModuloAnalitica />}
               {activeModule==="reportes"&&<ModuloReportes />}
