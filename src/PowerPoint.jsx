@@ -17,7 +17,7 @@ export default function PowerPoint() {
       let pptx = new pptxgen();
       let slide = pptx.addSlide();
       slide.addText("Reporte Ejecutivo Estratégico", { x: 1, y: 1, fontSize: 28, bold: true, color: "363636" });
-      slide.addText("Generado automáticamente por Xtratia IA", { x: 1, y: 1.8, fontSize: 14, color: "666666" });
+      slide.addText("Cabrera & Consultores en Estrategia y Riesgos", { x: 1, y: 1.8, fontSize: 14, color: "666666" });
       
       if (options.okrs && okrs?.length > 0) {
         let slideOkr = pptx.addSlide();

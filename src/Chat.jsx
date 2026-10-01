@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { aiChain, notificationService } from './services.js';
 import { useStore } from './store.js';
 
-const SYSTEM_PROMPT = `Eres Xtratia AI, un asistente estratégico experto en OKRs, KPIs, Balanced Scorecard, Hoshin Kanri e iniciativas estratégicas. Ayudas a equipos directivos a tomar mejores decisiones. Responde siempre en español, de forma concisa y accionable. Cuando sea relevante, estructura tu respuesta con puntos clave.`;
+const SYSTEM_PROMPT = `Eres el Asistente Estratégico de Cabrera & Consultores en Estrategia y Riesgos, experto en OKRs, KPIs, Balanced Scorecard, Hoshin Kanri e iniciativas estratégicas. Ayudas a equipos directivos a tomar mejores decisiones. Responde siempre en español, de forma concisa y accionable. Cuando sea relevante, estructura tu respuesta con puntos clave.`;
 
 export default function Chat() {
   const okrs      = useStore(s => s.okrs      || []);
@@ -14,7 +14,7 @@ export default function Chat() {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: '¡Hola! Soy Xtratia AI, tu asistente estratégico. Puedo ayudarte a analizar tus OKRs y KPIs, generar recomendaciones y responder preguntas sobre tu estrategia. ¿En qué trabajamos hoy?'
+      content: 'Hola, soy el Asistente Estratégico de Cabrera & Consultores. Puedo ayudarte a analizar tus OKRs y KPIs, generar recomendaciones y responder preguntas sobre tu estrategia. ¿En qué trabajamos hoy?'
     }
   ]);
   const [input, setInput]       = useState('');
@@ -41,7 +41,7 @@ export default function Chat() {
         role: 'system',
         content: SYSTEM_PROMPT + '\n\nContexto actual de la organización ' + (org?.name || '') + ':\n' +
           'OKRs activos: ' + okrs.length + ' | KPIs monitoreados: ' + kpis.length + '\n' +
-          'Plan: ' + (org?.plan || 'basic') + ' | Estado: ' + (org?.status || 'active')
+          'Misión: ' + (org?.mission || 'no definida') + ' | Visión: ' + (org?.vision || 'no definida')
       };
 
       const history = messages.slice(-8).map(m => ({ role: m.role, content: m.content }));
@@ -124,7 +124,7 @@ export default function Chat() {
             }}>
               {msg.role === 'assistant' && (
                 <div style={{ fontSize: 11, color: msg.role === 'user' ? 'rgba(255,255,255,0.7)' : 'var(--primary)', fontWeight: 700, marginBottom: 4 }}>
-                  🤖 Xtratia AI
+                  🤖 Asistente C&C
                 </div>
               )}
               {msg.content}

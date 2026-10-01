@@ -62,7 +62,7 @@ export default function IntelligentCore() {
   };
 
   const handleSendReport = () => {
-    const subject = encodeURIComponent("Reporte Automático Semanal - Xtratia IA");
+    const subject = encodeURIComponent("Reporte semanal de salud estratégica - Cabrera & Consultores");
     const body = encodeURIComponent(`Hola,\n\nEl núcleo autónomo ha completado el análisis de salud estratégica.\n\n- Salud de los Datos: ${dataQuality}%\n- OKRs Activos: ${okrs?.length || 0}\n- Alertas Críticas Detectadas: ${anomalies.length}\n\nSe han preparado planes de recuperación preventivos. Ingresa a la plataforma para aprobarlos y enviarlos a ejecución.\n\nSaludos,\nIA Xtratia`);
     window.location.href = `mailto:directorio@miempresa.com?subject=${subject}&body=${body}`;
   };

@@ -106,7 +106,7 @@ export default function AIInsights() {
         <div style={{ padding: 20, borderRadius: 14, background: 'var(--bg2)', border: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              {currentType?.icon} {currentType?.label} — Xtratia AI
+              {currentType?.icon} {currentType?.label} — Asistente C&C
             </div>
             <button onClick={() => { navigator.clipboard.writeText(result); notificationService.success('Copiado.'); }}
               style={{ padding: '4px 10px', borderRadius: 6, fontSize: 11, background: 'var(--bg)', border: '1px solid var(--border)', cursor: 'pointer', color: 'var(--text3)' }}>

@@ -41,11 +41,11 @@ serve(async (req) => {
     // Verify caller is admin
     const { data: callerProfile } = await supabaseAdmin
       .from('profiles')
-      .select('role')
+      .select('role, is_super_admin')
       .eq('id', caller.id)
       .single();
 
-    if (!callerProfile || !['admin', 'Admin', 'super_admin'].includes(callerProfile.role)) {
+    if (!callerProfile || !(callerProfile.is_super_admin === true || ['admin', 'Admin', 'super_admin'].includes(callerProfile.role))) {
       return new Response(JSON.stringify({ error: 'Insufficient permissions' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });

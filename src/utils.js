@@ -1,5 +1,5 @@
 /**
- * utils.js — Helpers compartidos Xtratia Enterprise OS
+ * utils.js — Helpers compartidos — Sistema de Gestión Estratégica C&C
  * Centraliza lógica reutilizable para evitar duplicación
  */
 
@@ -107,17 +107,6 @@ export const uuid = () =>
 
 // ── Detectar si es móvil ──────────────────────────────────────────────────────
 export const isMobile = () => window.innerWidth < 768;
-
-// ── Score de salud de organización ───────────────────────────────────────────
-export const calcHealthScore = (org) => {
-  if (!org) return 0;
-  return [
-    org.status === 'active'     ? 40 : 0,
-    org.is_paid                 ? 30 : 0,
-    (org.user_count || 0) > 0  ? 20 : 0,
-    org.modules?.okrs           ? 10 : 0,
-  ].reduce((a, b) => a + b, 0);
-};
 
 // ── Quarter Helper ────────────────────────────────────────────────────────────
 export function getQuarterFromDate(date) {

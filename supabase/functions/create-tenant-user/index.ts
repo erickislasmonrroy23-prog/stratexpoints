@@ -43,18 +43,18 @@ serve(async (req) => {
     // Check caller's role
     const { data: callerProfile } = await supabaseAdmin
       .from('profiles')
-      .select('role')
+      .select('role, is_super_admin')
       .eq('id', caller.id)
       .single();
 
-    if (!callerProfile || !['admin', 'Admin', 'super_admin'].includes(callerProfile.role)) {
+    if (!callerProfile || !(callerProfile.is_super_admin === true || ['admin', 'Admin', 'super_admin'].includes(callerProfile.role))) {
       return new Response(JSON.stringify({ error: 'Insufficient permissions' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
     const body = await req.json();
-    const { email, password, full_name, role, organization_id, job_title, department, photo_url } = body;
+    const { email, password, full_name, role, job_title, department, photo_url } = body;
 
     if (!email || !password || !full_name) {
       return new Response(JSON.stringify({ error: 'email, password y full_name son requeridos' }), {
@@ -85,8 +85,7 @@ serve(async (req) => {
         id: userId,
         email: email.toLowerCase().trim(),
         full_name,
-        role: role || 'viewer',
-        organization_id: organization_id || null,
+        role: ['admin', 'editor', 'viewer'].includes(role) ? role : 'viewer',
         job_title: job_title || null,
         department: department || null,
         photo_url: photo_url || null,

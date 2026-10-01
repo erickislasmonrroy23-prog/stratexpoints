@@ -1,8 +1,9 @@
 import logger from '../../utils/logger.js';
 import React, { useState } from 'react';
 import { supabase } from '../../supabase.js';
-import { useStore } from '../../store.js';
 import { initializeJWTMonitoring } from '../../utils/jwtUtils.js';
+import BrandLogo from '../../BrandLogo.jsx';
+import { BRAND } from '../../brand.js';
 
 const getErrorText = (message = '') => {
   if (message.includes('Invalid login credentials') || message.includes('invalid_credentials'))
@@ -10,199 +11,242 @@ const getErrorText = (message = '') => {
   if (message.includes('Email not confirmed'))
     return 'Tu correo aún no está verificado. Revisa tu bandeja de entrada.';
   if (message.includes('Too many requests'))
-    return 'Demasiados intentos. Espera unos minutos.';
-  return 'Error al iniciar sesión. Verifica tus credenciales.';
+    return 'Demasiados intentos. Espera unos minutos y vuelve a probar.';
+  return 'No se pudo iniciar sesión. Verifica tus datos.';
 };
 
-export const LoginIntegrated = () => {
-  const setAuth = useStore((state) => state.setAuth);
-  const tenant = useStore((state) => state.currentOrganization);
+/** ¿La cuenta tiene verificación en dos pasos y falta el segundo paso? */
+export async function needsSecondFactor() {
+  try {
+    const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    return data?.nextLevel === 'aal2' && data?.currentLevel !== 'aal2';
+  } catch { return false; }
+}
 
+const Status = ({ type, text }) => (
+  <div role="status" style={{
+    padding: '11px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13, fontWeight: 500,
+    background: type === 'success' ? 'var(--green-light)' : 'var(--red-light)',
+    color: type === 'success' ? 'var(--green)' : 'var(--red)',
+    border: '1px solid ' + (type === 'success' ? 'var(--green)' : 'var(--red)'),
+  }}>{text}</div>
+);
+
+const inputStyle = { padding: '13px 14px', fontSize: 14, borderRadius: 8 };
+const primaryBtn = (loading) => ({
+  width: '100%', padding: '14px 20px', borderRadius: 8, fontSize: 15, fontWeight: 600,
+  background: 'var(--primary)', color: 'var(--bg2)', opacity: loading ? 0.7 : 1,
+  cursor: loading ? 'not-allowed' : 'pointer',
+});
+
+export const LoginIntegrated = ({ mfaPending = false, onVerified }) => {
+  const [step, setStep] = useState(mfaPending ? 'mfa' : 'login'); // login | reset | mfa
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
-  const [resetMode, setResetMode] = useState(false);
   const [resetSent, setResetSent] = useState(false);
-  const [statusMsg, setStatusMsg] = useState({ type: '', text: '' });
+  const [msg, setMsg] = useState({ type: '', text: '' });
+
+  const clearMsg = () => msg.text && setMsg({ type: '', text: '' });
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setStatusMsg({ type: '', text: '' });
-
+    setLoading(true); setMsg({ type: '', text: '' });
     try {
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
-
-      if (authError) throw authError;
-
-      // Load profile so App.jsx transitions out of login immediately
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*, organizations(*)')
-        .eq('id', authData.user.id)
-        .maybeSingle();
-
-      const profile = profileData || {
-        id: authData.user.id,
-        email: authData.user.email,
-        full_name: authData.user.user_metadata?.full_name || '',
-        role: 'viewer',
-        is_super_admin: false,
-      };
-
-      setAuth(authData.user, profile);
-      setStatusMsg({ type: 'success', text: 'Acceso correcto. Cargando tu plataforma...' });
-
-      // Non-blocking JWT monitoring init
+      const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
+      if (error) throw error;
+      if (await needsSecondFactor()) { setStep('mfa'); return; }
+      setMsg({ type: 'success', text: 'Acceso correcto. Cargando…' });
       initializeJWTMonitoring().catch(() => {});
+      // App.jsx detecta la sesión (onAuthStateChange) y carga el perfil.
     } catch (err) {
-      logger.error('[Login] Auth error:', err);
-      setStatusMsg({ type: 'error', text: getErrorText(err.message) });
-    } finally {
-      setLoading(false);
-    }
+      logger.error('[Login] Error de autenticación:', err);
+      setMsg({ type: 'error', text: getErrorText(err.message) });
+    } finally { setLoading(false); }
+  };
+
+  const handleMfa = async (e) => {
+    e.preventDefault();
+    setLoading(true); setMsg({ type: '', text: '' });
+    try {
+      const { data: factors, error: fErr } = await supabase.auth.mfa.listFactors();
+      if (fErr) throw fErr;
+      const factor = (factors?.totp || []).find((f) => f.status === 'verified');
+      if (!factor) throw new Error('No se encontró el factor de verificación.');
+      const { data: ch, error: chErr } = await supabase.auth.mfa.challenge({ factorId: factor.id });
+      if (chErr) throw chErr;
+      const { error: vErr } = await supabase.auth.mfa.verify({ factorId: factor.id, challengeId: ch.id, code });
+      if (vErr) throw new Error('Código incorrecto o vencido.');
+      setMsg({ type: 'success', text: 'Verificado. Cargando…' });
+      if (onVerified) onVerified();
+    } catch (err) {
+      setMsg({ type: 'error', text: err.message });
+    } finally { setLoading(false); }
+  };
+
+  const cancelMfa = async () => {
+    await supabase.auth.signOut();
+    setStep('login'); setCode(''); setPassword(''); setMsg({ type: '', text: '' });
   };
 
   const handleReset = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setStatusMsg({ type: '', text: '' });
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin,
-    });
+    setLoading(true); setMsg({ type: '', text: '' });
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo: window.location.origin });
     setLoading(false);
-    if (error) {
-      setStatusMsg({ type: 'error', text: 'No pudimos enviar el enlace. Verifica el correo.' });
-    } else {
-      setResetSent(true);
-      setStatusMsg({ type: 'success', text: 'Enlace enviado. Revisa tu bandeja de entrada.' });
-    }
+    if (error) setMsg({ type: 'error', text: 'No se pudo enviar el enlace. Verifica el correo.' });
+    else { setResetSent(true); setMsg({ type: 'success', text: 'Te enviamos un enlace. Revisa tu bandeja y la carpeta de spam.' }); }
   };
-
-  const handleFieldChange = (setter) => (e) => {
-    setter(e.target.value);
-    if (statusMsg.text) setStatusMsg({ type: '', text: '' });
-  };
-
-  const StatusBanner = ({ type, text }) => (
-    <div style={{
-      padding: '12px 16px', borderRadius: 10, marginBottom: 16, fontSize: 13, fontWeight: 600,
-      background: type === 'success' ? '#dcfce7' : '#fee2e2',
-      color: type === 'success' ? '#16a34a' : '#dc2626',
-      border: '1px solid ' + (type === 'success' ? '#86efac' : '#fecaca'),
-      display: 'flex', alignItems: 'flex-start', gap: 8
-    }}>
-      <span style={{ flexShrink: 0 }}>{type === 'success' ? '✅' : '❌'}</span>
-      <span>{text}</span>
-    </div>
-  );
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', background: 'var(--bg)' }}>
-      {/* Panel izquierdo */}
-      <div className="hide-on-mobile" style={{
-        flex: 1,
-        background: 'linear-gradient(135deg, var(--bg2), var(--primary-light))',
-        padding: 60,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        borderRight: '1px solid var(--border)'
+      <aside className="login-aside" style={{
+        flex: '1 1 50%', background: '#0A2029', color: '#E6EDF1',
+        padding: 'clamp(40px, 6vw, 72px)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
       }}>
-        {tenant?.logo_url ? (
-          <img src={tenant.logo_url} alt={tenant.name}
-            style={{ maxHeight: 80, maxWidth: 220, objectFit: 'contain', marginBottom: 32, filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.15))' }}
-          />
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
-            <div style={{ width: 56, height: 56, borderRadius: 16, background: 'linear-gradient(135deg, #6366f1, #14b8a6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(99,102,241,0.35)' }}>
-              <svg viewBox="0 0 32 32" width="34" height="34" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="16" cy="16" r="10" fill="none" stroke="white" strokeWidth="2.5"/>
-                <circle cx="16" cy="16" r="5" fill="none" stroke="white" strokeWidth="2"/>
-                <circle cx="16" cy="16" r="2" fill="white"/>
-              </svg>
-            </div>
-            <span style={{ fontSize: 28, fontWeight: 900, color: 'var(--text)', letterSpacing: '-1px' }}>Xtratia</span>
-          </div>
-        )}
-        <h1 className="scale-in" style={{ fontSize: 48, fontWeight: 800, marginBottom: 24, lineHeight: 1.1, color: 'var(--text)', letterSpacing: '-1px' }}>
-          {tenant
-            ? <><span>Bóveda estratégica de</span><br/><span style={{ color: 'var(--primary)' }}>{tenant.name}.</span></>
-            : <><span>El motor de tu</span><br/><span style={{ color: 'var(--primary)' }}>estrategia AI.</span></>
-          }
-        </h1>
-        <p style={{ fontSize: 18, color: 'var(--text2)', lineHeight: 1.6, maxWidth: 500, fontWeight: 500 }}>
-          {tenant
-            ? 'Inicia sesión para acceder a tu Command Center, OKRs y KPIs asignados.'
-            : 'Xtratia unifica tus OKRs, KPIs e iniciativas bajo un núcleo de Inteligencia Artificial que predice resultados.'
-          }
-        </p>
-      </div>
+        <BrandLogo size={44} light />
+        <div style={{ maxWidth: 520 }}>
+          <div style={{ width: 48, height: 2, background: '#D9AC6B', marginBottom: 28 }} />
+          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 'clamp(34px, 3.6vw, 48px)', lineHeight: 1.12, marginBottom: 20 }}>
+            {BRAND.tagline}
+          </h1>
+          <p style={{ fontSize: 16, lineHeight: 1.65, color: 'rgba(230,237,241,.72)', maxWidth: '52ch' }}>
+            Mapa estratégico, OKRs, indicadores e iniciativas del despacho, con análisis asistido por IA.
+          </p>
+        </div>
+        <div style={{ fontSize: 12, color: 'rgba(230,237,241,.5)' }}>
+          {BRAND.legalName}. Uso interno y confidencial.
+        </div>
+      </aside>
 
-      {/* Panel derecho — formulario */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-        {resetMode ? (
-          <form onSubmit={handleReset} className="sp-card fade-up" style={{ padding: 48, width: '100%', maxWidth: 420, borderRadius: 24 }}>
-            <h2 style={{ marginBottom: 8, textAlign: 'center', color: 'var(--text)', fontSize: 24, fontWeight: 800 }}>Recuperar contraseña</h2>
-            <p style={{ textAlign: 'center', color: 'var(--text3)', fontSize: 14, marginBottom: 32 }}>
-              {resetSent ? 'Revisa también la carpeta de spam.' : 'Ingresa tu correo y te enviaremos un enlace de acceso.'}
-            </p>
-            {statusMsg.text && <StatusBanner type={statusMsg.type} text={statusMsg.text} />}
-            {!resetSent && (
-              <>
-                <label className="sp-label" style={{ marginBottom: 8, fontSize: 12 }}>Correo Electrónico</label>
-                <input className="sp-input scale-in" type="email" placeholder="ejemplo@empresa.com"
-                  value={email} onChange={handleFieldChange(setEmail)} autoFocus autoComplete="email"
-                  style={{ marginBottom: 20, padding: '14px 16px', borderRadius: 14, fontSize: 14 }} required />
-                <button type="submit" disabled={loading} className="sp-btn sp-btn-primary"
-                  style={{ width: '100%', padding: '16px 24px', borderRadius: 14, fontSize: 16, fontWeight: 700, marginBottom: 16, opacity: loading ? 0.7 : 1 }}>
-                  {loading ? 'Enviando...' : 'Enviar enlace →'}
+      <main style={{ flex: '1 1 50%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <div style={{ width: '100%', maxWidth: 400 }}>
+          <div className="login-mobile-logo" style={{ marginBottom: 32 }}><BrandLogo size={36} /></div>
+
+          {step === 'login' && (
+            <form onSubmit={handleLogin}>
+              <h2 className="brand-display" style={{ fontSize: 30, color: 'var(--text)', marginBottom: 6 }}>Iniciar sesión</h2>
+              <p style={{ color: 'var(--text3)', fontSize: 14, marginBottom: 28 }}>{BRAND.product}</p>
+
+              <label className="sp-label" htmlFor="login-email">Correo</label>
+              <input id="login-email" className="sp-input" type="email" placeholder="nombre@empresa.com"
+                value={email} onChange={(e) => { setEmail(e.target.value); clearMsg(); }} autoFocus autoComplete="email" required
+                style={{ ...inputStyle, marginBottom: 18 }} />
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <label className="sp-label" htmlFor="login-pass">Contraseña</label>
+                <button type="button" onClick={() => { setStep('reset'); setMsg({ type: '', text: '' }); }}
+                  style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 12 }}>
+                  ¿La olvidaste?
                 </button>
-              </>
-            )}
-            <button type="button" onClick={() => { setResetMode(false); setResetSent(false); setStatusMsg({ type: '', text: '' }); }}
-              style={{ width: '100%', background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: 14, marginTop: resetSent ? 16 : 0 }}>
-              ← Volver al login
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={handleLogin} className="sp-card fade-up" style={{ padding: 48, width: '100%', maxWidth: 420, borderRadius: 24, boxShadow: '0 24px 48px rgba(0,0,0,0.05)' }}>
-            <h2 style={{ marginBottom: 8, textAlign: 'center', color: 'var(--text)', fontSize: 24, fontWeight: 800 }}>Bienvenido de nuevo</h2>
-            <p style={{ textAlign: 'center', color: 'var(--text3)', fontSize: 14, marginBottom: 32 }}>
-              {tenant ? 'Accede a tu cuenta corporativa.' : 'Ingresa tus credenciales para acceder al sistema.'}
-            </p>
-            <label className="sp-label" style={{ marginBottom: 8, fontSize: 12 }}>Correo Electrónico</label>
-            <input className="sp-input scale-in" type="email" placeholder="ejemplo@empresa.com"
-              value={email} onChange={handleFieldChange(setEmail)} autoFocus autoComplete="email"
-              style={{ marginBottom: 20, padding: '14px 16px', borderRadius: 14, fontSize: 14 }} required />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <label className="sp-label" style={{ fontSize: 12 }}>Contraseña</label>
-              <button type="button" onClick={() => { setResetMode(true); setStatusMsg({ type: '', text: '' }); }}
-                style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: 12 }}>
-                ¿Olvidaste tu contraseña?
+              </div>
+              <div style={{ position: 'relative', marginBottom: 22 }}>
+                <input id="login-pass" className="sp-input" type={showPassword ? 'text' : 'password'}
+                  value={password} onChange={(e) => { setPassword(e.target.value); clearMsg(); }} autoComplete="current-password" required
+                  style={{ ...inputStyle, paddingRight: 72 }} />
+                <button type="button" onClick={() => setShowPassword((p) => !p)}
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', fontSize: 12, fontWeight: 600 }}>
+                  {showPassword ? 'Ocultar' : 'Mostrar'}
+                </button>
+              </div>
+
+              {msg.text && <Status {...msg} />}
+              <button type="submit" disabled={loading} className="sp-btn" style={primaryBtn(loading)}>
+                {loading ? 'Verificando…' : 'Entrar'}
               </button>
-            </div>
-            <div style={{ position: 'relative', marginBottom: 24 }}>
-              <input className="sp-input scale-in" type={showPassword ? 'text' : 'password'} placeholder="••••••••"
-                value={password} onChange={handleFieldChange(setPassword)} autoComplete="current-password"
-                style={{ padding: '14px 16px', borderRadius: 14, fontSize: 14, paddingRight: 48, width: '100%', boxSizing: 'border-box' }} required />
-              <button type="button" onClick={() => setShowPassword(p => !p)}
-                style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', fontSize: 18, padding: 4 }}
-                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
-                {showPassword ? '🙈' : '👁️'}
+            </form>
+          )}
+
+          {step === 'mfa' && (
+            <form onSubmit={handleMfa}>
+              <h2 className="brand-display" style={{ fontSize: 28, color: 'var(--text)', marginBottom: 6 }}>Verificación en dos pasos</h2>
+              <p style={{ color: 'var(--text3)', fontSize: 14, marginBottom: 24 }}>Escribe el código de 6 dígitos de tu app de autenticación.</p>
+              <input className="sp-input" inputMode="numeric" autoComplete="one-time-code" maxLength={6} autoFocus
+                value={code} onChange={(e) => { setCode(e.target.value.replace(/\D/g, '')); clearMsg(); }}
+                style={{ ...inputStyle, fontSize: 22, letterSpacing: 8, textAlign: 'center', marginBottom: 20 }} aria-label="Código de verificación" />
+              {msg.text && <Status {...msg} />}
+              <button type="submit" disabled={loading || code.length < 6} className="sp-btn" style={primaryBtn(loading)}>
+                {loading ? 'Verificando…' : 'Verificar y entrar'}
               </button>
-            </div>
-            {statusMsg.text && <StatusBanner type={statusMsg.type} text={statusMsg.text} />}
-            <button type="submit" disabled={loading} className="sp-btn sp-btn-primary"
-              style={{ width: '100%', padding: '16px 24px', borderRadius: 14, fontSize: 16, fontWeight: 700, opacity: loading ? 0.7 : 1, cursor: loading ? 'not-allowed' : 'pointer', marginTop: 4 }}>
-              {loading ? 'Accediendo...' : 'Acceder a la Plataforma →'}
-            </button>
-          </form>
-        )}
-      </div>
+              <button type="button" onClick={cancelMfa}
+                style={{ width: '100%', marginTop: 14, background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 13 }}>
+                Usar otra cuenta
+              </button>
+            </form>
+          )}
+
+          {step === 'reset' && (
+            <form onSubmit={handleReset}>
+              <h2 className="brand-display" style={{ fontSize: 28, color: 'var(--text)', marginBottom: 6 }}>Recuperar contraseña</h2>
+              <p style={{ color: 'var(--text3)', fontSize: 14, marginBottom: 24 }}>Te enviaremos un enlace para crear una nueva.</p>
+              {!resetSent && (
+                <>
+                  <label className="sp-label" htmlFor="reset-email">Correo</label>
+                  <input id="reset-email" className="sp-input" type="email" value={email}
+                    onChange={(e) => { setEmail(e.target.value); clearMsg(); }} autoFocus autoComplete="email" required
+                    style={{ ...inputStyle, marginBottom: 20 }} />
+                </>
+              )}
+              {msg.text && <Status {...msg} />}
+              {!resetSent && (
+                <button type="submit" disabled={loading} className="sp-btn" style={primaryBtn(loading)}>
+                  {loading ? 'Enviando…' : 'Enviar enlace'}
+                </button>
+              )}
+              <button type="button" onClick={() => { setStep('login'); setResetSent(false); setMsg({ type: '', text: '' }); }}
+                style={{ width: '100%', marginTop: 14, background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 13 }}>
+                Volver a iniciar sesión
+              </button>
+            </form>
+          )}
+        </div>
+      </main>
+
+      <style>{`
+        .login-mobile-logo{display:none}
+        @media (max-width: 860px){ .login-aside{display:none!important} .login-mobile-logo{display:block} }
+      `}</style>
     </div>
   );
 };
 
 export default LoginIntegrated;
+
+/** Pantalla para definir nueva contraseña al llegar desde el enlace de recuperación. */
+export function NewPasswordScreen({ onDone }) {
+  const [a, setA] = useState('');
+  const [b, setB] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState({ type: '', text: '' });
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (a.length < 8) return setMsg({ type: 'error', text: 'Usa al menos 8 caracteres.' });
+    if (a !== b) return setMsg({ type: 'error', text: 'Las contraseñas no coinciden.' });
+    setLoading(true);
+    const { error } = await supabase.auth.updateUser({ password: a });
+    setLoading(false);
+    if (error) return setMsg({ type: 'error', text: 'No se pudo guardar: ' + error.message });
+    setMsg({ type: 'success', text: 'Contraseña guardada. Entrando…' });
+    if (onDone) onDone();
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', padding: 24 }}>
+      <form onSubmit={submit} style={{ width: '100%', maxWidth: 400 }}>
+        <div style={{ marginBottom: 28 }}><BrandLogo size={36} /></div>
+        <h2 className="brand-display" style={{ fontSize: 28, color: 'var(--text)', marginBottom: 6 }}>Crea tu nueva contraseña</h2>
+        <p style={{ color: 'var(--text3)', fontSize: 14, marginBottom: 24 }}>Mínimo 8 caracteres.</p>
+        <label className="sp-label" htmlFor="np-a">Nueva contraseña</label>
+        <input id="np-a" className="sp-input" type="password" autoComplete="new-password" value={a} onChange={(e) => setA(e.target.value)} style={{ ...inputStyle, marginBottom: 16 }} autoFocus required />
+        <label className="sp-label" htmlFor="np-b">Confirmar contraseña</label>
+        <input id="np-b" className="sp-input" type="password" autoComplete="new-password" value={b} onChange={(e) => setB(e.target.value)} style={{ ...inputStyle, marginBottom: 20 }} required />
+        {msg.text && <Status {...msg} />}
+        <button type="submit" disabled={loading} className="sp-btn" style={primaryBtn(loading)}>{loading ? 'Guardando…' : 'Guardar contraseña'}</button>
+      </form>
+    </div>
+  );
+}

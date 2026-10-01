@@ -2,15 +2,16 @@ import logger from './utils/logger.js';
 import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { supabase } from "./supabase.js";
 import { initTheme, setTheme } from "./theme.js";
-import LoginIntegrated from "./components/Auth/LoginIntegrated.jsx";
+import LoginIntegrated, { needsSecondFactor, NewPasswordScreen } from "./components/Auth/LoginIntegrated.jsx";
 import ChangePassword from "./ChangePassword.jsx";
-import Unauthorized from "./pages/Unauthorized.jsx";
 import { useTranslation } from "react-i18next";
 import { perspectiveService, okrService, kpiService, initiativeService, alertService, objectivesService, autoAlertService, notificationService, setNotifyFn } from "./services.js";
 import { OKRForm, KPIForm, InitiativeForm, Modal } from "./forms.jsx";
 import { AddBtn, TabBar, EmptyState, ConfirmationModal } from "./SharedUI.jsx";
 import toast, { Toaster } from "react-hot-toast";
-import SuperAdmin from "./SuperAdmin.jsx";
+import AdminPanel from "./AdminPanel.jsx";
+import BrandLogo from "./BrandLogo.jsx";
+import { BRAND } from "./brand.js";
 import CommandCenter from "./CommandCenter.jsx";
 import Dashboard from "./Dashboard.jsx";
 import AIInsights from "./AIInsights.jsx";
@@ -21,21 +22,13 @@ import StrategicEngine from "./StrategicEngine.jsx";
 import StrategicBus from "./StrategicBus.jsx";
 import IntelligentCore from "./IntelligentCore.jsx";
 import { useStore } from "./store.js";
-import { useSubdomainTenant } from "./useSubdomainTenant.js";
-import { ProtectedRoute } from "./components/ProtectedRoute.jsx";
-import { useApiAuth } from "./hooks/useApiAuth.js";
-import { SecretsManagementDashboard } from "./components/SecretsManagement/SecretsManagementDashboard.jsx";
-import { KeyRotationDashboard } from "./components/KeyRotation/KeyRotationDashboard.jsx";
-import { ComplianceDashboard } from "./components/Compliance/ComplianceDashboard.jsx";
-import { ProductionHardeningDashboard } from "./components/ProductionHardening/ProductionHardeningDashboard.jsx";
-import { AdvancedFeaturesDashboard } from "./components/AdvancedFeatures/AdvancedFeaturesDashboard.jsx";
 
 // Registrar bridge de notificaciones (evita importación circular con store)
 // Dual bridge: guarda en store (historial) + muestra toast visual inmediatamente
 setNotifyFn((notif) => {
   useStore.getState().addNotification(notif);
   const msg = notif.message || '';
-  const opts = { duration: 4000, style: { fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, maxWidth: 400 } };
+  const opts = { duration: 4000, style: { fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 13, maxWidth: 400 } };
   if (notif.type === 'success') toast.success(msg, opts);
   else if (notif.type === 'error')   toast.error(msg, { ...opts, duration: 6000 });
   else if (notif.type === 'warning') toast(msg, { ...opts, icon: '⚠️' });
@@ -116,13 +109,12 @@ class ErrorBoundary extends React.Component {
 
 function LoadingScreen(){
   return(
-    <div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
-      <div style={{position:"relative"}}>
-        <div style={{width:60,height:60,borderRadius:16,background:"linear-gradient(135deg,var(--primary),var(--teal))",display:"flex",alignItems:"center",justifyContent:"center",fontSize:26}}>🎯</div>
-        <div style={{position:"absolute",inset:-5,borderRadius:22,border:"2.5px solid transparent",borderTopColor:"var(--primary)",animation:"spin 1s linear infinite"}}/>
+    <div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:18}}>
+      <BrandLogo size={56} variant="mark" />
+      <div className="brand-display" style={{fontSize:22,color:"var(--text)"}}>{BRAND.name}</div>
+      <div style={{width:120,height:2,background:"var(--border)",borderRadius:2,overflow:"hidden",position:"relative"}}>
+        <div style={{position:"absolute",inset:0,width:"40%",background:"var(--accent)",animation:"pulse 1.2s ease infinite"}}/>
       </div>
-      <div style={{fontSize:22,fontWeight:800,color:"var(--text)",letterSpacing:"-.3px"}}>Xtratia</div>
-      <div style={{fontSize:13,color:"var(--text3)",fontWeight:500,animation:"pulse 1.5s ease infinite"}}>Cargando plataforma...</div>
     </div>
   );
 }
@@ -352,11 +344,6 @@ function CommandPalette({onNavigate,onClose,data}){
     {icon:"📈",label:"Analitica — Dashboard + Radar + Benchmark",module:"analitica"},
     {icon:"📤",label:"Reportes — PDF + Excel + Word + PPT",module:"reportes"},
     {icon:"🔔",label:"Alertas — Centro de alertas",module:"alertas"},
-    {icon:"🔐",label:"Secrets Management — FASE 6 Vault + Encryption",module:"secrets"},
-    {icon:"🔄",label:"Key Rotation — FASE 7 Rotation + Scheduling",module:"rotation"},
-    {icon:"📊",label:"Compliance & Audit Trail — FASE 8 Reports + Forensics",module:"compliance"},
-    {icon:"🛡️",label:"Production Hardening — FASE 9 Security + Infrastructure",module:"hardening"},
-    {icon:"🚀",label:"Advanced Features — FASE 10 Multi-Key + Backup + Hierarchy + KMS",module:"features"},
   ];
   var filtered=query.trim()===""?ACTIONS:ACTIONS.filter(function(a){return a.label.toLowerCase().includes(query.toLowerCase());});
   useEffect(function(){
@@ -369,13 +356,13 @@ function CommandPalette({onNavigate,onClose,data}){
       <div style={{width:"100%",maxWidth:540,background:"var(--bg2)",borderRadius:16,border:"1px solid var(--border)",boxShadow:"0 24px 64px rgba(0,0,0,.2)",overflow:"hidden"}}>
         <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:"1px solid var(--border)"}}>
           <span style={{fontSize:16,color:"var(--text3)"}}>🔍</span>
-          <input autoFocus value={query} onChange={function(e){setQuery(e.target.value);}} placeholder="Buscar modulos y acciones..." style={{flex:1,border:"none",background:"transparent",fontSize:14,color:"var(--text)",outline:"none",fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:500}}/>
+          <input autoFocus value={query} onChange={function(e){setQuery(e.target.value);}} placeholder="Buscar modulos y acciones..." style={{flex:1,border:"none",background:"transparent",fontSize:14,color:"var(--text)",outline:"none",fontFamily:"'IBM Plex Sans', sans-serif",fontWeight:500}}/>
           <kbd style={{fontSize:10,padding:"2px 7px",borderRadius:5,background:"var(--bg3)",border:"1px solid var(--border)",color:"var(--text3)"}}>ESC</kbd>
         </div>
         <div style={{maxHeight:360,overflowY:"auto",padding:6}}>
           {filtered.map(function(a,i){
             return(
-              <button key={i} onClick={function(){onNavigate(a.module);onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:9,border:"none",background:"transparent",cursor:"pointer",textAlign:"left",fontFamily:"'Plus Jakarta Sans',sans-serif",transition:"all .1s"}} onMouseEnter={function(e){e.currentTarget.style.background="var(--primary-light)";}} onMouseLeave={function(e){e.currentTarget.style.background="transparent";}}>
+              <button key={i} onClick={function(){onNavigate(a.module);onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:9,border:"none",background:"transparent",cursor:"pointer",textAlign:"left",fontFamily:"'IBM Plex Sans', sans-serif",transition:"all .1s"}} onMouseEnter={function(e){e.currentTarget.style.background="var(--primary-light)";}} onMouseLeave={function(e){e.currentTarget.style.background="transparent";}}>
                 <span style={{fontSize:18,width:28,textAlign:"center",flexShrink:0}}>{a.icon}</span>
                 <span style={{fontSize:13,fontWeight:500,color:"var(--text)"}}>{a.label}</span>
               </button>
@@ -397,8 +384,6 @@ function CommandPalette({onNavigate,onClose,data}){
 // extrayendo lógica a hooks personalizados (ej. useModals, usePaymentStatus, useRealtime)
 // y componentes más pequeños.
 function MainApp({ onLogout, onSuperAdmin }){
-  // Initialize API authentication for FASE 5 backend integration
-  const { isAuthenticated: apiAuthenticated, isLoading: apiLoading, backendStatus } = useApiAuth();
 
   // Consumimos el estado global, selectores y manejadores de Zustand
   const loadingData = useStore.use.loadingData();
@@ -427,7 +412,7 @@ function MainApp({ onLogout, onSuperAdmin }){
   const unsubscribeRealtime = useStore.use.unsubscribeRealtime();
   const requestPushNotifications = useStore.use.requestPushNotifications();
   // La visibilidad del botón depende SOLO del rol en la base de datos (is_super_admin o Admin).
-  const canTrySuperAdmin = !impersonatedProfile && (realProfile?.is_super_admin || realProfile?.role === 'Admin');
+  const canTrySuperAdmin = !impersonatedProfile && (realProfile?.is_super_admin || ['admin','Admin','super_admin'].includes(realProfile?.role));
 
   const { t, i18n } = useTranslation();
   const [modal,setModal]=useState(null);
@@ -534,7 +519,6 @@ function MainApp({ onLogout, onSuperAdmin }){
   }
 
   async function handleSaveOKR(form){
-    if (!checkPaymentStatus()) return;
     try {
       const payload = { ...form };
       if (!payload.objective_id || payload.objective_id === "") payload.objective_id = null;
@@ -554,7 +538,6 @@ function MainApp({ onLogout, onSuperAdmin }){
   }
 
   async function handleSaveKPI(form){
-    if (!checkPaymentStatus()) return;
     try {
       const payload = { ...form };
       if (payload.id) {
@@ -573,7 +556,6 @@ function MainApp({ onLogout, onSuperAdmin }){
   }
 
   async function handleSaveInitiative(form){
-    if (!checkPaymentStatus()) return;
     try {
       const payload = { ...form };
       if (!payload.organization_id) payload.organization_id = getActiveOrgId();
@@ -583,21 +565,12 @@ function MainApp({ onLogout, onSuperAdmin }){
     } catch(e) { notificationService.error("Error al guardar Iniciativa: " + e?.message); }
   }
 
-  // LÓGICA DE GOBERNANZA Y AISLAMIENTO DE DATOS (RBAC)
-  // La vista global se determina por el rol del usuario, no por su email.
-  const isGlobalView = can('read', 'all_organizations'); // Asumiendo un permiso para vistas globales
-  
-  var todayObj = new Date();
-  var currentMonthStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}`;
   // currentOrganization es la fuente de verdad; profile.organizations es el fallback del join
   var org = currentOrganization || (profile && profile.organizations && !Array.isArray(profile.organizations) ? profile.organizations : profile?.organizations?.[0]) || null;
-  var isPaidThisMonth = org?.modules?.lastPaymentMonth === currentMonthStr;
-  var isInGracePeriod = !isPaidThisMonth && todayObj.getDate() <= 10;
-  var isBlocked = !isGlobalView && !isPaidThisMonth && todayObj.getDate() > 10 && !realProfile?.is_super_admin;
 
   var unreadAlerts=(alerts || []).filter(function(a){return !a.is_read;}).length;
   var criticalToasts=(alerts || []).filter(function(a){return a.severity==="critical"&&!a.is_read&&!dismissedToasts.includes(a.id);});
-  var orgName=org?.name||"Mi Organización";
+  var orgName=BRAND.name;
 
   const toggleZenMode = () => {
     if (!document.fullscreenElement) {
@@ -609,15 +582,6 @@ function MainApp({ onLogout, onSuperAdmin }){
       setZenMode(false);
     }
   };
-
-  // Protector de escritura (Modo Solo Lectura por falta de pago)
-  function checkPaymentStatus() {
-    if (isBlocked) {
-      notificationService.error("⛔ Acción Bloqueada: Periodo de gracia expirado. Sistema en Modo Solo Lectura.");
-      return false;
-    }
-    return true;
-  }
 
   var NAV_GROUPS = [
     {
@@ -653,7 +617,7 @@ function MainApp({ onLogout, onSuperAdmin }){
   ];
 
   return(
-    <div style={{minHeight:"100vh",background:"var(--bg)",fontFamily:"'Plus Jakarta Sans',sans-serif",display:"flex",flexDirection:"column"}}>
+    <div style={{minHeight:"100vh",background:"var(--bg)",fontFamily:"'IBM Plex Sans', sans-serif",display:"flex",flexDirection:"column"}}>
       <style>{`
         .hide-on-mobile-small { display: inline; }
         @media (max-width: 1100px) { .hide-on-mobile-small { display: none; } }
@@ -662,20 +626,10 @@ function MainApp({ onLogout, onSuperAdmin }){
       <div style={{height:54,background:"var(--bg2)",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 18px",position:"sticky",top:0,zIndex:200}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <button className="icon-btn" onClick={function(){setSidebarCollapsed(!sidebarCollapsed);}}>{sidebarCollapsed?"☰":"←"}</button>
-          <div className="tour-step-logo" style={{display:"flex",alignItems:"center",gap:8,padding:"0 4px"}}>
-            <div style={{width:28,height:28,borderRadius:8,background:"linear-gradient(135deg,var(--primary),var(--teal))",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:900,color:"#fff"}}>X</div>
-            <span style={{fontSize:15,fontWeight:800,color:"var(--text)",letterSpacing:"-.3px"}}>Xtratia</span>
+          <div className="tour-step-logo" style={{display:"flex",alignItems:"center",padding:"0 4px"}}>
+            <BrandLogo size={30} showProduct />
           </div>
-          <div style={{width:1,height:16,background:"var(--border)"}}/>
-          <span style={{fontSize:12,color:"var(--text3)",fontWeight:500}}>{orgName}</span>
-          {/* Backend API Connection Status Indicator */}
-          {apiAuthenticated && (
-            <div style={{display:"flex",alignItems:"center",gap:6,marginLeft:8,padding:"4px 10px",borderRadius:6,background:"var(--bg3)",border:"1px solid var(--border)"}}>
-              <span style={{width:6,height:6,borderRadius:"50%",background:"var(--teal)",boxShadow:"0 0 8px rgba(20,184,166,0.6)"}}/>
-              <span style={{fontSize:11,color:"var(--text3)",fontWeight:600}}>FASE 5</span>
-            </div>
-          )}
-          <button className="tour-step-search" onClick={function(){setCmdOpen(true);}} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 12px",borderRadius:8,border:"1px solid var(--border)",background:"var(--bg3)",cursor:"pointer",color:"var(--text3)",fontSize:12,fontFamily:"'Plus Jakarta Sans',sans-serif",marginLeft:4}}>
+          <button className="tour-step-search" onClick={function(){setCmdOpen(true);}} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 12px",borderRadius:8,border:"1px solid var(--border)",background:"var(--bg3)",cursor:"pointer",color:"var(--text3)",fontSize:12,fontFamily:"'IBM Plex Sans', sans-serif",marginLeft:4}}>
             <span>🔍</span><span>Buscar...</span>
             <kbd style={{fontSize:10,padding:"1px 6px",borderRadius:4,background:"var(--bg2)",border:"1px solid var(--border)",color:"var(--text3)"}}>⌘K</kbd>
           </button>
@@ -683,16 +637,15 @@ function MainApp({ onLogout, onSuperAdmin }){
       <div style={{display:"flex",alignItems:"center",gap:12}}>
         <button className="icon-btn" onClick={toggleZenMode} title="Modo Presentación (Pantalla Completa)">{zenMode ? '↙️' : '↗️'}</button>
           {unreadAlerts>0&&<button onClick={function(){setActiveModule("alertas");}} className="header-action" style={{color:"var(--red)",borderColor:"rgba(239,68,68,.3)"}}>🔔<span style={{fontWeight:700}}>{unreadAlerts}</span></button>}
-          {org&&org.logo_url&&<img src={org.logo_url} alt="logo" style={{height:26,width:"auto",objectFit:"contain",borderRadius:6,border:"1px solid var(--border)",padding:2,background:"var(--bg2)"}}/>}
-          <ThemeToggle theme={theme} onToggle={toggleTheme}/>
+                    <ThemeToggle theme={theme} onToggle={toggleTheme}/>
           <div style={{display:"flex",alignItems:"center",gap:8,padding:"5px 10px",borderRadius:8,background:"var(--bg3)",border:"1px solid var(--border)"}}>
             <Avatar name={profile&&profile.full_name}/>
             <span style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{profile&&profile.full_name||"Usuario"}</span>
-            <span className="sp-badge" style={{background:"var(--primary-light)",color:"var(--primary)",padding:"2px 7px",fontSize:10}}>{profile?.is_super_admin ? "Super Admin" : (profile&&profile.role||"viewer")}</span>
+            <span className="sp-badge" style={{background:"var(--primary-light)",color:"var(--primary)",padding:"2px 7px",fontSize:10}}>{profile?.is_super_admin ? "Administrador" : ({admin:"Administrador",Admin:"Administrador",editor:"Editor",viewer:"Lector"}[profile&&profile.role]||"Lector")}</span>
           </div>
           {/* El acceso al panel de Super Admin se controla con el sistema de permisos `can()` */}
           {/* Esto centraliza la lógica de autorización y elimina la duplicación de roles. */}
-          {canTrySuperAdmin && <button className="header-action" onClick={onSuperAdmin} style={{color:"var(--gold)",borderColor:"rgba(245,158,11,.3)"}}>⚡ Admin</button>}
+          {canTrySuperAdmin && <button className="header-action" onClick={onSuperAdmin} title="Usuarios, identidad y seguridad">⚙️ Administración</button>}
           <LanguageSwitcher />
           <button className="header-action" onClick={onLogout} style={{background: 'var(--bg3)'}}>Salir</button>
         </div>
@@ -720,8 +673,8 @@ function MainApp({ onLogout, onSuperAdmin }){
                 );
               })}
               <div style={{padding:"16px 16px 4px",marginTop:8,borderTop:"1px dashed var(--border)"}}>
-                <div style={{fontSize:12,fontWeight:800,color:"var(--text)",letterSpacing:"0.5px"}}>XTRATIA v3.0</div>
-                <div style={{fontSize:11,color:"var(--text3)",marginTop:2}}>Enterprise OS</div>
+                <div className="brand-display" style={{fontSize:14,color:"var(--text)"}}>{BRAND.name}</div>
+                <div style={{fontSize:11,color:"var(--text3)",marginTop:2}}>Uso interno · confidencial</div>
               </div>
             </div>
           )}
@@ -740,24 +693,6 @@ function MainApp({ onLogout, onSuperAdmin }){
             <button onClick={clearImpersonation} className="sp-btn" style={{ background: '#fff', color: 'var(--violet)', border: 'none', padding: '8px 16px', fontSize: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               Salir de Impersonación
             </button>
-          </div>
-        )}
-        {isBlocked && (
-          <div className="fade-up" style={{ background: 'var(--red)', color: '#fff', padding: '16px 24px', borderRadius: 16, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 16, boxShadow: '0 8px 16px rgba(220,38,38,0.3)' }}>
-            <div style={{ fontSize: 32 }}>💳</div>
-            <div>
-              <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 4 }}>Suscripción Suspendida (Pago Pendiente)</div>
-              <div style={{ fontSize: 13, opacity: 0.9 }}>El periodo de gracia de 10 días ha finalizado. El sistema ha sido limitado a <strong>Modo Solo Lectura</strong>. Comuníquese con soporte para reactivar la cuenta.</div>
-            </div>
-          </div>
-        )}
-        {!isPaidThisMonth && isInGracePeriod && !isGlobalView && (
-          <div className="fade-up" style={{ background: 'var(--gold)', color: '#fff', padding: '16px 24px', borderRadius: 16, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 16, boxShadow: '0 8px 16px rgba(245,158,11,0.3)' }}>
-            <div style={{ fontSize: 32 }}>⏳</div>
-            <div>
-              <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 4 }}>Factura Mensual Pendiente (Periodo de Gracia)</div>
-              <div style={{ fontSize: 13, opacity: 0.9 }}>Recuerda que tienes hasta el día 10 de este mes para confirmar el pago. Después de esta fecha, la plataforma pasará a solo lectura.</div>
-            </div>
           </div>
         )}
         {globalError && (
@@ -799,11 +734,6 @@ function MainApp({ onLogout, onSuperAdmin }){
               {activeModule==="analitica"&&<ModuloAnalitica />}
               {activeModule==="reportes"&&<ModuloReportes />}
               {activeModule==="alertas"&&<ModuloAlertas />}
-              {activeModule==="secrets"&&<SecretsManagementDashboard />}
-              {activeModule==="rotation"&&<KeyRotationDashboard />}
-              {activeModule==="compliance"&&<ComplianceDashboard />}
-              {activeModule==="hardening"&&<ProductionHardeningDashboard />}
-              {activeModule==="features"&&<AdvancedFeaturesDashboard />}
       </Suspense>
     </ErrorBoundary>
           </div>
@@ -842,12 +772,9 @@ export default function App(){
   const { i18n } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [superAdminActive, setSuperAdminActive] = useState(false);
-  const [showUnauthorized, setShowUnauthorized] = useState(false);
+  const [mfaPending, setMfaPending] = useState(false);
+  const [recoveryMode, setRecoveryMode] = useState(false);
 
-  // Detecta subdominio (e.g., acme.xtratia.com) y carga el tenant para el login con branding
-  useSubdomainTenant();
-  const [showSuperAdminCodeModal, setShowSuperAdminCodeModal] = useState(false);
-  const [superAdminCodeInput, setSuperAdminCodeInput] = useState('');
   // Se leen los datos de autenticación directamente del store de Zustand como única fuente de verdad.
   // **OPTIMIZACIÓN CRÍTICA**: Se refactoriza a selectores atómicos para prevenir el bucle infinito de re-renderizados
   // ("Maximum update depth exceeded") causado por la creación de nuevos objetos en el selector.
@@ -855,7 +782,6 @@ export default function App(){
   const profile = useStore(state => state.profile);
   const setAuth = useStore(state => state.setAuth);
   const passwordRotationDue = useStore(state => state.passwordRotationDue);
-  const SUPER_ADMIN_SECRET_CODE = import.meta.env.VITE_SUPER_ADMIN_SECRET_CODE || null;
 
   const profileLoadingRef = useRef(false);
 
@@ -865,15 +791,17 @@ export default function App(){
     // Suscribirse PRIMERO para no perdernos el evento PASSWORD_RECOVERY
     var sub = supabase.auth.onAuthStateChange(function(event, session){
       if (event === 'PASSWORD_RECOVERY') {
+        setRecoveryMode(true);
         setLoading(false);
         return;
       }
       if (event === 'USER_UPDATED') {
-        setAuth(null, null);
-        setLoading(false);
+        // Cambio de contraseña o datos: la sesión sigue activa, no se expulsa al usuario
         return;
       }
       if (event === 'SIGNED_OUT') {
+        setMfaPending(false);
+        setRecoveryMode(false);
         setAuth(null, null);
         setLoading(false);
         profileLoadingRef.current = false;
@@ -905,13 +833,22 @@ export default function App(){
 
   async function loadProfile(currentUser){
     try{
+      // Candado de verificación en dos pasos: sin el código no se carga el perfil
+      if (await needsSecondFactor()) {
+        setMfaPending(true);
+        setLoading(false);
+        return;
+      }
+      setMfaPending(false);
       // ========================================
       // MEJORADO: Incluir organization_roles JSONB para soporte multi-tenant
       // Si la columna no existe en la BD, Supabase ignorará silenciosamente
       // ========================================
       var res=await supabase.from("profiles")
-        .select("*, organizations(*)")
+        .select("*")
         .eq("id",currentUser.id).maybeSingle();
+      // Instancia única: la "organización" es la configuración institucional (instance_settings)
+      var inst = await supabase.from("instance_settings").select("*").eq("id",1).maybeSingle();
       
       // **MEJORA DE ROBUSTEZ**: Si un usuario está autenticado pero no tiene un perfil en la BD,
       // es un estado de error crítico. Lo notificamos y lo deslogueamos para evitar inconsistencias.
@@ -925,10 +862,10 @@ export default function App(){
         return; // Detener la ejecución
       }
 
-      const profileData = res.data;
+      const profileData = { ...res.data, organizations: inst.data || { id: 1, name: BRAND.legalName } };
 
       // Sincronización inicial del idioma al cargar el perfil
-      const initialLang = profileData?.preferred_language || profileData?.organizations?.language;
+      const initialLang = profileData?.preferred_language;
       if (initialLang && !i18n.language.startsWith(initialLang.substring(0, 2))) {
           i18n.changeLanguage(initialLang);
       }
@@ -944,7 +881,7 @@ export default function App(){
     try {
       logger.info('User logout initiated', { timestamp: new Date().toISOString() });
 
-      // FASE 1.2: Comprehensive Logout Enhancement
+      // Cierre de sesión completo
       // ============================================
 
       // 1. Stop WebSocket realtime subscriptions
@@ -975,6 +912,7 @@ export default function App(){
         'sp-notifications',
         'sp-preferences',
         'xtratia-chunk-reload',
+        'cyc-theme',
         'xtratia-lang',
         'user-id',
         'organization-id',
@@ -1081,64 +1019,43 @@ export default function App(){
     }
   }
 
+  const isAdmin = !!(profile?.is_super_admin || ['admin','Admin','super_admin'].includes(profile?.role));
   const activateSuperAdminMode = () => {
-    const isGlobalSuperAdmin = useStore.getState().can('access', 'super_admin_panel');
-    // Check if already Super Admin via DB flag or hardcoded email
-    if (isGlobalSuperAdmin) {
-      setSuperAdminActive(true);
-      notificationService.success("Acceso directo a Super Administrador.");
-    } else {
-      setShowSuperAdminCodeModal(true);
-    }
+    if (isAdmin) setSuperAdminActive(true);
+    else notificationService.error("Solo un administrador puede abrir este panel.");
   };
 
-  const handleSuperAdminCodeSubmit = () => {
-    if (SUPER_ADMIN_SECRET_CODE && superAdminCodeInput === SUPER_ADMIN_SECRET_CODE) {
-      setSuperAdminActive(true);
-      notificationService.success("Modo Super Administrador activado.");
-    } else {
-      notificationService.error("Código incorrecto o no configurado.");
-    }
-    setShowSuperAdminCodeModal(false);
-    setSuperAdminCodeInput('');
-  };
-
+  if (recoveryMode) {
+    return (
+      <NewPasswordScreen
+        onDone={async () => {
+          setRecoveryMode(false);
+          const { data } = await supabase.auth.getSession();
+          if (data?.session?.user) { setLoading(true); await loadProfile(data.session.user); }
+        }}
+      />
+    );
+  }
   if (loading) return <LoadingScreen />;
   // **MEJORA DE ROBUSTEZ**: No renderizar la app principal hasta que el perfil esté cargado.
   // Usamos `profile` como única fuente de verdad (se carga junto con `user` en setAuth).
-  if (!profile) return <LoginIntegrated />;
-
-  // If superAdminActive is true, render SuperAdmin component
-  // FASE 1.3: Admin-only section protected with ProtectedRoute
-  if (superAdminActive) {
+  if (!profile || mfaPending) {
     return (
-      <ProtectedRoute
-        requiredRole="Admin"
-        allowSuperAdmin={true}
-        onAccessDenied={(reason) => {
-          logger.warn('[App] Access denied to SuperAdmin', { reason });
-          setSuperAdminActive(false);
-          setShowUnauthorized(true);
+      <LoginIntegrated
+        key={mfaPending ? 'mfa' : 'login'}
+        mfaPending={mfaPending}
+        onVerified={async () => {
+          const { data } = await supabase.auth.getSession();
+          if (data?.session?.user) { setLoading(true); await loadProfile(data.session.user); }
         }}
-      >
-        <SuperAdmin user={user} profile={profile} onBack={() => setSuperAdminActive(false)} isCodeActivated={true} />
-      </ProtectedRoute>
+      />
     );
   }
 
-  // FASE 1.3: Show Unauthorized page if access was denied
-  // User can click button to go back or return to home
-  if (showUnauthorized) {
-    return (
-      <div>
-        <Unauthorized />
-        <style>{`
-          button { cursor: pointer; }
-          button:active { transform: scale(0.98); }
-        `}</style>
-      </div>
-    );
+  if (superAdminActive && isAdmin) {
+    return <AdminPanel profile={profile} onBack={() => setSuperAdminActive(false)} />;
   }
+
 
   if (passwordRotationDue && profile?.password_rotation_due === true) {
     return <ChangePassword />;
@@ -1148,36 +1065,14 @@ export default function App(){
   return (
     <>
       {/* Banner global: clave de IA Gemini no configurada */}
-      {!import.meta.env.VITE_GEMINI_API_KEY && (
+      {isAdmin && !import.meta.env.VITE_GEMINI_API_KEY && !import.meta.env.VITE_CLAUDE_API_KEY && !import.meta.env.VITE_GROQ_API_KEY && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 99998, background: '#92400e', color: '#fef3c7', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 600 }}>
           <span>⚠️</span>
-          <span>La IA está desactivada. Agrega <code style={{ background: 'rgba(0,0,0,0.25)', padding: '2px 6px', borderRadius: 4 }}>VITE_GEMINI_API_KEY</code> en Vercel → Settings → Environment Variables (key gratuita en aistudio.google.com) y redespliega.</span>
+          <span>La IA está desactivada: falta configurar una clave (Gemini, Claude o Groq) en Vercel → Settings → Environment Variables.</span>
         </div>
       )}
       {/* Cualquier usuario autenticado puede acceder — el if (!profile) de arriba ya protege */}
       <MainApp onLogout={handleLogout} onSuperAdmin={activateSuperAdminMode} />
-      {showSuperAdminCodeModal && (
-        <Modal onClose={() => setShowSuperAdminCodeModal(false)}>
-          <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg2)' }}>
-            <h3 style={{ fontSize: 20, color: 'var(--text)', margin: 0 }}>Activar Modo Super Administrador</h3>
-            <button onClick={() => setShowSuperAdminCodeModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text3)', fontSize: 28, cursor: 'pointer', outline: 'none', lineHeight: 1 }}>×</button>
-          </div>
-          <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <p style={{ color: 'var(--text2)', fontSize: 14 }}>Ingresa el código secreto para activar el modo Super Administrador.</p>
-            <input
-              type="password"
-              className="sp-input"
-              value={superAdminCodeInput}
-              onChange={(e) => setSuperAdminCodeInput(e.target.value)}
-              placeholder="Código Secreto"
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSuperAdminCodeSubmit(); }}
-            />
-            <button className="sp-btn" onClick={handleSuperAdminCodeSubmit} style={{ background: 'var(--violet)', color: 'white', justifyContent: 'center' }}>
-              Activar
-            </button>
-          </div>
-        </Modal>
-      )}
     </>
   );
 }
