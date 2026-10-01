@@ -1,0 +1,11 @@
+name: Latido Supabase
+on:
+  schedule:
+    - cron: '0 14 */2 * *'
+  workflow_dispatch:
+jobs:
+  latido:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mantener activa la base de datos
+        run: curl -fsS --retry 3 https://fjbwlelkciwmgcfixnjx.supabase.co/functions/v1/latido
