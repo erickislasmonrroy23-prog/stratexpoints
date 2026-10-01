@@ -87,7 +87,7 @@ function IdentityTab({ org, onSaved }) {
         <p style={lead}>Sube el logo oficial (PNG con fondo transparente, de preferencia horizontal). Aparece en el encabezado, el inicio de sesión y los reportes.</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: 24, borderRadius: 12, background: 'var(--bg)', border: '1px dashed var(--border)', marginBottom: 16 }}>
           <BrandLogo size={48} showProduct />
-          <div style={{ padding: 20, borderRadius: 10, background: '#0A2029' }}>
+          <div style={{ padding: 20, borderRadius: 10, background: '#2B3442' }}>
             <BrandLogo size={40} light />
           </div>
         </div>

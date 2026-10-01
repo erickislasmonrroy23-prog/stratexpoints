@@ -103,12 +103,12 @@ export const LoginIntegrated = ({ mfaPending = false, onVerified }) => {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', background: 'var(--bg)' }}>
       <aside className="login-aside" style={{
-        flex: '1 1 50%', background: '#0A2029', color: '#E6EDF1',
+        flex: '1 1 50%', background: '#2B3442', color: '#E8EBF0',
         padding: 'clamp(40px, 6vw, 72px)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
       }}>
         <BrandLogo size={44} light />
         <div style={{ maxWidth: 520 }}>
-          <div style={{ width: 48, height: 2, background: '#D9AC6B', marginBottom: 28 }} />
+          <div style={{ width: 48, height: 2, background: '#AEB3BF', marginBottom: 28 }} />
           <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 'clamp(34px, 3.6vw, 48px)', lineHeight: 1.12, marginBottom: 20 }}>
             {BRAND.tagline}
           </h1>
