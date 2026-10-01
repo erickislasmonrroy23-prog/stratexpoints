@@ -28,7 +28,7 @@ const ObjectiveCard = memo(({ objective, perspective, onDelete, onSelect }) => {
       </div>
       <div style={{ position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: '50%', background: SC[objective.status] || 'var(--text3)', boxShadow: `0 0 8px ${SC[objective.status] || 'transparent'}` }} title={SL[objective.status] || 'Estado'} />
       <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text)', marginTop: 2, lineHeight: 1.25 }}>{objective.name}</span>
-      <button onClick={(e) => { e.stopPropagation(); onDelete(objective.id); }} data-html2canvas-ignore style={{ position: 'absolute', bottom: -10, right: -10, width: 24, height: 24, background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '50%', color: 'var(--text3)', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} className="delete-node-btn" title="Eliminar objetivo">×</button>
+      <button className="solo-admin" aria-label="Eliminar objetivo" onClick={(e) => { e.stopPropagation(); onDelete(objective.id); }} data-html2canvas-ignore style={{ position: 'absolute', bottom: -10, right: -10, width: 24, height: 24, background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '50%', color: 'var(--text3)', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} className="delete-node-btn" title="Eliminar objetivo">×</button>
     </div>
   );
 });

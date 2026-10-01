@@ -205,7 +205,7 @@ export default function OKRGenerator() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h4 style={{ fontSize: 14, color: 'var(--text2)', margin: 0 }}>Sugerencias Generadas:</h4>
             {results.some(r => !r.saved) && (
-              <button className="sp-btn" onClick={handleSaveAll} disabled={savingAll} style={{ background: 'var(--teal)', padding: '6px 16px' }}>
+              <button className="sp-btn solo-edicion" onClick={handleSaveAll} disabled={savingAll} style={{ background: 'var(--teal)', padding: '6px 16px' }}>
                 {savingAll ? '⏳ Importando...' : '📥 Guardar Todos los OKRs'}
               </button>
             )}
@@ -217,7 +217,7 @@ export default function OKRGenerator() {
             <div key={i} className="scale-in" style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderLeft: '4px solid var(--violet)', padding: 20, borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.05)', transition: 'all 0.2s' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
                 <input className="sp-input" style={{ fontWeight: 800, fontSize: 15, flex: 1, border: '1px dashed transparent', background: 'transparent' }} onFocus={e => e.target.style.border='1px dashed var(--violet)'} onBlur={e => e.target.style.border='1px dashed transparent'} value={r.obj || ''} onChange={e => handleEditResult(i, 'obj', e.target.value)} placeholder="Escribe el OKR aquí..." />
-                <button className="sp-btn" onClick={() => handleSave(i, r)} disabled={r.saved} style={{ padding: '8px 16px', fontSize: 12, background: r.saved ? 'var(--green)' : 'var(--primary)', flexShrink: 0 }}>
+                <button className="sp-btn solo-edicion" onClick={() => handleSave(i, r)} disabled={r.saved} style={{ padding: '8px 16px', fontSize: 12, background: r.saved ? 'var(--green)' : 'var(--primary)', flexShrink: 0 }}>
                   {r.saved ? '✅ Guardado' : '+ Guardar OKR'}
                 </button>
               </div>

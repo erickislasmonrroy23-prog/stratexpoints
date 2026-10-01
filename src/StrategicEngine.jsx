@@ -101,7 +101,7 @@ export default function StrategicEngine() {
           <div><label className="sp-label">Visión (Aspiración)</label><textarea className="sp-input" value={baseStrategy.vision} onChange={e => setBaseStrategy({...baseStrategy, vision: e.target.value})} placeholder="¿A dónde queremos llegar?" style={{ minHeight: 60, resize: 'vertical' }}/></div>
           <div><label className="sp-label">Valores (Cultura)</label><textarea className="sp-input" value={baseStrategy.values} onChange={e => setBaseStrategy({...baseStrategy, values: e.target.value})} placeholder="Ej: Innovación, Integridad..." style={{ minHeight: 60, resize: 'vertical' }}/></div>
         </div>
-        <button className="sp-btn" onClick={handleGenerateBase} disabled={generating || !baseStrategy.mission} style={{ background: 'var(--violet)', width: '100%', justifyContent: 'center' }}>{generating ? '✨ Diseñando cascada estratégica (Objetivos, OKRs, KPIs)...' : '✨ Auto-generar Estrategia Completa con IA'}</button>
+        <button className="sp-btn solo-edicion" onClick={handleGenerateBase} disabled={generating || !baseStrategy.mission} style={{ background: 'var(--violet)', width: '100%', justifyContent: 'center' }}>{generating ? '✨ Diseñando cascada estratégica (Objetivos, OKRs, KPIs)...' : '✨ Auto-generar Estrategia Completa con IA'}</button>
       </div>
 
       <div className="sp-card" style={{ padding: 24, marginBottom: 20 }}>

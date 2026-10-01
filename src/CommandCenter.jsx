@@ -126,7 +126,7 @@ export default function CommandCenter({ globalPeriod }) {
                 <button onClick={handleSaveIdentity} className="sp-btn" style={{ padding: '6px 14px', fontSize: 12, background: 'var(--primary)', color: '#fff', borderRadius: 99 }}>💾 Guardar</button>
               </div>
             ) : (
-              <button onClick={() => setIsEditingIdentity(true)} className="sp-btn" style={{ padding: '6px 14px', fontSize: 12, background: 'var(--bg3)', color: 'var(--text2)', border: '1px solid var(--border)', borderRadius: 99 }}>✏️ Editar Textos</button>
+              <button onClick={() => setIsEditingIdentity(true)} className="sp-btn solo-admin" style={{ padding: '6px 14px', fontSize: 12, background: 'var(--bg3)', color: 'var(--text2)', border: '1px solid var(--border)', borderRadius: 99 }}>✏️ Editar Textos</button>
             )
           )}
         </div>

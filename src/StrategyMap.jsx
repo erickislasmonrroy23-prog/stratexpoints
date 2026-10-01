@@ -12,6 +12,7 @@ const SL = { on_track: "En curso", at_risk: "En riesgo", completed: "Completado"
 
 function ObjectiveDetailModal({ objective, perspectives, onClose, onUpdate }) {
     const [status, setStatus] = useState(objective.status);
+    const puedeEditar = useStore.getState().can('update', 'objectives');
     const [theme, setTheme] = useState(objective.theme || 'auto');
     const perspective = perspectives.find(p => p.id === objective.perspective_id) || { color: 'var(--text3)', name: 'Sin perspectiva', prefix: '?' };
 
@@ -34,7 +35,7 @@ function ObjectiveDetailModal({ objective, perspectives, onClose, onUpdate }) {
 
             <div style={{ marginBottom: 24 }}>
                 <label className="sp-label">Actualizar Estado del Objetivo</label>
-                <select className="sp-input" value={status} onChange={e => setStatus(e.target.value)}>
+                <select className="sp-input" disabled={!puedeEditar} value={status} onChange={e => setStatus(e.target.value)}>
                     {Object.entries(SL).map(([key, label]) => (
                         <option key={key} value={key}>{label}</option>
                     ))}
@@ -43,7 +44,7 @@ function ObjectiveDetailModal({ objective, perspectives, onClose, onUpdate }) {
 
             <div style={{ marginBottom: 24 }}>
                 <label className="sp-label">Columna Estratégica (Sobrescribir IA)</label>
-                <select className="sp-input" value={theme} onChange={e => setTheme(e.target.value)}>
+                <select className="sp-input" disabled={!puedeEditar} value={theme} onChange={e => setTheme(e.target.value)}>
                     <option value="auto">🤖 Automática (Por palabras clave)</option>
                 <optgroup label="General (Financiera, Clientes, Procesos)">
                     <option value="customer">👥 Enfoque al Cliente</option>
@@ -59,7 +60,7 @@ function ObjectiveDetailModal({ objective, perspectives, onClose, onUpdate }) {
             </div>
 
             <div style={{ display: 'flex', gap: 12, marginTop: 32 }}>
-                <button className="sp-btn" onClick={handleUpdate} style={{ flex: 1, justifyContent: 'center', background: 'var(--primary)' }}>Actualizar Estado</button>
+                <button className="sp-btn solo-edicion" onClick={handleUpdate} style={{ flex: 1, justifyContent: 'center', background: 'var(--primary)' }}>Actualizar Estado</button>
                 <button className="sp-btn" onClick={onClose} style={{ flex: 1, justifyContent: 'center', background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border)' }}>Cerrar</button>
             </div>
         </div>
@@ -160,7 +161,7 @@ export default function StrategyMap({ onCreateObjective, onDeleteObjective, onUp
         .map-lane { transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
         .map-lane:hover { background-color: var(--bg3); }
       `}</style>
-      <div className="sp-card" style={{ padding: '12px 20px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+      <div className="sp-card solo-edicion" style={{ padding: '12px 20px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <h3 style={{ fontSize: 13, margin: 0, whiteSpace: 'nowrap', color: 'var(--text2)' }}>+ Añadir Objetivo:</h3>
           <input 
             className="sp-input" 

@@ -82,7 +82,7 @@ export function TabBar({ tabs = [], active, onSelect, onChange, rightContent, st
 
 export function AddBtn({ onClick, children, label, color, style = {}, disabled = false }) {
   return (
-    <button onClick={onClick} disabled={disabled} className="sp-btn sp-btn-primary"
+    <button onClick={onClick} disabled={disabled} className="sp-btn sp-btn-primary solo-edicion"
       style={{ padding: '9px 16px', borderRadius: 8, fontWeight: 700, fontSize: 13, ...(color ? { background: color } : {}), ...style }}>
       {children || (label ? `+ ${label}` : '+ Agregar')}
     </button>
