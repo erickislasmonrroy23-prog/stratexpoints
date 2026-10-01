@@ -50,6 +50,7 @@ const PowerPoint = lazy(() => import("./PowerPoint.jsx"));
 const ModuloOKRs = lazy(() => import("./ModuloOKRs.jsx"));
 const ModuloKPIs = lazy(() => import("./ModuloKPIs.jsx"));
 const ModuloIniciativas = lazy(() => import("./ModuloIniciativas.jsx"));
+const ModuloRiesgos = lazy(() => import("./ModuloRiesgos.jsx"));
 
 const ModuleSkeleton = () => (
   <div className="animate-pulse" style={{ display: "flex", flexDirection: "column", gap: 16, padding: 24 }}>
@@ -344,6 +345,7 @@ function CommandPalette({onNavigate,onClose,data}){
     {icon:"🎯",label:"OKRs — Lista y Generador IA",module:"okrs"},
     {icon:"📊",label:"KPIs — Indicadores + Bowling + Prediccion",module:"kpis"},
     {icon:"🚀",label:"Iniciativas — Lista + Kanban + Simulador",module:"iniciativas"},
+    {icon:"🛡️",label:"Riesgos y controles — Mapa de calor, controles y planes de acción",module:"riesgos"},
     {icon:"🤖",label:"Inteligencia IA — Chat + IA + Docs",module:"ia"},
     {icon:"📈",label:"Analitica — Dashboard + Radar + Benchmark",module:"analitica"},
     {icon:"📤",label:"Reportes — PDF + Excel + Word + PPT",module:"reportes"},
@@ -594,36 +596,23 @@ function MainApp({ onLogout, onSuperAdmin }){
   };
 
   var NAV_GROUPS = [
-    {
-      title: t('nav.main', 'Principal'),
-      items: [
-        {id:"home",       icon:"🏠", label: t('nav.home', 'Command Center')},
-        {id:"centro",     icon:"⚡", label: t('nav.strategic_center', 'Centro Estratégico')}
-      ]
-    },
-    {
-      title: t('nav.execution', 'Ejecución'),
-      items: [
-        {id:"estrategia", icon:"🗺️", label: t('nav.strategy_map', 'Mapa Estratégico')},
-        {id:"okrs",       icon:"🎯", label: t('nav.okrs', 'OKRs')},
-        {id:"kpis",       icon:"📊", label: t('nav.kpis', 'KPIs')},
-        {id:"iniciativas",icon:"🚀", label: t('nav.initiatives', 'Iniciativas')}
-      ]
-    },
-    {
-      title: t('nav.intelligence', 'Inteligencia'),
-      items: [
-        {id:"ia",         icon:"🤖", label: t('nav.ai_intel', 'Inteligencia IA')},
-        {id:"analitica",  icon:"📈", label: t('nav.analytics', 'Analítica 360')}
-      ]
-    },
-    {
-      title: t('nav.operations', 'Operaciones'),
-      items: [
-        {id:"reportes",   icon:"📤", label: t('nav.reports', 'Reportes')},
-        {id:"alertas",    icon:"🔔", label: t('nav.alerts', 'Alertas')}
-      ]
-    }
+    { title: 'Inicio', items: [
+        {id:"home",       icon:"🏠", label: 'Tablero de mando'},
+        {id:"centro",     icon:"⚡", label: 'Centro estratégico'} ] },
+    { title: 'Planear', items: [
+        {id:"estrategia", icon:"🗺️", label: 'Mapa estratégico'},
+        {id:"okrs",       icon:"🎯", label: 'OKRs'} ] },
+    { title: 'Ejecutar', items: [
+        {id:"iniciativas",icon:"🚀", label: 'Iniciativas'} ] },
+    { title: 'Medir', items: [
+        {id:"kpis",       icon:"📊", label: 'KPIs'},
+        {id:"analitica",  icon:"📈", label: 'Analítica 360'} ] },
+    { title: 'Controlar', items: [
+        {id:"riesgos",    icon:"🛡️", label: 'Riesgos y controles'},
+        {id:"alertas",    icon:"🔔", label: 'Alertas'} ] },
+    { title: 'Reportar', items: [
+        {id:"reportes",   icon:"📤", label: 'Reportes'},
+        {id:"ia",         icon:"🤖", label: 'Inteligencia IA'} ] }
   ];
 
   return(
@@ -745,6 +734,7 @@ function MainApp({ onLogout, onSuperAdmin }){
                 setEditingItem({ objective: `Optimizar indicador: ${kpi.name}`, status: 'not_started', progress: 0, period: 'Q' + (Math.floor(new Date().getMonth() / 3) + 1) + '-' + new Date().getFullYear(), department: '', owner: kpi.owner || '', confidence_level: 8, krs: [{title: `Llevar ${kpi.name} de ${kpi.value||0}${kpi.unit} a la meta de ${kpi.target}${kpi.unit}`, owner: kpi.owner || '', completed: false, deadline: ''}] });
                 setModal("okr");
               }}/>}
+              {activeModule==="riesgos"&&<ModuloRiesgos />}
               {activeModule==="iniciativas"&&<ModuloIniciativas onModal={function(m){if(!can("create","initiatives"))return;setModal(m);}} onDelete={handleDeleteInitiative} />}
               {activeModule==="ia"&&<ModuloIA />}
               {activeModule==="analitica"&&<ModuloAnalitica />}
