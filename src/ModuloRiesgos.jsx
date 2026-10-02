@@ -5,6 +5,7 @@ import { useStore } from './store.js';
 import { TabBar, Modal, EmptyState, ConfirmationModal } from './SharedUI.jsx';
 import { generarInformeRiesgos } from './informeRiesgosPDF.js';
 import MatrizRCM from './MatrizRCM.jsx';
+import PruebasControl from './PruebasControl.jsx';
 
 /* ─────────────────────────────────────────────────────────────
    Módulo de Riesgos y Controles — Cabrera & Consultores
@@ -331,8 +332,8 @@ function FormControl({ control, datos, puedeEditar, onCerrar, onGuardado }) {
           <Campo label="Naturaleza"><Sel value={f.nature} onChange={set('nature')} opciones={NATURALEZA} vacio={false} /></Campo>
           <Campo label="Frecuencia"><Sel value={f.frequency} onChange={set('frequency')} opciones={FRECUENCIA} /></Campo>
           <Campo label="Responsable"><Sel value={f.responsible_id} onChange={set('responsible_id')} opciones={aOpciones(datos.personas, (p) => p.full_name || p.email)} /></Campo>
-          <Campo label="Evaluación de diseño"><Sel value={f.design_evaluation} onChange={set('design_evaluation')} opciones={DISENO} vacio="Sin evaluar" /></Campo>
-          <Campo label="Resultado de la prueba"><Sel value={f.test_result} onChange={set('test_result')} opciones={PRUEBA} vacio="Sin probar" /></Campo>
+          <Campo label="Evaluación de diseño" ayuda="Se actualiza sola al revisarse una prueba de diseño (pestaña Pruebas)."><Sel value={f.design_evaluation} onChange={set('design_evaluation')} opciones={DISENO} vacio="Sin evaluar" /></Campo>
+          <Campo label="Resultado de la prueba" ayuda="Se actualiza solo al revisarse una prueba de operación."><Sel value={f.test_result} onChange={set('test_result')} opciones={PRUEBA} vacio="Sin probar" /></Campo>
           <Campo label="Referencia del papel de trabajo"><input className="sp-input" value={f.test_reference || ''} onChange={set('test_reference')} placeholder="PT-04 / Muestra 25" /></Campo>
           <Campo label="Mecanismo de monitoreo"><input className="sp-input" value={f.monitoring_mechanism || ''} onChange={set('monitoring_mechanism')} /></Campo>
           <Campo label="Atributos" ancho>
@@ -631,6 +632,7 @@ export default function ModuloRiesgos() {
           { id: 'rcm', icon: '🧮', label: 'Matriz RCM' },
           { id: 'riesgos', icon: '⚠️', label: `Riesgos (${datos.riesgos.length})` },
           { id: 'controles', icon: '🛡️', label: `Controles (${datos.controles.length})` },
+          { id: 'pruebas', icon: '🧪', label: 'Pruebas' },
           { id: 'planes', icon: '📌', label: `Planes de acción (${datos.planes.filter((p) => p.status !== 'cerrado').length})` },
           { id: 'procesos', icon: '🏛️', label: 'Áreas y procesos' },
         ]}
@@ -862,6 +864,8 @@ export default function ModuloRiesgos() {
           onAbrirRiesgo={(r) => setModal({ tipo: 'riesgo', item: r })}
           onAbrirControl={(c) => setModal({ tipo: 'control', item: c })} />
       )}
+
+      {tab === 'pruebas' && <PruebasControl datos={datos} />}
 
       {tab === 'procesos' && <AreasProcesos datos={datos} puedeEditar={puedeEditar} puedeBorrar={puedeBorrar} recargar={datos.recargar} />}
 
