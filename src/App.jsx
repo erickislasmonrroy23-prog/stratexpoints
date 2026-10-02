@@ -1119,6 +1119,18 @@ export default function App(){
     );
   }
 
+  if (profile && !isAdmin && !useStore.getState().currentClient) {
+    return (
+      <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--bg)",padding:24}}>
+        <div className="sp-card" style={{maxWidth:440,padding:32,textAlign:"center"}}>
+          <BrandLogo size={40} variant="mark" />
+          <h1 className="page-title" style={{fontSize:24,marginTop:16}}>Sin expedientes asignados</h1>
+          <p className="page-subtitle" style={{marginBottom:20}}>Tu cuenta está activa, pero aún no tienes acceso a ninguna empresa. Pide al administrador de Cabrera &amp; Consultores que te asigne tus expedientes.</p>
+          <button className="sp-btn" onClick={handleLogout} style={{background:"var(--primary)",color:"#fff"}}>Cerrar sesión</button>
+        </div>
+      </div>
+    );
+  }
   if (superAdminActive && isAdmin) {
     return <AdminPanel profile={profile} onBack={() => setSuperAdminActive(false)} />;
   }

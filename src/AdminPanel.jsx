@@ -298,6 +298,129 @@ function AuditTab({ orgId }) {
   );
 }
 
+/* ───────────── Accesos por expediente ───────────── */
+function AccesosTab({ yo }) {
+  const [usuarios, setUsuarios] = useState([]);
+  const [clientes, setClientes] = useState([]);
+  const [accesos, setAccesos] = useState(new Set());
+  const [cargando, setCargando] = useState(true);
+  const [busca, setBusca] = useState('');
+  const [guardando, setGuardando] = useState(null);
+
+  const cargar = async () => {
+    setCargando(true);
+    const [u, c, a] = await Promise.all([
+      supabase.from('profiles').select('id, full_name, email, role, is_super_admin, all_clients, job_title').order('full_name'),
+      supabase.from('clients').select('id, name, color, logo_url, is_internal, status').order('is_internal', { ascending: false }).order('name'),
+      supabase.from('client_access').select('user_id, client_id'),
+    ]);
+    if (u.error || c.error || a.error) notificationService.error('No se pudieron cargar los accesos.');
+    setUsuarios(u.data || []);
+    setClientes((c.data || []).filter((x) => x.status !== 'cerrado'));
+    setAccesos(new Set((a.data || []).map((x) => x.user_id + ':' + x.client_id)));
+    setCargando(false);
+  };
+  useEffect(() => { cargar(); }, []);
+
+  const esAdmin = (u) => u.is_super_admin || ['admin', 'Admin', 'super_admin'].includes(u.role);
+  const rol = (u) => (esAdmin(u) ? 'Administrador' : ['editor', 'Editor'].includes(u.role) ? 'Editor' : 'Lector');
+
+  const alternarTotal = async (u) => {
+    setGuardando(u.id);
+    const { error } = await supabase.from('profiles').update({ all_clients: !u.all_clients }).eq('id', u.id);
+    setGuardando(null);
+    if (error) return notificationService.error(error.message);
+    setUsuarios((l) => l.map((x) => (x.id === u.id ? { ...x, all_clients: !u.all_clients } : x)));
+    notificationService.success(!u.all_clients ? `${u.full_name || u.email} ahora ve todos los expedientes.` : `${u.full_name || u.email} ahora solo ve los expedientes que le asignes.`);
+  };
+
+  const alternar = async (u, c) => {
+    const k = u.id + ':' + c.id;
+    const tiene = accesos.has(k);
+    setGuardando(k);
+    const res = tiene
+      ? await supabase.from('client_access').delete().eq('user_id', u.id).eq('client_id', c.id)
+      : await supabase.from('client_access').insert({ user_id: u.id, client_id: c.id, granted_by: yo?.id || null });
+    setGuardando(null);
+    if (res.error) return notificationService.error(res.error.message);
+    setAccesos((s) => { const n = new Set(s); if (tiene) n.delete(k); else n.add(k); return n; });
+  };
+
+  const visibles = usuarios.filter((u) => `${u.full_name || ''} ${u.email || ''}`.toLowerCase().includes(busca.toLowerCase()));
+  const Logo = ({ c }) => (c.logo_url
+    ? <img src={c.logo_url} alt="" style={{ width: 22, height: 22, borderRadius: 6, objectFit: 'contain', background: '#fff', border: '1px solid var(--border)' }} />
+    : <span style={{ width: 22, height: 22, borderRadius: 6, background: c.color, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>{c.name.charAt(0)}</span>);
+
+  return (
+    <div style={card}>
+      <h3 style={h3}>Accesos por expediente</h3>
+      <p style={lead}>
+        Decide qué empresas ve cada persona. <strong>Acceso total</strong>: ve todos los expedientes.
+        Si lo desactivas, solo verá los que marques (uno, varios o ninguno). Los administradores siempre ven todo.
+        Lo aplica la base de datos: aunque alguien manipule la pantalla, no podrá ver expedientes que no tenga asignados.
+      </p>
+      <input className="sp-input" placeholder="Buscar persona" value={busca} onChange={(e) => setBusca(e.target.value)} style={{ maxWidth: 320, marginBottom: 16 }} />
+      {cargando ? <div style={{ padding: 24, color: 'var(--text3)' }}>Cargando…</div> : (
+        <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 14 }}>
+          <table style={{ borderCollapse: 'separate', borderSpacing: 0, width: '100%', minWidth: 300 + clientes.length * 110 }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left', padding: 12, fontSize: 12, color: 'var(--text3)', fontWeight: 600, position: 'sticky', left: 0, background: 'var(--bg3)', zIndex: 2, minWidth: 220 }}>Persona</th>
+                <th style={{ padding: 12, fontSize: 12, color: 'var(--text3)', fontWeight: 600, background: 'var(--bg3)', minWidth: 100 }}>Acceso total</th>
+                {clientes.map((c) => (
+                  <th key={c.id} style={{ padding: '10px 8px', fontSize: 11.5, color: 'var(--text2)', fontWeight: 600, background: 'var(--bg3)', minWidth: 100 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}><Logo c={c} /><span style={{ lineHeight: 1.2 }}>{c.name}</span></div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {visibles.map((u) => {
+                const admin = esAdmin(u);
+                const total = admin || u.all_clients;
+                const n = clientes.filter((c) => accesos.has(u.id + ':' + c.id)).length;
+                return (
+                  <tr key={u.id}>
+                    <td style={{ padding: '10px 12px', borderTop: '1px solid var(--border)', position: 'sticky', left: 0, background: 'var(--bg2)', zIndex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: 14 }}>{u.full_name || u.email}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text3)' }}>{rol(u)} · {admin ? 've todo' : total ? 'todos los expedientes' : n ? `${n} expediente(s)` : 'sin acceso'}</div>
+                    </td>
+                    <td style={{ textAlign: 'center', borderTop: '1px solid var(--border)' }}>
+                      {admin ? <span style={{ fontSize: 12, color: 'var(--text3)' }}>Siempre</span> : (
+                        <button role="switch" aria-checked={u.all_clients} aria-label={`Acceso total para ${u.full_name || u.email}`}
+                          disabled={guardando === u.id} onClick={() => alternarTotal(u)}
+                          style={{ width: 44, height: 26, borderRadius: 99, border: 'none', cursor: 'pointer', position: 'relative', background: u.all_clients ? 'var(--green)' : 'var(--border)', transition: 'background .2s' }}>
+                          <span style={{ position: 'absolute', top: 3, left: u.all_clients ? 21 : 3, width: 20, height: 20, borderRadius: 99, background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,.25)', transition: 'left .2s' }} />
+                        </button>
+                      )}
+                    </td>
+                    {clientes.map((c) => {
+                      const k = u.id + ':' + c.id;
+                      const on = accesos.has(k);
+                      return (
+                        <td key={c.id} style={{ textAlign: 'center', borderTop: '1px solid var(--border)' }}>
+                          {total ? <span style={{ color: 'var(--green)', fontSize: 15 }} title="Incluido por acceso total">✓</span> : (
+                            <input type="checkbox" checked={on} disabled={guardando === k} onChange={() => alternar(u, c)}
+                              aria-label={`${u.full_name || u.email} puede ver ${c.name}`} style={{ width: 18, height: 18, cursor: 'pointer' }} />
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p style={{ ...lead, marginTop: 14, marginBottom: 0, fontSize: 12 }}>
+        Los usuarios nuevos se crean <strong>sin acceso</strong>: después de darlos de alta, asígnales aquí sus expedientes.
+        El rol (Lector / Editor / Administrador) define qué pueden hacer dentro de los expedientes que ven.
+      </p>
+    </div>
+  );
+}
+
 /* ───────────── Panel principal ───────────── */
 export default function AdminPanel({ profile, onBack }) {
   const currentOrganization = useStore((s) => s.currentOrganization);
@@ -315,7 +438,7 @@ export default function AdminPanel({ profile, onBack }) {
       <main style={{ maxWidth: 1160, margin: '0 auto', padding: '32px 24px 64px' }}>
         <div style={{ marginBottom: 24 }}>
           <h1 className="page-title">Administración</h1>
-          <p className="page-subtitle">Usuarios del despacho, identidad institucional y seguridad de acceso.</p>
+          <p className="page-subtitle">Usuarios, accesos por expediente, identidad institucional y seguridad.</p>
         </div>
 
 
@@ -323,6 +446,7 @@ export default function AdminPanel({ profile, onBack }) {
           <TabBar
             tabs={[
               { id: 'users', icon: '👥', label: 'Usuarios' },
+              { id: 'accesos', icon: '🔑', label: 'Accesos' },
               { id: 'identity', icon: '🏛️', label: 'Identidad' },
               { id: 'security', icon: '🔐', label: 'Seguridad' },
               { id: 'audit', icon: '📜', label: 'Bitácora' },
@@ -339,6 +463,7 @@ export default function AdminPanel({ profile, onBack }) {
             <UserDirectory currentUserId={profile?.id} />
           </div>
         )}
+        {tab === 'accesos' && <AccesosTab yo={profile} />}
         {tab === 'identity' && <IdentityTab org={org} onSaved={(o) => setCurrentOrganization({ ...org, ...o })} />}
         {tab === 'security' && <SecurityTab orgId={org?.id} />}
         {tab === 'audit' && <AuditTab orgId={org?.id} />}

@@ -217,7 +217,7 @@ export default function ModuloExpedientes() {
           <h1 className="page-title">Expedientes</h1>
           <p className="page-subtitle">Portafolio de clientes. Cada expediente tiene su propia estrategia, indicadores y matriz de riesgos.</p>
         </div>
-        {can('create', 'clients') && (
+        {can('delete', 'clients') && (
           <button className="sp-btn solo-edicion" onClick={() => setModal({})} style={{ background: 'var(--primary)', color: '#fff', padding: '10px 20px' }}>+ Nuevo expediente</button>
         )}
       </div>
