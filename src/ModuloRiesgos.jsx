@@ -5,6 +5,7 @@ import { useStore } from './store.js';
 import { TabBar, Modal, EmptyState, ConfirmationModal } from './SharedUI.jsx';
 import { generarInformeRiesgos } from './informeRiesgosPDF.js';
 import MatrizRCM from './MatrizRCM.jsx';
+import { SugerirRiesgos, SugerirControles, redactarHallazgo } from './IAAuditor.jsx';
 import PruebasControl, { Evidencias } from './PruebasControl.jsx';
 import { estadoKRI } from './PortalCliente.jsx';
 
@@ -303,6 +304,12 @@ function FormRiesgo({ riesgo, datos, puedeEditar, onCerrar, onGuardado }) {
           <Campo label="Próxima revisión"><input type="date" className="sp-input" value={f.next_review_at || ''} onChange={set('next_review_at')} /></Campo>
         </Rejilla>
       </fieldset>
+      {riesgo?.id && puedeEditar && (
+        <div style={{ marginTop: 18 }}>
+          <label className="sp-label">Controles vinculados: {datos.vinculos.filter((v) => v.risk_id === riesgo.id).length}</label>
+          <SugerirControles riesgo={riesgo} datos={datos} onAgregado={datos.recargar} />
+        </div>
+      )}
       <Botonera onCancel={onCerrar} guardando={guardando} puedeGuardar={puedeEditar} />
     </form>
   );
@@ -408,6 +415,17 @@ function FormPlan({ plan, datos, puedeEditar, onCerrar, onGuardado, riesgoInicia
   const [guardando, setGuardando] = useState(false);
   const set = (k) => (v) => setF((x) => ({ ...x, [k]: v?.target ? v.target.value : v }));
 
+  const [redactando, setRedactando] = useState(false);
+  const redactar = async () => {
+    setRedactando(true);
+    const r = await redactarHallazgo({
+      riesgo: datos.riesgos.find((x) => x.id === f.risk_id), control: datos.controles.find((x) => x.id === f.control_id),
+      notas: [f.title, f.description].filter(Boolean).join('. '),
+    });
+    setRedactando(false);
+    if (r) { setF((x) => ({ ...x, title: r.title || x.title, description: r.description, proposed_control_activity: r.proposed_control_activity || x.proposed_control_activity })); notificationService.success('Hallazgo redactado. Revísalo antes de guardar.'); }
+  };
+
   const validar = async (aprobar) => {
     const nota = aprobar ? (f.evidence_notes || plan.client_notes || 'Evidencia validada por C&C.') : window.prompt('Motivo del rechazo (lo verá el responsable):');
     if (!aprobar && !nota) return;
@@ -446,7 +464,13 @@ function FormPlan({ plan, datos, puedeEditar, onCerrar, onGuardado, riesgoInicia
     <form onSubmit={enviar}>
       <fieldset disabled={!puedeEditar} style={{ border: 0, padding: 0, margin: 0 }}>
         <Rejilla>
-          <Campo label="Hallazgo / acción" ancho><input className="sp-input" value={f.title} onChange={set('title')} required /></Campo>
+          <Campo label="Hallazgo / acción" ancho>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input className="sp-input" value={f.title} onChange={set('title')} required />
+              {puedeEditar && <button type="button" className="sp-btn" onClick={redactar} disabled={redactando} title="Redacta condición, criterio, causa, efecto y recomendación con base en el riesgo, el control y tus notas"
+                style={{ background: 'var(--primary-light)', color: 'var(--primary)', whiteSpace: 'nowrap' }}>{redactando ? 'Redactando…' : '✨ Redactar con IA'}</button>}
+            </div>
+          </Campo>
           <Campo label="Descripción (condición, criterio, causa, efecto)" ancho><textarea className="sp-input" rows={3} value={f.description || ''} onChange={set('description')} /></Campo>
           <Campo label="Riesgo"><Sel value={f.risk_id} onChange={set('risk_id')} opciones={aOpciones(datos.riesgos, (r) => `${r.code || ''} ${r.name}`)} /></Campo>
           <Campo label="Control relacionado"><Sel value={f.control_id} onChange={set('control_id')} opciones={aOpciones(datos.controles, (c) => `${c.code || ''} ${c.name}`)} /></Campo>
@@ -795,6 +819,7 @@ export default function ModuloRiesgos() {
                 Celda P{celda.split('-')[0]}×I{celda.split('-')[1]} ({modoMatriz}) ✕
               </button>
             )}
+            {puedeCrear && <button className="sp-btn solo-edicion" onClick={() => setModal({ tipo: 'ia_riesgos' })} style={{ background: 'var(--primary-light)', color: 'var(--primary)', fontWeight: 600 }}>✨ Sugerir con IA</button>}
             <BotonNuevo texto="Nuevo riesgo" onClick={() => setModal({ tipo: 'riesgo' })} />
           </div>
           {riesgosFiltrados.length === 0 ? (
@@ -930,6 +955,9 @@ export default function ModuloRiesgos() {
       {/* ── Modales ── */}
       <Modal isOpen={modal?.tipo === 'riesgo'} onClose={cerrarModal} title={modal?.item ? `Riesgo ${modal.item.code || ''}` : 'Nuevo riesgo'} maxWidth={820}>
         {modal?.tipo === 'riesgo' && <FormRiesgo riesgo={modal.item} datos={datos} puedeEditar={modal.item ? puedeEditar : puedeCrear} onCerrar={cerrarModal} onGuardado={trasGuardar} />}
+      </Modal>
+      <Modal isOpen={modal?.tipo === 'ia_riesgos'} onClose={cerrarModal} title="Sugerir riesgos con IA" maxWidth={760}>
+        {modal?.tipo === 'ia_riesgos' && <SugerirRiesgos datos={datos} onCerrar={cerrarModal} onAgregado={trasGuardar} />}
       </Modal>
       <Modal isOpen={modal?.tipo === 'control'} onClose={cerrarModal} title={modal?.item ? `Control ${modal.item.code || ''}` : 'Nuevo control'} maxWidth={820}>
         {modal?.tipo === 'control' && <FormControl control={modal.item} datos={datos} puedeEditar={modal.item ? puedeEditar : puedeCrear} onCerrar={cerrarModal} onGuardado={trasGuardar} />}

@@ -2,26 +2,26 @@ import logger from './utils/logger.js';
 import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { supabase } from "./supabase.js";
 import { initTheme, setTheme } from "./theme.js";
-import LoginIntegrated, { needsSecondFactor, NewPasswordScreen } from "./components/Auth/LoginIntegrated.jsx";
+import LoginIntegrated, { needsSecondFactor, NewPasswordScreen, Activar2FAObligatorio } from "./components/Auth/LoginIntegrated.jsx";
 import ChangePassword from "./ChangePassword.jsx";
 import { useTranslation } from "react-i18next";
 import { perspectiveService, okrService, kpiService, initiativeService, alertService, objectivesService, autoAlertService, notificationService, setNotifyFn, setPerfilActivoResolver } from "./services.js";
 import { OKRForm, KPIForm, InitiativeForm, Modal } from "./forms.jsx";
 import { AddBtn, TabBar, EmptyState, ConfirmationModal } from "./SharedUI.jsx";
 import toast, { Toaster } from "react-hot-toast";
-import AdminPanel from "./AdminPanel.jsx";
+const AdminPanel = lazy(() => import("./AdminPanel.jsx"));
 import BrandLogo from "./BrandLogo.jsx";
 import { BRAND } from "./brand.js";
 import { rolDe, ROL_ETIQUETA } from "./roles.js";
-import CommandCenter from "./CommandCenter.jsx";
-import Dashboard from "./Dashboard.jsx";
-import AIInsights from "./AIInsights.jsx";
-import ExecutivePanel from "./ExecutivePanel.jsx";
-import Chat from "./Chat.jsx";
-import Benchmark from "./Benchmark.jsx";
-import StrategicEngine from "./StrategicEngine.jsx";
-import StrategicBus from "./StrategicBus.jsx";
-import IntelligentCore from "./IntelligentCore.jsx";
+const CommandCenter = lazy(() => import("./CommandCenter.jsx"));
+const Dashboard = lazy(() => import("./Dashboard.jsx"));
+const AIInsights = lazy(() => import("./AIInsights.jsx"));
+const ExecutivePanel = lazy(() => import("./ExecutivePanel.jsx"));
+const Chat = lazy(() => import("./Chat.jsx"));
+const Benchmark = lazy(() => import("./Benchmark.jsx"));
+const StrategicEngine = lazy(() => import("./StrategicEngine.jsx"));
+const StrategicBus = lazy(() => import("./StrategicBus.jsx"));
+const IntelligentCore = lazy(() => import("./IntelligentCore.jsx"));
 import { useStore } from "./store.js";
 
 // Registrar bridge de notificaciones (evita importación circular con store)
@@ -471,6 +471,15 @@ function MainApp({ onLogout, onSuperAdmin }){
   const setupSubscriptions = useStore.use.setupSubscriptions();
   const can = useStore.use.can();
   const rolActivo = rolDe(profile);
+  // Cierre de sesión por inactividad: 30 minutos sin actividad
+  useEffect(() => {
+    let t;
+    const reiniciar = () => { clearTimeout(t); t = setTimeout(() => { notificationService.info('Sesión cerrada por 30 minutos de inactividad.'); onLogout(); }, 30 * 60 * 1000); };
+    const ev = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
+    ev.forEach((e) => window.addEventListener(e, reiniciar, { passive: true }));
+    reiniciar();
+    return () => { clearTimeout(t); ev.forEach((e) => window.removeEventListener(e, reiniciar)); };
+  }, []);
   const soloConsulta = rolActivo === 'viewer';
   useEffect(() => {
     document.documentElement.setAttribute('data-rol', rolActivo || 'viewer');
@@ -840,6 +849,7 @@ export default function App(){
   const [superAdminActive, setSuperAdminActive] = useState(false);
   const [mfaPending, setMfaPending] = useState(false);
   const [recoveryMode, setRecoveryMode] = useState(false);
+  const [requiere2FA, setRequiere2FA] = useState(false);
 
   // Se leen los datos de autenticación directamente del store de Zustand como única fuente de verdad.
   // **OPTIMIZACIÓN CRÍTICA**: Se refactoriza a selectores atómicos para prevenir el bucle infinito de re-renderizados
@@ -941,6 +951,13 @@ export default function App(){
       const listaClientes = cl.data || [];
       const actual = listaClientes.find(c => c.id === profileData.current_client_id) || listaClientes.find(c => c.is_internal) || null;
       useStore.setState({ clients: listaClientes, currentClient: actual });
+
+      // Administradores: verificación en dos pasos obligatoria (la base exige aal2 para privilegios de admin)
+      const esAdminPerfil = !!(profileData.is_super_admin || ['admin','Admin','super_admin'].includes(profileData.role));
+      if (esAdminPerfil) {
+        const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        setRequiere2FA(aal?.currentLevel !== 'aal2');
+      } else setRequiere2FA(false);
 
       setAuth(currentUser, profileData);
     } catch(e) {
@@ -1124,6 +1141,19 @@ export default function App(){
     );
   }
 
+  if (profile && requiere2FA) {
+    return (
+      <Activar2FAObligatorio
+        onSalir={handleLogout}
+        onListo={async () => {
+          await supabase.auth.refreshSession();
+          const { data } = await supabase.auth.getSession();
+          setRequiere2FA(false);
+          if (data?.session?.user) { setLoading(true); await loadProfile(data.session.user); }
+        }}
+      />
+    );
+  }
   if (profile && !isAdmin && !useStore.getState().currentClient) {
     return (
       <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--bg)",padding:24}}>
@@ -1140,7 +1170,7 @@ export default function App(){
     return <Suspense fallback={<LoadingScreen />}><PortalCliente onLogout={handleLogout} /></Suspense>;
   }
   if (superAdminActive && isAdmin) {
-    return <AdminPanel profile={profile} onBack={() => setSuperAdminActive(false)} />;
+    return <Suspense fallback={<LoadingScreen />}><AdminPanel profile={profile} onBack={() => setSuperAdminActive(false)} /></Suspense>;
   }
 
 
@@ -1152,12 +1182,6 @@ export default function App(){
   return (
     <>
       {/* Banner global: clave de IA Gemini no configurada */}
-      {isAdmin && !import.meta.env.VITE_GEMINI_API_KEY && !import.meta.env.VITE_CLAUDE_API_KEY && !import.meta.env.VITE_GROQ_API_KEY && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 99998, background: '#92400e', color: '#fef3c7', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 600 }}>
-          <span>⚠️</span>
-          <span>La IA está desactivada: falta configurar una clave (Gemini, Claude o Groq) en Vercel → Settings → Environment Variables.</span>
-        </div>
-      )}
       {/* Cualquier usuario autenticado puede acceder — el if (!profile) de arriba ya protege */}
       <MainApp onLogout={handleLogout} onSuperAdmin={activateSuperAdminMode} />
     </>

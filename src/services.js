@@ -297,16 +297,19 @@ export const groqService = {
 // Intenta cada servicio en orden; si falla (rate limit, key inválida) pasa al siguiente.
 // Los módulos que antes usaban groqService ahora usan aiChain automáticamente.
 export const aiChain = {
-  isAvailable: () => claudeService.isAvailable() || geminiService.isAvailable() || groqService.isAvailable(),
+  isAvailable: () => true, // la IA del servidor siempre se intenta primero
   activeLabel: () => {
-    if (claudeService.isAvailable()) return 'Claude';
+    if (claudeDirecto.isAvailable()) return 'Claude';
     if (geminiService.isAvailable()) return 'Gemini';
     if (groqService.isAvailable()) return 'Groq';
     return null;
   },
   chat: async (messages) => {
+    // 1) IA en el servidor (llaves ocultas). Si aún no tiene llave, se usa la cadena local de respaldo.
+    try { return await iaServidor(messages); }
+    catch (e) { if (e.codigo !== 'sin_llave') throw e; logger.warn('[AI] Servidor sin llave; usando respaldo local.'); }
     const chain = [
-      { name: 'Claude',  svc: claudeService  },
+      { name: 'Claude',  svc: claudeDirecto  },
       { name: 'Gemini',  svc: geminiService  },
       { name: 'Groq',    svc: groqService    },
     ].filter(s => s.svc.isAvailable());
@@ -757,3 +760,25 @@ function protegerServicio(svc, { soloAdmin = false } = {}) {
 
 [okrService, kpiService, initiativeService, perspectiveService, objectivesService].forEach((s) => protegerServicio(s));
 protegerServicio(organizationService, { soloAdmin: true });
+
+
+// ── IA en el servidor (Edge Function "ia"): las llaves nunca llegan al navegador ──
+export async function iaServidor(messagesOModo, datos = {}) {
+  const body = Array.isArray(messagesOModo) ? { modo: 'chat', messages: messagesOModo } : { modo: messagesOModo, ...datos };
+  const { data, error } = await supabase.functions.invoke('ia', { body });
+  if (error) {
+    let detalle = null;
+    try { detalle = await error.context?.json?.(); } catch { /* sin cuerpo */ }
+    const err = new Error(detalle?.mensaje || detalle?.error || error.message || 'Error de IA');
+    if (detalle?.error === 'sin_llave') err.codigo = 'sin_llave';
+    throw err;
+  }
+  if (data?.error) { const err = new Error(data.mensaje || data.error); if (data.error === 'sin_llave') err.codigo = 'sin_llave'; throw err; }
+  return Array.isArray(messagesOModo) ? data.texto : data.data;
+}
+
+// claudeService.chat lo usan módulos directamente: pasa primero por el servidor.
+// claudeDirecto conserva la llamada original (solo respaldo mientras exista VITE_CLAUDE_API_KEY).
+const claudeDirecto = { isAvailable: claudeService.isAvailable, chat: claudeService.chat };
+claudeService.chat = async (messages) => aiChain.chat(messages);
+claudeService.isAvailable = () => true;

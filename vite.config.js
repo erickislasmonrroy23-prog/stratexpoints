@@ -34,12 +34,17 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
+            if (id.includes('@babel/runtime')) return 'vendor';
             if (id.includes('xlsx')) return 'vendor-xlsx';
             if (id.includes('pdfjs-dist')) return 'vendor-pdfjs';
             if (id.includes('html2canvas')) return 'vendor-html2canvas';
             if (id.includes('pptxgenjs')) return 'vendor-pptxgen';
             if (id.includes('recharts')) return 'vendor-recharts';
             if (id.includes('supabase')) return 'vendor-supabase';
+            // Librerías de PDF: sin grupo fijo, Rollup las agrupa con los módulos que las cargan bajo demanda
+            if (id.includes('jspdf') || id.includes('fflate') || id.includes('canvg') || id.includes('dompurify') || id.includes('core-js') || id.includes('rgbcolor') || id.includes('stackblur') || id.includes('raf') || id.includes('performance-now') || id.includes('svg-pathdata')) return undefined;
+            if (id.includes('d3-') || id.includes('/d3/')) return 'vendor-d3';
+            if (id.includes('react-dom') || id.includes('/react/') || id.includes('scheduler')) return 'vendor-react';
             return 'vendor';
           }
         }
