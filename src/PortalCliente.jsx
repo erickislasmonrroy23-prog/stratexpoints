@@ -135,6 +135,13 @@ export default function PortalCliente({ onLogout }) {
     setCargando(false);
   }, []);
   useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => {
+    let t;
+    const reiniciar = () => { clearTimeout(t); t = setTimeout(() => { notificationService.info('Sesión cerrada por inactividad.'); onLogout(); }, 30 * 60 * 1000); };
+    const ev = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
+    ev.forEach((e) => window.addEventListener(e, reiniciar, { passive: true })); reiniciar();
+    return () => { clearTimeout(t); ev.forEach((e) => window.removeEventListener(e, reiniciar)); };
+  }, []);
 
   const activos = d.riesgos.filter((r) => r.status === 'activo');
   const res = (r) => r.residual_risk ?? r.inherent_risk;

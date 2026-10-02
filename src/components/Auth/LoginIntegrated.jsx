@@ -250,3 +250,57 @@ export function NewPasswordScreen({ onDone }) {
     </div>
   );
 }
+
+/** Activación obligatoria de verificación en dos pasos (administradores). */
+export function Activar2FAObligatorio({ onListo, onSalir }) {
+  const [setup, setSetup] = useState(null);
+  const [code, setCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState({ type: '', text: '' });
+
+  React.useEffect(() => {
+    (async () => {
+      const { data: ex } = await supabase.auth.mfa.listFactors();
+      for (const f of (ex?.totp || []).filter((x) => x.status === 'unverified')) await supabase.auth.mfa.unenroll({ factorId: f.id });
+      const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'C&C ' + new Date().toISOString().slice(0, 10) });
+      if (error) setMsg({ type: 'error', text: error.message });
+      else setSetup({ qr: data.totp.qr_code, secret: data.totp.secret, factorId: data.id });
+    })();
+  }, []);
+
+  const verificar = async (e) => {
+    e.preventDefault();
+    setLoading(true); setMsg({ type: '', text: '' });
+    const { data: ch, error: chErr } = await supabase.auth.mfa.challenge({ factorId: setup.factorId });
+    if (chErr) { setLoading(false); return setMsg({ type: 'error', text: chErr.message }); }
+    const { error } = await supabase.auth.mfa.verify({ factorId: setup.factorId, challengeId: ch.id, code });
+    setLoading(false);
+    if (error) return setMsg({ type: 'error', text: 'Código incorrecto. Revisa la hora de tu teléfono e intenta de nuevo.' });
+    setMsg({ type: 'success', text: 'Verificación activada. Entrando…' });
+    onListo();
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', padding: 24 }}>
+      <form onSubmit={verificar} className="sp-card" style={{ width: '100%', maxWidth: 460, padding: 32 }}>
+        <BrandLogo size={36} />
+        <h2 className="brand-display" style={{ fontSize: 26, margin: '20px 0 6px' }}>Protege tu cuenta de administrador</h2>
+        <p style={{ color: 'var(--text3)', fontSize: 14, lineHeight: 1.55, marginBottom: 20 }}>
+          Por seguridad, las cuentas con acceso de administrador requieren verificación en dos pasos.
+          Escanea el código con Google Authenticator, Microsoft Authenticator o Authy y escribe el código de 6 dígitos.
+        </p>
+        {setup ? (
+          <div style={{ display: 'flex', gap: 18, alignItems: 'center', flexWrap: 'wrap', marginBottom: 18 }}>
+            <img src={setup.qr} alt="Código QR de verificación" style={{ width: 160, height: 160, background: '#fff', padding: 8, borderRadius: 14, border: '1px solid var(--border)' }} />
+            <div style={{ flex: 1, minWidth: 160, fontSize: 12, color: 'var(--text3)' }}>¿No puedes escanear? Captura esta clave en tu app:<div style={{ fontFamily: 'ui-monospace, monospace', color: 'var(--text)', fontSize: 13, wordBreak: 'break-all', marginTop: 6, userSelect: 'all' }}>{setup.secret}</div></div>
+          </div>
+        ) : <div style={{ padding: 20, color: 'var(--text3)', fontSize: 13 }}>Preparando código…</div>}
+        <input className="sp-input" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+          placeholder="000000" aria-label="Código de 6 dígitos" style={{ ...inputStyle, fontSize: 22, letterSpacing: 8, textAlign: 'center', marginBottom: 16 }} />
+        {msg.text && <Status {...msg} />}
+        <button type="submit" disabled={loading || code.length < 6 || !setup} className="sp-btn" style={primaryBtn(loading)}>{loading ? 'Verificando…' : 'Activar y entrar'}</button>
+        <button type="button" onClick={onSalir} style={{ width: '100%', marginTop: 12, background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 13 }}>Cerrar sesión</button>
+      </form>
+    </div>
+  );
+}
