@@ -9,7 +9,7 @@
 .delete-btn:hover{background:var(--red-light);border-color:var(--red);color:var(--red);transform:scale(1.05);}
 .icon-btn{width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .2s;color:var(--text2);}
 .icon-btn:hover{background:var(--border);color:var(--text);}
-.header-action{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;font-family:'IBM Plex Sans', sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:all .2s cubic-bezier(0.16, 1, 0.3, 1);border:1px solid var(--border);background:transparent;color:var(--text2);}
+.header-action{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;font-family:var(--font-body);font-weight:600;font-size:13px;cursor:pointer;transition:all .2s cubic-bezier(0.16, 1, 0.3, 1);border:1px solid var(--border);background:transparent;color:var(--text2);}
 .header-action:hover{background:var(--bg3);color:var(--text);transform:translateY(-1px);box-shadow:0 2px 4px rgba(0,0,0,0.02);}
 .sp-card{background:var(--bg2);border-radius:16px;border:1px solid var(--border);box-shadow:0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02);transition:all .2s ease;}
 .sp-card-hover:hover{transform:translateY(-3px);box-shadow:0 12px 20px -3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.02);}
@@ -25,13 +25,13 @@
 .empty-state-title{font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px;}
 .empty-state-desc{font-size:13px;color:var(--text3);margin-bottom:24px;line-height:1.6;}
 .sp-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;}
-.sp-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 18px;border-radius:10px;font-weight:600;font-size:13px;cursor:pointer;border:1px solid transparent;transition:all .2s cubic-bezier(0.16, 1, 0.3, 1);font-family:'IBM Plex Sans', sans-serif;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,0.05);}
+.sp-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 18px;border-radius:10px;font-weight:600;font-size:13px;cursor:pointer;border:1px solid transparent;transition:all .2s cubic-bezier(0.16, 1, 0.3, 1);font-family:var(--font-body);white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,0.05);}
 .sp-btn:hover{filter:brightness(1.08);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.1);}
 .sp-btn:active{transform:translateY(0);box-shadow:0 1px 2px rgba(0,0,0,0.05);}
-.sp-input{width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;outline:none;transition:all .2s ease;font-family:'IBM Plex Sans', sans-serif;box-sizing:border-box;box-shadow:inset 0 1px 2px rgba(0,0,0,0.02);}
+.sp-input{width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;outline:none;transition:all .2s ease;font-family:var(--font-body);box-sizing:border-box;box-shadow:inset 0 1px 2px rgba(0,0,0,0.02);}
 .sp-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light), inset 0 1px 2px rgba(0,0,0,0.02);background:var(--bg2);}
 .sp-label{display:block;font-size:11px;font-weight:700;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em;}
-.nav-item{position:relative; width:100%;display:flex;align-items:center;gap:12px;padding:10px 16px;border-radius:12px;border:none;background:transparent;color:var(--text2);cursor:pointer;font-size:13.5px;font-weight:600;font-family:'IBM Plex Sans', sans-serif;transition:all .2s ease;text-align:left;margin-bottom:4px;}
+.nav-item{position:relative; width:100%;display:flex;align-items:center;gap:12px;padding:10px 16px;border-radius:12px;border:none;background:transparent;color:var(--text2);cursor:pointer;font-size:13.5px;font-weight:600;font-family:var(--font-body);transition:all .2s ease;text-align:left;margin-bottom:4px;}
 .nav-item:hover{background:var(--bg3);color:var(--text);transform:translateX(4px);}
 .nav-item.active{background:var(--primary-light);color:var(--primary);font-weight:700;transform:none;}
 .nav-item.active::before{content:'';position:absolute;left:0;top:15%;height:70%;width:4px;background:var(--primary);border-radius:0 4px 4px 0;}
@@ -53,7 +53,7 @@
   --text3: #71717a !important;
 }
 /* VaultLockScreen.jsx styles */
-.vault-screen { min-height: 100vh; background: #0a0a0a; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'IBM Plex Sans', sans-serif; }
+.vault-screen { min-height: 100vh; background: #0a0a0a; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: var(--font-body); }
 .vault-box { background: #141414; border: 1px solid #262626; padding: 48px; border-radius: 24px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); max-width: 400px; width: 100%; }
 .vault-icon { width: 64px; height: 64px; border-radius: 20px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(220, 38, 38, 0.2)); border: 1px solid rgba(245, 158, 11, 0.3); color: var(--gold); display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 24px; box-shadow: 0 8px 16px rgba(0,0,0,0.2); }
 .vault-title { color: #fff; font-size: 24px; margin-bottom: 8px; font-weight: 800; letter-spacing: -0.5px; }
@@ -77,3 +77,65 @@
 html[data-rol="viewer"] .solo-edicion,
 html:not([data-rol="admin"]) .solo-admin,
 html:not([data-rol="admin"]) .delete-btn { display: none !important; }
+
+/* =====================================================================
+   Sistema visual estilo Apple — Cabrera & Consultores
+   Tipografía SF Pro (Inter fuera de Apple), grises neutros, un acento,
+   esquinas amplias, botones tipo píldora, superficies translúcidas.
+   ===================================================================== */
+html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;}
+body{font-family:var(--font-body);letter-spacing:-0.01em;background:var(--bg);color:var(--text);}
+::selection{background:var(--primary-light);}
+
+/* Títulos: SF Pro Display, semibold, tracking ajustado */
+.page-title{font-family:var(--font-display);font-weight:700;font-size:32px;letter-spacing:-0.025em;line-height:1.1;color:var(--text);}
+.page-subtitle{font-size:15px;font-weight:400;color:var(--text3);margin-top:6px;letter-spacing:-0.005em;}
+.brand-display{font-family:var(--font-display);font-weight:600;letter-spacing:-0.02em;}
+h1,h2,h3{letter-spacing:-0.02em;}
+
+/* Tarjetas: superficie limpia, sombra suave, radio 18 */
+.sp-card{background:var(--bg2);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);}
+html[data-theme="dark"] .sp-card{border-color:transparent;}
+.sp-card-hover:hover{transform:none;box-shadow:var(--shadow-md);}
+
+/* Botones: píldora, sin saltos, transición sobria */
+.sp-btn{border-radius:980px;padding:9px 20px;font-weight:500;font-size:14px;letter-spacing:-0.01em;transition:background-color .2s ease,opacity .2s ease,box-shadow .2s ease;}
+.sp-btn:hover{filter:none;transform:none;box-shadow:none;opacity:.88;}
+.sp-btn:active{transform:scale(.98);opacity:.8;}
+.sp-btn-primary{background:var(--primary)!important;color:#fff!important;border:none!important;}
+.sp-btn:disabled{opacity:.4;cursor:not-allowed;}
+
+/* Campos de formulario */
+.sp-input{border-radius:12px;border:1px solid var(--border);background:var(--bg2);font-size:15px;padding:11px 14px;box-shadow:none;font-family:var(--font-body);letter-spacing:-0.01em;}
+.sp-input:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-light);background:var(--bg2);}
+.sp-label{font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--text3);margin-bottom:6px;}
+select.sp-input{appearance:none;-webkit-appearance:none;padding-right:34px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236E6E73' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;}
+input[type="checkbox"],input[type="radio"],input[type="range"]{accent-color:var(--primary);}
+
+/* Insignias */
+.sp-badge{border-radius:980px;font-weight:500;font-size:12px;padding:3px 10px;letter-spacing:-0.005em;}
+
+/* Menú lateral: estilo barra lateral de macOS */
+.nav-item{border-radius:10px;padding:8px 12px;font-size:14px;font-weight:400;color:var(--text);gap:10px;transition:background-color .15s ease;}
+.nav-item:hover{background:var(--bg3);transform:none;color:var(--text);}
+.nav-item.active{background:var(--primary);color:#fff;font-weight:500;}
+.nav-item.active::before{display:none;}
+
+/* Acciones del encabezado */
+.header-action{border-radius:980px;font-weight:500;font-size:13px;padding:7px 14px;border:1px solid var(--border);background:var(--bg2);color:var(--text);}
+.header-action:hover{background:var(--bg3);transform:none;box-shadow:none;}
+.icon-btn{border-radius:980px;background:transparent;border:1px solid var(--border);}
+
+/* Barra superior translúcida (vidrio) */
+.barra-superior{background:color-mix(in srgb, var(--bg2) 72%, transparent)!important;backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--border)!important;}
+.menu-lateral{background:color-mix(in srgb, var(--bg2) 60%, var(--bg))!important;}
+
+/* Tablas */
+table{font-variant-numeric:tabular-nums;}
+tbody tr{transition:background-color .12s ease;}
+tbody tr:hover{background:var(--bg3);}
+
+/* Desplazamiento fino */
+*::-webkit-scrollbar{width:10px;height:10px;}
+*::-webkit-scrollbar-thumb{background:color-mix(in srgb, var(--text3) 35%, transparent);border-radius:980px;border:3px solid transparent;background-clip:content-box;}
+*::-webkit-scrollbar-track{background:transparent;}

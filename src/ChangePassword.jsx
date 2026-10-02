@@ -59,7 +59,7 @@ function PasswordInput({ label, value, onChange, show, onToggleShow, error, name
             width: '100%', padding: '12px 16px', paddingRight: 48, borderRadius: 12,
             border: `1px solid ${error ? 'var(--red)' : 'var(--border)'}`,
             background: 'var(--bg2)', color: 'var(--text)', fontSize: 14,
-            fontFamily: "'IBM Plex Sans', sans-serif", boxSizing: 'border-box', transition: 'all 0.2s',
+            fontFamily: "var(--font-body)", boxSizing: 'border-box', transition: 'all 0.2s',
           }}
         />
         <button

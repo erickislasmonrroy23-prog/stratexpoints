@@ -42,10 +42,10 @@ export default function BrandLogo({ size = 32, variant = 'full', showProduct = f
       aria-label={BRAND.name}
       style={{
         width: size, height: size, borderRadius: size * 0.2, flexShrink: 0,
-        background: '#394556', color: '#E6E9EE',
+        background: 'linear-gradient(180deg,#3A3A3C,#1D1D1F)', color: '#F5F5F7',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontFamily: BRAND.fonts.display, fontSize: size * 0.4, letterSpacing: '.02em',
-        boxShadow: 'inset 0 0 0 1px rgba(174,179,191,.45)',
+        fontFamily: BRAND.fonts.display, fontWeight: 600, fontSize: size * 0.38, letterSpacing: '-0.03em',
+        boxShadow: '0 1px 2px rgba(0,0,0,.2)',
       }}
     >
       CC
@@ -59,12 +59,12 @@ export default function BrandLogo({ size = 32, variant = 'full', showProduct = f
       {mark}
       {(!imgOk || size < 44) && (
         <div style={{ lineHeight: 1.15, minWidth: 0 }}>
-          <div style={{ fontFamily: BRAND.fonts.display, fontSize: size * 0.5, color: ink, whiteSpace: 'nowrap' }}>{BRAND.name}</div>
+          <div style={{ fontFamily: BRAND.fonts.display, fontWeight: 600, letterSpacing: '-0.02em', fontSize: size * 0.48, color: ink, whiteSpace: 'nowrap' }}>{BRAND.name}</div>
           {showProduct && <div style={{ fontSize: Math.max(10, size * 0.32), color: sub, whiteSpace: 'nowrap' }}>{BRAND.product}</div>}
         </div>
       )}
       {imgOk && size >= 44 && showProduct && (
-        <div className="brand-product" style={{ fontSize: Math.max(10, size * 0.34), color: sub, whiteSpace: 'nowrap', borderLeft: '1px solid var(--border)', paddingLeft: 10 }}>
+        <div className="brand-product" style={{ fontSize: Math.max(10, size * 0.34), color: sub, whiteSpace: 'nowrap', borderLeft: '1px solid var(--border)', paddingLeft: 10, fontWeight: 400 }}>
           {BRAND.product}
         </div>
       )}

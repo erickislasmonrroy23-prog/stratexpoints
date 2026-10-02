@@ -4,7 +4,9 @@ import React, { memo } from 'react';
 const SC = { on_track: "var(--green)", at_risk: "var(--gold)", completed: "var(--primary)", not_started: "var(--text3)" };
 const SL = { on_track: "En curso", at_risk: "En riesgo", completed: "Completado", not_started: "Sin iniciar" };
 
-const ObjectiveCard = memo(({ objective, perspective, onDelete, onSelect }) => {
+const NIVEL_RIESGO = (v) => v >= 17 ? ['#FF3B30', 'Crítico'] : v >= 10 ? ['#FF9500', 'Alto'] : v >= 5 ? ['#FFCC00', 'Moderado'] : ['#34C759', 'Bajo'];
+
+const ObjectiveCard = memo(({ objective, perspective, onDelete, onSelect, riesgo }) => {
   const handleSelect = (obj) => {
     try {
       if (!obj || !obj.id) {
@@ -28,6 +30,12 @@ const ObjectiveCard = memo(({ objective, perspective, onDelete, onSelect }) => {
       </div>
       <div style={{ position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: '50%', background: SC[objective.status] || 'var(--text3)', boxShadow: `0 0 8px ${SC[objective.status] || 'transparent'}` }} title={SL[objective.status] || 'Estado'} />
       <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text)', marginTop: 2, lineHeight: 1.25 }}>{objective.name}</span>
+      {riesgo && (() => { const [c, t] = NIVEL_RIESGO(riesgo.max); return (
+        <span title={`Exposición al riesgo: ${t} (residual ${riesgo.max}) · ${riesgo.n} riesgo(s) vinculado(s)`} data-html2canvas-ignore
+          style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9, fontWeight: 600, color: 'var(--text2)', background: 'var(--bg3)', borderRadius: 99, padding: '2px 7px' }}>
+          <span style={{ width: 6, height: 6, borderRadius: 99, background: c }} />{t} · {riesgo.n}
+        </span>
+      ); })()}
       <button className="solo-admin" aria-label="Eliminar objetivo" onClick={(e) => { e.stopPropagation(); onDelete(objective.id); }} data-html2canvas-ignore style={{ position: 'absolute', bottom: -10, right: -10, width: 24, height: 24, background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '50%', color: 'var(--text3)', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} className="delete-node-btn" title="Eliminar objetivo">×</button>
     </div>
   );

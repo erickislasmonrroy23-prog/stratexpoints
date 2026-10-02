@@ -3,6 +3,7 @@ import { supabase } from './supabase.js';
 import { notificationService } from './services.js';
 import { useStore } from './store.js';
 import { TabBar, Modal, EmptyState, ConfirmationModal } from './SharedUI.jsx';
+import { generarInformeRiesgos } from './informeRiesgosPDF.js';
 
 /* ─────────────────────────────────────────────────────────────
    Módulo de Riesgos y Controles — Cabrera & Consultores
@@ -14,10 +15,10 @@ import { TabBar, Modal, EmptyState, ConfirmationModal } from './SharedUI.jsx';
    ───────────────────────────────────────────────────────────── */
 
 export const NIVELES = [
-  { max: 4, label: 'Bajo', color: '#2F7D4F', bg: '#E3F1E8' },
-  { max: 9, label: 'Moderado', color: '#8A6D00', bg: '#FBF3D5' },
-  { max: 16, label: 'Alto', color: '#B45309', bg: '#FCE9D6' },
-  { max: 25, label: 'Crítico', color: '#B3261E', bg: '#F9E5E3' },
+  { max: 4, label: 'Bajo', color: '#248A3D', bg: '#E3F5E8', solido: '#34C759' },
+  { max: 9, label: 'Moderado', color: '#9A6400', bg: '#FFF4D1', solido: '#FFCC00' },
+  { max: 16, label: 'Alto', color: '#C93400', bg: '#FFE9D6', solido: '#FF9500' },
+  { max: 25, label: 'Crítico', color: '#D70015', bg: '#FDE4E6', solido: '#FF3B30' },
 ];
 export const nivelDe = (v) => (v == null ? null : NIVELES.find((n) => v <= n.max) || NIVELES[3]);
 
@@ -39,7 +40,7 @@ const limpiar = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, 
 
 /* ───────────── Datos ───────────── */
 function useDatosRiesgo() {
-  const [d, setD] = useState({ areas: [], subprocesos: [], categorias: [], riesgos: [], controles: [], vinculos: [], planes: [], personas: [] });
+  const [d, setD] = useState({ areas: [], subprocesos: [], categorias: [], riesgos: [], controles: [], vinculos: [], planes: [], personas: [], objetivos: [], indicadores: [] });
   const [cargando, setCargando] = useState(true);
 
   const cargar = useCallback(async () => {
@@ -49,17 +50,19 @@ function useDatosRiesgo() {
       if (ord) x = x.order(ord, { ascending: true });
       return x;
     };
-    const [areas, subprocesos, categorias, riesgos, controles, vinculos, planes, personas] = await Promise.all([
+    const [areas, subprocesos, categorias, riesgos, controles, vinculos, planes, personas, objetivos, indicadores] = await Promise.all([
       q('areas', '*', 'order_index'), q('subprocesses', '*', 'order_index'), q('risk_categories', '*', 'order_index'),
       q('risks', '*', 'code'), q('controls', '*', 'code'), q('risk_controls'), q('action_plans', '*', 'due_date'),
       q('profiles', 'id, full_name, email', 'full_name'),
+      q('objectives', 'id, name, code', 'code'), q('kpis', 'id, name, value, target, unit, inverse', 'name'),
     ]);
-    const err = [areas, subprocesos, categorias, riesgos, controles, vinculos, planes, personas].find((r) => r.error);
+    const err = [areas, subprocesos, categorias, riesgos, controles, vinculos, planes, personas, objetivos, indicadores].find((r) => r.error);
     if (err) notificationService.error('No se pudo cargar el módulo de riesgos: ' + err.error.message);
     setD({
       areas: areas.data || [], subprocesos: subprocesos.data || [], categorias: categorias.data || [],
       riesgos: riesgos.data || [], controles: controles.data || [], vinculos: vinculos.data || [],
       planes: planes.data || [], personas: personas.data || [],
+      objetivos: objetivos.data || [], indicadores: indicadores.data || [],
     });
     setCargando(false);
   }, []);
@@ -123,7 +126,7 @@ function Botonera({ onCancel, guardando, puedeGuardar = true, textoGuardar = 'Gu
     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
       <button type="button" className="sp-btn" onClick={onCancel} style={{ background: 'transparent', color: 'var(--text2)', border: '1px solid var(--border)' }}>Cancelar</button>
       {puedeGuardar && (
-        <button type="submit" className="sp-btn" disabled={guardando} style={{ background: 'var(--primary)', color: 'var(--bg2)', padding: '10px 20px' }}>
+        <button type="submit" className="sp-btn" disabled={guardando} style={{ background: 'var(--primary)', color: '#fff', padding: '10px 20px' }}>
           {guardando ? 'Guardando…' : textoGuardar}
         </button>
       )}
@@ -162,7 +165,7 @@ function MatrizCalor({ riesgos, modo, seleccion, onSeleccion }) {
                 <button key={i} type="button" onClick={() => onSeleccion(activa ? null : `${p}-${i}`)}
                   aria-label={`Probabilidad ${p}, impacto ${i}: ${lista.length} riesgos`}
                   style={{
-                    aspectRatio: '1.4', borderRadius: 8, border: activa ? '2px solid var(--text)' : '1px solid rgba(0,0,0,.06)',
+                    aspectRatio: '1.4', borderRadius: 12, border: activa ? '2px solid var(--primary)' : '1px solid transparent',
                     background: n.bg, color: n.color, cursor: lista.length ? 'pointer' : 'default',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
                     opacity: lista.length ? 1 : 0.55,
@@ -191,7 +194,7 @@ function MatrizCalor({ riesgos, modo, seleccion, onSeleccion }) {
 /* ───────────── Formulario de riesgo ───────────── */
 function FormRiesgo({ riesgo, datos, puedeEditar, onCerrar, onGuardado }) {
   const [f, setF] = useState(() => ({
-    code: '', name: '', description: '', area_id: '', subprocess_id: '', category_id: '',
+    code: '', name: '', description: '', area_id: '', subprocess_id: '', category_id: '', objective_id: '', kri_id: '',
     business_objective: '', potential_error: '', affected_account: '', assertions: [],
     probability: 3, impact: 3, owner_id: '', responsible_id: '', status: 'activo', next_review_at: '',
     ...(riesgo || {}),
@@ -215,7 +218,7 @@ function FormRiesgo({ riesgo, datos, puedeEditar, onCerrar, onGuardado }) {
       const payload = {
         code: f.code, name: f.name.trim(), description: f.description, area_id: f.area_id, subprocess_id: f.subprocess_id,
         category_id: f.category_id || n1 || null, business_objective: f.business_objective, potential_error: f.potential_error,
-        affected_account: f.affected_account, assertions: f.assertions || [], probability: Number(f.probability), impact: Number(f.impact),
+        affected_account: f.affected_account, assertions: f.assertions || [], objective_id: f.objective_id, kri_id: f.kri_id, probability: Number(f.probability), impact: Number(f.impact),
         owner_id: f.owner_id, responsible_id: f.responsible_id, status: f.status, next_review_at: f.next_review_at,
         last_reviewed_at: riesgo ? hoy() : null,
       };
@@ -238,7 +241,13 @@ function FormRiesgo({ riesgo, datos, puedeEditar, onCerrar, onGuardado }) {
           <Campo label="Subproceso"><Sel value={f.subprocess_id} onChange={set('subprocess_id')} opciones={aOpciones(subprocesos)} /></Campo>
           <Campo label="Categoría (N1)"><Sel value={n1} onChange={(v) => { setN1(v); setF((x) => ({ ...x, category_id: '' })); }} opciones={aOpciones(raices, (c) => `${c.code} ${c.name}`)} /></Campo>
           <Campo label="Subcategoría (N2)"><Sel value={f.category_id} onChange={set('category_id')} opciones={aOpciones(hijas, (c) => `${c.code || ''} ${c.name}`)} vacio={hijas.length ? 'Usar solo N1' : 'Sin subcategorías'} /></Campo>
-          <Campo label="Objetivo de negocio afectado" ancho><input className="sp-input" value={f.business_objective || ''} onChange={set('business_objective')} /></Campo>
+          <Campo label="Objetivo estratégico que amenaza" ayuda="Vincula el riesgo al Mapa Estratégico (COSO ERM: estrategia y riesgo integrados).">
+            <Sel value={f.objective_id} onChange={set('objective_id')} opciones={aOpciones(datos.objetivos, (o) => `${o.code ? o.code + ' · ' : ''}${o.name}`)} vacio="Sin vincular" />
+          </Campo>
+          <Campo label="Indicador clave de riesgo (KRI)" ayuda="KPI que anticipa la materialización del riesgo.">
+            <Sel value={f.kri_id} onChange={set('kri_id')} opciones={aOpciones(datos.indicadores, (k) => k.name)} vacio="Sin indicador" />
+          </Campo>
+          <Campo label="Objetivo de negocio (descripción)" ancho><input className="sp-input" value={f.business_objective || ''} onChange={set('business_objective')} /></Campo>
           <Campo label="Error potencial"><input className="sp-input" value={f.potential_error || ''} onChange={set('potential_error')} /></Campo>
           <Campo label="Cuenta contable afectada"><input className="sp-input" value={f.affected_account || ''} onChange={set('affected_account')} /></Campo>
           <Campo label="Aseveraciones de los estados financieros" ancho>
@@ -439,12 +448,12 @@ function AreasProcesos({ datos, puedeEditar, puedeBorrar, recargar }) {
 
   return (
     <div className="sp-card" style={{ padding: 24 }}>
-      <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 20, marginBottom: 4 }}>Universo de procesos</h3>
+      <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, letterSpacing: '-0.02em', fontSize: 20, marginBottom: 4 }}>Universo de procesos</h3>
       <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 18 }}>Áreas y subprocesos a los que se asignan los riesgos.</p>
       {puedeEditar && (
         <div style={{ display: 'flex', gap: 10, marginBottom: 20, maxWidth: 520 }}>
           <input className="sp-input" value={nuevaArea} onChange={(e) => setNuevaArea(e.target.value)} placeholder="Nueva área (ej. Crédito y Cobranza)" onKeyDown={(e) => e.key === 'Enter' && agregarArea()} />
-          <button className="sp-btn" onClick={agregarArea} style={{ background: 'var(--primary)', color: 'var(--bg2)', whiteSpace: 'nowrap' }}>Agregar área</button>
+          <button className="sp-btn" onClick={agregarArea} style={{ background: 'var(--primary)', color: '#fff', whiteSpace: 'nowrap' }}>Agregar área</button>
         </div>
       )}
       {datos.areas.length === 0 ? (
@@ -501,6 +510,25 @@ export default function ModuloRiesgos() {
   const [filtroArea, setFiltroArea] = useState('');
   const [modal, setModal] = useState(null); // { tipo, item, extra }
   const [porBorrar, setPorBorrar] = useState(null);
+  const [generando, setGenerando] = useState(false);
+  const [revisando, setRevisando] = useState(false);
+
+  const descargarInforme = async () => {
+    setGenerando(true);
+    try {
+      const st = useStore.getState();
+      await generarInformeRiesgos({ datos, organizacion: st.currentOrganization, autor: st.profile?.full_name || st.profile?.email });
+    } catch (e) { notificationService.error('No se pudo generar el informe: ' + e.message); }
+    setGenerando(false);
+  };
+  const revisarAlertas = async () => {
+    setRevisando(true);
+    const { data, error } = await supabase.rpc('fn_alertas_grc');
+    setRevisando(false);
+    if (error) return notificationService.error('No se pudo ejecutar la revisión: ' + error.message);
+    notificationService.success(data ? `Revisión completa: ${data} alerta(s) nueva(s) en el módulo Alertas.` : 'Revisión completa: sin alertas nuevas.');
+    datos.recargar();
+  };
 
   const nombre = useCallback((id) => {
     const p = datos.personas.find((x) => x.id === id);
@@ -563,7 +591,7 @@ export default function ModuloRiesgos() {
   );
 
   const BotonNuevo = ({ texto, onClick }) => (puedeCrear ? (
-    <button className="sp-btn solo-edicion" onClick={onClick} style={{ background: 'var(--primary)', color: 'var(--bg2)', padding: '9px 16px', fontWeight: 600 }}>+ {texto}</button>
+    <button className="sp-btn solo-edicion" onClick={onClick} style={{ background: 'var(--primary)', color: '#fff', padding: '9px 16px', fontWeight: 600 }}>+ {texto}</button>
   ) : null);
 
   if (datos.cargando) {
@@ -576,6 +604,17 @@ export default function ModuloRiesgos() {
         <div>
           <h1 className="page-title">Riesgos y Controles</h1>
           <p className="page-subtitle">Identificación, evaluación y respuesta al riesgo · COSO ERM 2017 · ISO 31000</p>
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button className="sp-btn" onClick={revisarAlertas} disabled={revisando} title="Busca planes vencidos, controles sin probar y riesgos críticos sin respuesta"
+            style={{ background: 'var(--bg2)', color: 'var(--text)', border: '1px solid var(--border)' }}>
+            {revisando ? 'Revisando…' : '🔔 Revisar alertas'}
+          </button>
+          <button className="sp-btn" onClick={descargarInforme} disabled={generando || datos.riesgos.length === 0}
+            title={datos.riesgos.length ? 'Descargar informe con marca C&C' : 'Registra riesgos para generar el informe'}
+            style={{ background: 'var(--primary)', color: '#fff' }}>
+            {generando ? 'Generando…' : 'Descargar informe PDF'}
+          </button>
         </div>
       </div>
 
@@ -597,11 +636,11 @@ export default function ModuloRiesgos() {
         <>
           <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', marginBottom: 18 }}>
             <Tarjeta etiqueta="Riesgos activos" valor={activos.length} nota={`${datos.riesgos.length} en total`} />
-            <Tarjeta etiqueta="Críticos (residual)" valor={criticos} color={criticos ? '#B3261E' : undefined} nota="Puntaje 17–25" />
-            <Tarjeta etiqueta="Altos (residual)" valor={altos} color={altos ? '#B45309' : undefined} nota="Puntaje 10–16" />
-            <Tarjeta etiqueta="Sin control asignado" valor={sinControl} color={sinControl ? '#B45309' : undefined} nota="Riesgos activos" />
-            <Tarjeta etiqueta="Controles con falla" valor={controlesInefectivos} color={controlesInefectivos ? '#B3261E' : undefined} nota="Inefectivos o no operando" />
-            <Tarjeta etiqueta="Planes vencidos" valor={planesVencidos} color={planesVencidos ? '#B3261E' : undefined} nota={`Mitigación lograda: ${reduccion}%`} />
+            <Tarjeta etiqueta="Críticos (residual)" valor={criticos} color={criticos ? 'var(--red)' : undefined} nota="Puntaje 17–25" />
+            <Tarjeta etiqueta="Altos (residual)" valor={altos} color={altos ? 'var(--gold)' : undefined} nota="Puntaje 10–16" />
+            <Tarjeta etiqueta="Sin control asignado" valor={sinControl} color={sinControl ? 'var(--gold)' : undefined} nota="Riesgos activos" />
+            <Tarjeta etiqueta="Controles con falla" valor={controlesInefectivos} color={controlesInefectivos ? 'var(--red)' : undefined} nota="Inefectivos o no operando" />
+            <Tarjeta etiqueta="Planes vencidos" valor={planesVencidos} color={planesVencidos ? 'var(--red)' : undefined} nota={`Mitigación lograda: ${reduccion}%`} />
           </div>
 
           {datos.riesgos.length === 0 ? (
@@ -611,7 +650,7 @@ export default function ModuloRiesgos() {
                 action={puedeCrear ? (
                   <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
                     <button className="sp-btn" onClick={() => setTab('procesos')} style={{ background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border)' }}>1 · Definir áreas</button>
-                    <button className="sp-btn" onClick={() => setModal({ tipo: 'riesgo' })} style={{ background: 'var(--primary)', color: 'var(--bg2)' }}>2 · Registrar primer riesgo</button>
+                    <button className="sp-btn" onClick={() => setModal({ tipo: 'riesgo' })} style={{ background: 'var(--primary)', color: '#fff' }}>2 · Registrar primer riesgo</button>
                   </div>
                 ) : null} />
             </div>
@@ -619,7 +658,7 @@ export default function ModuloRiesgos() {
             <div style={{ display: 'grid', gap: 18, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 440px), 1fr))', alignItems: 'start' }}>
               <div className="sp-card" style={{ padding: 22 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 10, flexWrap: 'wrap' }}>
-                  <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 20, margin: 0 }}>Mapa de calor</h3>
+                  <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, letterSpacing: '-0.02em', fontSize: 20, margin: 0 }}>Mapa de calor</h3>
                   <div style={{ display: 'flex', gap: 4, background: 'var(--bg3)', padding: 3, borderRadius: 8 }}>
                     {['inherente', 'residual'].map((m) => (
                       <button key={m} onClick={() => { setModoMatriz(m); setCelda(null); }}
@@ -631,23 +670,51 @@ export default function ModuloRiesgos() {
                 </div>
                 <MatrizCalor riesgos={activos} modo={modoMatriz} seleccion={celda} onSeleccion={(c) => { setCelda(c); if (c) setTab('riesgos'); }} />
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 14 }}>
-                  {NIVELES.map((n) => <span key={n.label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text2)' }}><span style={{ width: 12, height: 12, borderRadius: 3, background: n.bg, border: `1px solid ${n.color}` }} />{n.label}</span>)}
+                  {NIVELES.map((n) => <span key={n.label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text2)' }}><span style={{ width: 10, height: 10, borderRadius: 99, background: n.solido }} />{n.label}</span>)}
                 </div>
               </div>
 
               <div className="sp-card" style={{ padding: 22 }}>
-                <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 20, marginBottom: 14 }}>Riesgos prioritarios</h3>
+                <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, letterSpacing: '-0.02em', fontSize: 20, marginBottom: 14 }}>Riesgos prioritarios</h3>
                 {[...activos].sort((a, b) => (b.residual_risk ?? b.inherent_risk) - (a.residual_risk ?? a.inherent_risk)).slice(0, 8).map((r) => (
                   <button key={r.id} onClick={() => setModal({ tipo: 'riesgo', item: r })}
                     style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left', color: 'var(--text)' }}>
                     <Nivel valor={r.residual_risk ?? r.inherent_risk} compacto />
                     <span style={{ flex: 1, fontSize: 13 }}><strong style={{ color: 'var(--text3)', marginRight: 6 }}>{r.code}</strong>{r.name}</span>
-                    <span style={{ fontSize: 11, color: controlesDe(r.id).length ? 'var(--text3)' : '#B45309', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: 11, color: controlesDe(r.id).length ? 'var(--text3)' : 'var(--gold)', whiteSpace: 'nowrap' }}>
                       {controlesDe(r.id).length ? `${controlesDe(r.id).length} control(es)` : 'Sin control'}
                     </span>
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+          {datos.riesgos.length > 0 && (
+            <div className="sp-card" style={{ padding: 22, marginTop: 18 }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, letterSpacing: '-0.02em', fontSize: 20, marginBottom: 4 }}>Objetivos estratégicos expuestos</h3>
+              <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 14 }}>Riesgo residual máximo que amenaza cada objetivo del Mapa Estratégico.</p>
+              {(() => {
+                const filas = datos.objetivos.map((o) => {
+                  const rs = activos.filter((r) => r.objective_id === o.id);
+                  const max = rs.reduce((m, r) => Math.max(m, r.residual_risk ?? r.inherent_risk ?? 0), 0);
+                  return { o, rs, max };
+                }).filter((x) => x.rs.length).sort((a, b) => b.max - a.max);
+                const sinVinculo = activos.filter((r) => !r.objective_id).length;
+                return (
+                  <>
+                    {filas.length === 0 ? (
+                      <div style={{ fontSize: 13, color: 'var(--text3)' }}>Aún no hay riesgos vinculados a objetivos. Ábrelos y elige "Objetivo estratégico que amenaza".</div>
+                    ) : filas.map(({ o, rs, max }) => (
+                      <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+                        <Nivel valor={max} compacto />
+                        <span style={{ flex: 1, fontSize: 14 }}>{o.code && <strong style={{ color: 'var(--text3)', marginRight: 6 }}>{o.code}</strong>}{o.name}</span>
+                        <span style={{ fontSize: 12, color: 'var(--text3)' }}>{rs.length} riesgo(s)</span>
+                      </div>
+                    ))}
+                    {sinVinculo > 0 && <div style={{ fontSize: 12, color: 'var(--gold)', marginTop: 10 }}>{sinVinculo} riesgo(s) activo(s) sin objetivo vinculado.</div>}
+                  </>
+                );
+              })()}
             </div>
           )}
         </>
@@ -685,7 +752,7 @@ export default function ModuloRiesgos() {
                       <td style={{ ...td, whiteSpace: 'nowrap' }}>{r.probability}×{r.impact}</td>
                       <td style={td}><Nivel valor={r.inherent_risk} compacto /></td>
                       <td style={td}><Nivel valor={r.residual_risk} /></td>
-                      <td style={td}>{controlesDe(r.id).length || <span style={{ color: '#B45309' }}>0</span>}</td>
+                      <td style={td}>{controlesDe(r.id).length || <span style={{ color: 'var(--gold)' }}>0</span>}</td>
                       <td style={td}>{ESTADO_RIESGO[r.status]}</td>
                       <td style={{ ...td, whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
                         {puedeEditar && <button title="Agregar plan de acción" onClick={() => setModal({ tipo: 'plan', extra: r.id })} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>📌</button>}
@@ -719,7 +786,7 @@ export default function ModuloRiesgos() {
                 <tbody>
                   {datos.controles.map((c) => {
                     const v = datos.vinculos.filter((x) => x.control_id === c.id);
-                    const colorPrueba = c.test_result === 'efectivo' ? '#2F7D4F' : c.test_result === 'inefectivo' ? '#B3261E' : c.test_result ? '#B45309' : 'var(--text3)';
+                    const colorPrueba = c.test_result === 'efectivo' ? 'var(--green)' : c.test_result === 'inefectivo' ? 'var(--red)' : c.test_result ? 'var(--gold)' : 'var(--text3)';
                     return (
                       <tr key={c.id} style={{ cursor: 'pointer' }} onClick={() => setModal({ tipo: 'control', item: c })}>
                         <td style={{ ...td, fontWeight: 700, color: 'var(--text2)' }}>{c.code || '—'}</td>
@@ -768,7 +835,7 @@ export default function ModuloRiesgos() {
                         <td style={{ ...td, maxWidth: 340 }}>{p.title}</td>
                         <td style={{ ...td, fontSize: 12 }}>{r ? `${r.code || ''} ${r.name}` : '—'}</td>
                         <td style={td}>{nombre(p.responsible_id)}</td>
-                        <td style={{ ...td, color: vencido ? '#B3261E' : 'var(--text)', fontWeight: vencido ? 700 : 400, whiteSpace: 'nowrap' }}>{fmtFecha(p.due_date)}{vencido && ' · Vencido'}</td>
+                        <td style={{ ...td, color: vencido ? 'var(--red)' : 'var(--text)', fontWeight: vencido ? 700 : 400, whiteSpace: 'nowrap' }}>{fmtFecha(p.due_date)}{vencido && ' · Vencido'}</td>
                         <td style={td}>{ESTADO_PLAN[vencido ? 'vencido' : p.status]}</td>
                         <td style={td} onClick={(e) => e.stopPropagation()}>
                           {puedeBorrar && <button aria-label={`Eliminar ${p.title}`} onClick={() => setPorBorrar({ tabla: 'action_plans', id: p.id, nombre: p.title })} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>🗑</button>}

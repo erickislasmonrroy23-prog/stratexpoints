@@ -32,7 +32,7 @@ setPerfilActivoResolver(() => { const st = useStore.getState(); return st.impers
 setNotifyFn((notif) => {
   useStore.getState().addNotification(notif);
   const msg = notif.message || '';
-  const opts = { duration: 4000, style: { fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 13, maxWidth: 400 } };
+  const opts = { duration: 4000, style: { fontFamily: "var(--font-body)", fontSize: 13, maxWidth: 400 } };
   if (notif.type === 'success') toast.success(msg, opts);
   else if (notif.type === 'error')   toast.error(msg, { ...opts, duration: 6000 });
   else if (notif.type === 'warning') toast(msg, { ...opts, icon: '⚠️' });
@@ -362,13 +362,13 @@ function CommandPalette({onNavigate,onClose,data}){
       <div style={{width:"100%",maxWidth:540,background:"var(--bg2)",borderRadius:16,border:"1px solid var(--border)",boxShadow:"0 24px 64px rgba(0,0,0,.2)",overflow:"hidden"}}>
         <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderBottom:"1px solid var(--border)"}}>
           <span style={{fontSize:16,color:"var(--text3)"}}>🔍</span>
-          <input autoFocus value={query} onChange={function(e){setQuery(e.target.value);}} placeholder="Buscar modulos y acciones..." style={{flex:1,border:"none",background:"transparent",fontSize:14,color:"var(--text)",outline:"none",fontFamily:"'IBM Plex Sans', sans-serif",fontWeight:500}}/>
+          <input autoFocus value={query} onChange={function(e){setQuery(e.target.value);}} placeholder="Buscar modulos y acciones..." style={{flex:1,border:"none",background:"transparent",fontSize:14,color:"var(--text)",outline:"none",fontFamily:"var(--font-body)",fontWeight:500}}/>
           <kbd style={{fontSize:10,padding:"2px 7px",borderRadius:5,background:"var(--bg3)",border:"1px solid var(--border)",color:"var(--text3)"}}>ESC</kbd>
         </div>
         <div style={{maxHeight:360,overflowY:"auto",padding:6}}>
           {filtered.map(function(a,i){
             return(
-              <button key={i} onClick={function(){onNavigate(a.module);onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:9,border:"none",background:"transparent",cursor:"pointer",textAlign:"left",fontFamily:"'IBM Plex Sans', sans-serif",transition:"all .1s"}} onMouseEnter={function(e){e.currentTarget.style.background="var(--primary-light)";}} onMouseLeave={function(e){e.currentTarget.style.background="transparent";}}>
+              <button key={i} onClick={function(){onNavigate(a.module);onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:9,border:"none",background:"transparent",cursor:"pointer",textAlign:"left",fontFamily:"var(--font-body)",transition:"all .1s"}} onMouseEnter={function(e){e.currentTarget.style.background="var(--primary-light)";}} onMouseLeave={function(e){e.currentTarget.style.background="transparent";}}>
                 <span style={{fontSize:18,width:28,textAlign:"center",flexShrink:0}}>{a.icon}</span>
                 <span style={{fontSize:13,fontWeight:500,color:"var(--text)"}}>{a.label}</span>
               </button>
@@ -616,19 +616,19 @@ function MainApp({ onLogout, onSuperAdmin }){
   ];
 
   return(
-    <div style={{minHeight:"100vh",background:"var(--bg)",fontFamily:"'IBM Plex Sans', sans-serif",display:"flex",flexDirection:"column"}}>
+    <div style={{minHeight:"100vh",background:"var(--bg)",fontFamily:"var(--font-body)",display:"flex",flexDirection:"column"}}>
       <style>{`
         .hide-on-mobile-small { display: inline; }
         @media (max-width: 1100px) { .hide-on-mobile-small { display: none; } }
       `}</style>
 
-      <div style={{height:54,background:"var(--bg2)",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 18px",position:"sticky",top:0,zIndex:200}}>
+      <div className="barra-superior" style={{height:54,background:"var(--bg2)",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 18px",position:"sticky",top:0,zIndex:200}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <button className="icon-btn" onClick={function(){setSidebarCollapsed(!sidebarCollapsed);}}>{sidebarCollapsed?"☰":"←"}</button>
           <div className="tour-step-logo" style={{display:"flex",alignItems:"center",padding:"0 4px"}}>
             <BrandLogo size={30} showProduct />
           </div>
-          <button className="tour-step-search" onClick={function(){setCmdOpen(true);}} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 12px",borderRadius:8,border:"1px solid var(--border)",background:"var(--bg3)",cursor:"pointer",color:"var(--text3)",fontSize:12,fontFamily:"'IBM Plex Sans', sans-serif",marginLeft:4}}>
+          <button className="tour-step-search" onClick={function(){setCmdOpen(true);}} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 12px",borderRadius:8,border:"1px solid var(--border)",background:"var(--bg3)",cursor:"pointer",color:"var(--text3)",fontSize:12,fontFamily:"var(--font-body)",marginLeft:4}}>
             <span>🔍</span><span>Buscar...</span>
             <kbd style={{fontSize:10,padding:"1px 6px",borderRadius:4,background:"var(--bg2)",border:"1px solid var(--border)",color:"var(--text3)"}}>⌘K</kbd>
           </button>
@@ -652,18 +652,18 @@ function MainApp({ onLogout, onSuperAdmin }){
           {/* Esto centraliza la lógica de autorización y elimina la duplicación de roles. */}
           {canTrySuperAdmin && <button className="header-action" onClick={onSuperAdmin} title="Usuarios, identidad y seguridad">⚙️ Administración</button>}
           <LanguageSwitcher />
-          <button className="header-action" onClick={onLogout} style={{background: 'var(--bg3)'}}>Salir</button>
+          <button className="header-action" onClick={onLogout}>Salir</button>
         </div>
       </div>
 
       <div style={{display:"flex",flex:1,overflow:"hidden"}}>
-        <div className="tour-step-nav" style={{width:sidebarCollapsed?0:240,minWidth:sidebarCollapsed?0:240,background:"var(--bg2)",borderRight:"1px solid var(--border)",overflowY:"auto",overflowX:"hidden",transition:"all .25s ease",position:"sticky",top:54,height:"calc(100vh - 54px)",flexShrink:0}}>
+        <div className="tour-step-nav menu-lateral" style={{width:sidebarCollapsed?0:240,minWidth:sidebarCollapsed?0:240,background:"var(--bg2)",borderRight:"1px solid var(--border)",overflowY:"auto",overflowX:"hidden",transition:"all .25s ease",position:"sticky",top:54,height:"calc(100vh - 54px)",flexShrink:0}}>
           {!sidebarCollapsed&&(
             <div style={{padding:"20px 12px"}}>
               {NAV_GROUPS.map(function(group, gIdx){
                 return(
-                  <div key={gIdx} style={{marginBottom: 20}}>
-                    <div style={{fontSize: 11, fontWeight: 800, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, paddingLeft: 16}}>{group.title}</div>
+                  <div key={gIdx} style={{marginBottom: 16}}>
+                    <div style={{fontSize: 11, fontWeight: 600, color: 'var(--text3)', marginBottom: 4, paddingLeft: 12, letterSpacing: '0.01em'}}>{group.title}</div>
                     {group.items.map(function(m){
                       var isActive=activeModule===m.id;
                       return(
