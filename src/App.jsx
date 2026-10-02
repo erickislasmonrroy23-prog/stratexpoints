@@ -54,6 +54,7 @@ const ModuloRiesgos = lazy(() => import("./ModuloRiesgos.jsx"));
 const ModuloExpedientes = lazy(() => import("./ModuloExpedientes.jsx"));
 const PortalCliente = lazy(() => import("./PortalCliente.jsx"));
 const ModuloPlanAuditoria = lazy(() => import("./ModuloPlanAuditoria.jsx"));
+const ModuloDocumentos = lazy(() => import("./ModuloDocumentos.jsx"));
 import { activarExpediente } from "./ModuloExpedientes.jsx";
 
 const ModuleSkeleton = () => (
@@ -350,6 +351,7 @@ function CommandPalette({onNavigate,onClose,data}){
     {icon:"📊",label:"KPIs — Indicadores + Bowling + Prediccion",module:"kpis"},
     {icon:"🚀",label:"Iniciativas — Lista + Kanban + Simulador",module:"iniciativas"},
     {icon:"🗂️",label:"Expedientes — Portafolio de clientes",module:"expedientes"},
+    {icon:"📁",label:"Documentos — PDF, imágenes y archivos del expediente",module:"documentos"},
     {icon:"🗓️",label:"Plan de auditoría — Programa anual y board pack trimestral",module:"plan"},
     {icon:"🛡️",label:"Riesgos y controles — Mapa de calor, controles y planes de acción",module:"riesgos"},
     {icon:"🤖",label:"Inteligencia IA — Chat + IA + Docs",module:"ia"},
@@ -474,7 +476,7 @@ function MainApp({ onLogout, onSuperAdmin }){
   // Cierre de sesión por inactividad: 30 minutos sin actividad
   useEffect(() => {
     let t;
-    const reiniciar = () => { clearTimeout(t); t = setTimeout(() => { notificationService.info('Sesión cerrada por 30 minutos de inactividad.'); onLogout(); }, 30 * 60 * 1000); };
+    const reiniciar = () => { clearTimeout(t); t = setTimeout(() => { notificationService.info('Sesión cerrada por 60 minutos de inactividad.'); onLogout(); }, 60 * 60 * 1000); };
     const ev = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
     ev.forEach((e) => window.addEventListener(e, reiniciar, { passive: true }));
     reiniciar();
@@ -662,6 +664,7 @@ function MainApp({ onLogout, onSuperAdmin }){
   var NAV_GROUPS = [
     { title: 'Inicio', items: [
         {id:"expedientes",icon:"🗂️", label: 'Expedientes'},
+        {id:"documentos", icon:"📁", label: 'Documentos'},
         {id:"home",       icon:"🏠", label: 'Tablero de mando'},
         {id:"centro",     icon:"⚡", label: 'Centro estratégico'} ] },
     { title: 'Planear', items: [
@@ -804,6 +807,7 @@ function MainApp({ onLogout, onSuperAdmin }){
               {activeModule==="riesgos"&&<ModuloRiesgos />}
               {activeModule==="expedientes"&&<ModuloExpedientes />}
               {activeModule==="plan"&&<ModuloPlanAuditoria />}
+              {activeModule==="documentos"&&<ModuloDocumentos />}
               {activeModule==="iniciativas"&&<ModuloIniciativas onModal={function(m){if(!can("create","initiatives"))return;setModal(m);}} onDelete={handleDeleteInitiative} />}
               {activeModule==="ia"&&<ModuloIA />}
               {activeModule==="analitica"&&<ModuloAnalitica />}
@@ -954,10 +958,9 @@ export default function App(){
 
       // Administradores: verificación en dos pasos obligatoria (la base exige aal2 para privilegios de admin)
       const esAdminPerfil = !!(profileData.is_super_admin || ['admin','Admin','super_admin'].includes(profileData.role));
-      if (esAdminPerfil) {
-        const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        setRequiere2FA(aal?.currentLevel !== 'aal2');
-      } else setRequiere2FA(false);
+      // Acceso con correo y contraseña; la verificación en dos pasos es opcional (Administración → Seguridad)
+      void esAdminPerfil;
+      setRequiere2FA(false);
 
       setAuth(currentUser, profileData);
     } catch(e) {

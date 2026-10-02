@@ -8,6 +8,7 @@ import { BRAND } from './brand.js';
 import { Evidencias } from './PruebasControl.jsx';
 import { activarExpediente } from './ModuloExpedientes.jsx';
 import { generarInformeRiesgos } from './informeRiesgosPDF.js';
+import ModuloDocumentos from './ModuloDocumentos.jsx';
 
 /* ─────────────────────────────────────────────────────────────
    Portal del cliente — vista simplificada para usuarios de la empresa
@@ -137,7 +138,7 @@ export default function PortalCliente({ onLogout }) {
   useEffect(() => { cargar(); }, [cargar]);
   useEffect(() => {
     let t;
-    const reiniciar = () => { clearTimeout(t); t = setTimeout(() => { notificationService.info('Sesión cerrada por inactividad.'); onLogout(); }, 30 * 60 * 1000); };
+    const reiniciar = () => { clearTimeout(t); t = setTimeout(() => { notificationService.info('Sesión cerrada por inactividad.'); onLogout(); }, 60 * 60 * 1000); };
     const ev = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
     ev.forEach((e) => window.addEventListener(e, reiniciar, { passive: true })); reiniciar();
     return () => { clearTimeout(t); ev.forEach((e) => window.removeEventListener(e, reiniciar)); };
@@ -248,6 +249,11 @@ export default function PortalCliente({ onLogout }) {
                 })}
               </div>
             )}
+          </section>
+
+          <section style={{ marginBottom: 30 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 12 }}>Documentos</h2>
+            <ModuloDocumentos compacto />
           </section>
 
           <footer style={{ display: 'flex', justifyContent: 'center', marginTop: 40, opacity: 0.8 }}>
