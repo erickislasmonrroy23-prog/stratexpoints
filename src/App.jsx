@@ -52,6 +52,7 @@ const ModuloKPIs = lazy(() => import("./ModuloKPIs.jsx"));
 const ModuloIniciativas = lazy(() => import("./ModuloIniciativas.jsx"));
 const ModuloRiesgos = lazy(() => import("./ModuloRiesgos.jsx"));
 const ModuloExpedientes = lazy(() => import("./ModuloExpedientes.jsx"));
+const PortalCliente = lazy(() => import("./PortalCliente.jsx"));
 import { activarExpediente } from "./ModuloExpedientes.jsx";
 
 const ModuleSkeleton = () => (
@@ -1130,6 +1131,9 @@ export default function App(){
         </div>
       </div>
     );
+  }
+  if (profile && !isAdmin && profile.portal_mode) {
+    return <Suspense fallback={<LoadingScreen />}><PortalCliente onLogout={handleLogout} /></Suspense>;
   }
   if (superAdminActive && isAdmin) {
     return <AdminPanel profile={profile} onBack={() => setSuperAdminActive(false)} />;

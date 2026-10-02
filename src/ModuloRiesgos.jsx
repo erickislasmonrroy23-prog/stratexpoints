@@ -5,7 +5,8 @@ import { useStore } from './store.js';
 import { TabBar, Modal, EmptyState, ConfirmationModal } from './SharedUI.jsx';
 import { generarInformeRiesgos } from './informeRiesgosPDF.js';
 import MatrizRCM from './MatrizRCM.jsx';
-import PruebasControl from './PruebasControl.jsx';
+import PruebasControl, { Evidencias } from './PruebasControl.jsx';
+import { estadoKRI } from './PortalCliente.jsx';
 
 /* ─────────────────────────────────────────────────────────────
    Módulo de Riesgos y Controles — Cabrera & Consultores
@@ -34,7 +35,8 @@ const FRECUENCIA = { diaria: 'Diaria', semanal: 'Semanal', mensual: 'Mensual', t
 const ESTADO_CONTROL = { 'diseñado': 'Diseñado', implementado: 'Implementado', en_pruebas: 'En pruebas', no_operando: 'No operando' };
 const DISENO = { adecuado: 'Adecuado', necesita_mejora: 'Necesita mejora', inadecuado: 'Inadecuado' };
 const PRUEBA = { efectivo: 'Efectivo', necesita_mejora: 'Necesita mejora', inefectivo: 'Inefectivo' };
-const ESTADO_PLAN = { abierto: 'Abierto', en_progreso: 'En progreso', cerrado: 'Cerrado', vencido: 'Vencido' };
+const ESTADO_PLAN = { abierto: 'Abierto', en_progreso: 'En progreso', en_validacion: 'En validación', cerrado: 'Cerrado', vencido: 'Vencido' };
+const SEM_KRI = { verde: ['En rango', '#34C759'], amarillo: ['En alerta', '#FFCC00'], rojo: ['Fuera de límite', '#FF3B30'] };
 
 const hoy = () => new Date().toISOString().slice(0, 10);
 const fmtFecha = (d) => (d ? new Date(d + (d.length === 10 ? 'T12:00:00' : '')).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
@@ -197,6 +199,7 @@ function MatrizCalor({ riesgos, modo, seleccion, onSeleccion, apetito = 25 }) {
 function FormRiesgo({ riesgo, datos, puedeEditar, onCerrar, onGuardado }) {
   const [f, setF] = useState(() => ({
     code: '', name: '', description: '', area_id: '', subprocess_id: '', category_id: '', objective_id: '', kri_id: '',
+    kri_direction: 'mayor_peor', kri_warning: '', kri_limit: '',
     business_objective: '', potential_error: '', affected_account: '', assertions: [],
     probability: 3, impact: 3, owner_id: '', responsible_id: '', status: 'activo', next_review_at: '',
     ...(riesgo || {}),
@@ -220,7 +223,10 @@ function FormRiesgo({ riesgo, datos, puedeEditar, onCerrar, onGuardado }) {
       const payload = {
         code: f.code, name: f.name.trim(), description: f.description, area_id: f.area_id, subprocess_id: f.subprocess_id,
         category_id: f.category_id || n1 || null, business_objective: f.business_objective, potential_error: f.potential_error,
-        affected_account: f.affected_account, assertions: f.assertions || [], objective_id: f.objective_id, kri_id: f.kri_id, probability: Number(f.probability), impact: Number(f.impact),
+        affected_account: f.affected_account, assertions: f.assertions || [], objective_id: f.objective_id, kri_id: f.kri_id,
+        kri_direction: f.kri_direction || 'mayor_peor',
+        kri_warning: f.kri_warning === '' || f.kri_warning == null ? null : Number(f.kri_warning),
+        kri_limit: f.kri_limit === '' || f.kri_limit == null ? null : Number(f.kri_limit), probability: Number(f.probability), impact: Number(f.impact),
         owner_id: f.owner_id, responsible_id: f.responsible_id, status: f.status, next_review_at: f.next_review_at,
         last_reviewed_at: riesgo ? hoy() : null,
       };
@@ -249,6 +255,23 @@ function FormRiesgo({ riesgo, datos, puedeEditar, onCerrar, onGuardado }) {
           <Campo label="Indicador clave de riesgo (KRI)" ayuda="KPI que anticipa la materialización del riesgo.">
             <Sel value={f.kri_id} onChange={set('kri_id')} opciones={aOpciones(datos.indicadores, (k) => k.name)} vacio="Sin indicador" />
           </Campo>
+          {f.kri_id && (() => {
+            const k = datos.indicadores.find((x) => x.id === f.kri_id);
+            const sk = k ? estadoKRI(k.value, f.kri_direction, f.kri_warning === '' ? null : Number(f.kri_warning), f.kri_limit === '' ? null : Number(f.kri_limit)) : null;
+            return (
+              <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: 12, padding: 14, borderRadius: 14, background: 'var(--bg3)' }}>
+                <Campo label="Sentido del KRI"><Sel value={f.kri_direction} onChange={set('kri_direction')} opciones={{ mayor_peor: 'Más alto = peor', menor_peor: 'Más bajo = peor' }} vacio={false} /></Campo>
+                <Campo label="Umbral de alerta (amarillo)"><input type="number" step="any" className="sp-input" value={f.kri_warning ?? ''} onChange={set('kri_warning')} /></Campo>
+                <Campo label="Límite (rojo)"><input type="number" step="any" className="sp-input" value={f.kri_limit ?? ''} onChange={set('kri_limit')} /></Campo>
+                <Campo label="Valor actual">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 8, fontSize: 14 }}>
+                    {sk && <span style={{ width: 10, height: 10, borderRadius: 99, background: SEM_KRI[sk][1] }} />}
+                    <strong>{k?.value ?? '—'}</strong>{k?.unit ? ' ' + k.unit : ''}{sk ? <span style={{ color: 'var(--text3)' }}> · {SEM_KRI[sk][0]}</span> : null}
+                  </div>
+                </Campo>
+              </div>
+            );
+          })()}
           <Campo label="Objetivo de negocio (descripción)" ancho><input className="sp-input" value={f.business_objective || ''} onChange={set('business_objective')} /></Campo>
           <Campo label="Error potencial"><input className="sp-input" value={f.potential_error || ''} onChange={set('potential_error')} /></Campo>
           <Campo label="Cuenta contable afectada"><input className="sp-input" value={f.affected_account || ''} onChange={set('affected_account')} /></Campo>
@@ -385,6 +408,19 @@ function FormPlan({ plan, datos, puedeEditar, onCerrar, onGuardado, riesgoInicia
   const [guardando, setGuardando] = useState(false);
   const set = (k) => (v) => setF((x) => ({ ...x, [k]: v?.target ? v.target.value : v }));
 
+  const validar = async (aprobar) => {
+    const nota = aprobar ? (f.evidence_notes || plan.client_notes || 'Evidencia validada por C&C.') : window.prompt('Motivo del rechazo (lo verá el responsable):');
+    if (!aprobar && !nota) return;
+    const prof = useStore.getState().profile;
+    const cambios = aprobar
+      ? { status: 'cerrado', evidence_notes: nota, closed_at: new Date().toISOString(), closed_by: prof?.id || null }
+      : { status: 'en_progreso', evidence_notes: nota };
+    const { error } = await supabase.from('action_plans').update(cambios).eq('id', plan.id);
+    if (error) return notificationService.error(traducirError(error));
+    notificationService.success(aprobar ? 'Cierre validado.' : 'Evidencia rechazada; el plan regresa a "en progreso".');
+    onGuardado();
+  };
+
   const enviar = async (e) => {
     e.preventDefault();
     if (!f.title.trim()) return notificationService.error('El título del plan es obligatorio.');
@@ -421,6 +457,25 @@ function FormPlan({ plan, datos, puedeEditar, onCerrar, onGuardado, riesgoInicia
           <Campo label="Evidencia de cierre" ancho ayuda="Obligatoria para cerrar el plan."><textarea className="sp-input" rows={2} value={f.evidence_notes || ''} onChange={set('evidence_notes')} /></Campo>
         </Rejilla>
       </fieldset>
+      {plan?.id && (
+        <div style={{ marginTop: 18 }}>
+          {plan.status === 'en_validacion' && (
+            <div style={{ padding: 14, borderRadius: 14, background: '#FFF4D1', marginBottom: 14 }}>
+              <div style={{ fontWeight: 600, color: '#9A6400', fontSize: 14 }}>Evidencia enviada por el responsable — pendiente de validar</div>
+              {plan.client_notes && <div style={{ fontSize: 13, marginTop: 6, color: 'var(--text2)' }}>“{plan.client_notes}”</div>}
+              {plan.submitted_at && <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>{new Date(plan.submitted_at).toLocaleString('es-MX')}</div>}
+              {puedeEditar && (
+                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                  <button type="button" className="sp-btn" onClick={() => validar(false)} style={{ background: 'var(--bg2)', color: 'var(--red)', border: '1px solid var(--border)' }}>Rechazar</button>
+                  <button type="button" className="sp-btn" onClick={() => validar(true)} style={{ background: 'var(--green)', color: '#fff' }}>Validar y cerrar</button>
+                </div>
+              )}
+            </div>
+          )}
+          <label className="sp-label">Evidencia del plan</label>
+          <Evidencias plan={plan} bloqueada={plan.status === 'cerrado' || !puedeEditar} />
+        </div>
+      )}
       <Botonera onCancel={onCerrar} guardando={guardando} puedeGuardar={puedeEditar} />
     </form>
   );
@@ -755,7 +810,10 @@ export default function ModuloRiesgos() {
                   {riesgosFiltrados.map((r) => (
                     <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => setModal({ tipo: 'riesgo', item: r })}>
                       <td style={{ ...td, fontWeight: 700, color: 'var(--text2)' }}>{r.code || '—'}</td>
-                      <td style={{ ...td, maxWidth: 320 }}>{r.name}<div style={{ fontSize: 11, color: 'var(--text3)' }}>Dueño: {nombre(r.owner_id)}</div></td>
+                      <td style={{ ...td, maxWidth: 320 }}>{r.name}<div style={{ fontSize: 11, color: 'var(--text3)' }}>Dueño: {nombre(r.owner_id)}</div>
+                        {(() => { const k = datos.indicadores.find((x) => x.id === r.kri_id); const sk = k ? estadoKRI(k.value, r.kri_direction, r.kri_warning, r.kri_limit) : null;
+                          return k ? <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 5 }}>{sk && <span style={{ width: 7, height: 7, borderRadius: 99, background: SEM_KRI[sk][1] }} />}KRI: {k.name} = {k.value ?? '—'}</div> : null; })()}
+                      </td>
                       <td style={td}>{areaDe(r.area_id)}</td>
                       <td style={{ ...td, fontSize: 12, color: 'var(--text2)' }}>{categoriaDe(r.category_id)}</td>
                       <td style={{ ...td, whiteSpace: 'nowrap' }}>{r.probability}×{r.impact}</td>
@@ -837,7 +895,7 @@ export default function ModuloRiesgos() {
                 </tr></thead>
                 <tbody>
                   {[...datos.planes].sort((a, b) => (a.status === 'cerrado') - (b.status === 'cerrado') || String(a.due_date || '9').localeCompare(String(b.due_date || '9'))).map((p) => {
-                    const vencido = p.status !== 'cerrado' && p.due_date && p.due_date < hoy();
+                    const vencido = !['cerrado', 'en_validacion'].includes(p.status) && p.due_date && p.due_date < hoy();
                     const r = datos.riesgos.find((x) => x.id === p.risk_id);
                     return (
                       <tr key={p.id} style={{ cursor: 'pointer', opacity: p.status === 'cerrado' ? 0.6 : 1 }} onClick={() => setModal({ tipo: 'plan', item: p })}>
