@@ -57,16 +57,19 @@ const fecha = (d) => (d ? new Date(d).toLocaleString('es-MX', { day: '2-digit', 
 const periodoActual = () => { const d = new Date(); return `${d.getFullYear()}-T${Math.floor(d.getMonth() / 3) + 1}`; };
 
 /* ───────────── Evidencias ───────────── */
-function Evidencias({ prueba, bloqueada }) {
+export function Evidencias({ prueba, plan, bloqueada, onCambio }) {
+  const padre = prueba || plan;
+  const campo = prueba ? 'test_id' : 'action_plan_id';
   const cliente = useStore((s) => s.currentClient);
   const [lista, setLista] = useState([]);
   const [subiendo, setSubiendo] = useState(false);
 
   const cargar = useCallback(async () => {
-    if (!prueba?.id) return;
-    const { data } = await supabase.from('evidences').select('*').eq('test_id', prueba.id).order('uploaded_at');
+    if (!padre?.id) return;
+    const { data } = await supabase.from('evidences').select('*').eq(campo, padre.id).order('uploaded_at');
     setLista(data || []);
-  }, [prueba?.id]);
+    if (onCambio) onCambio((data || []).length);
+  }, [padre?.id, campo]);
   useEffect(() => { cargar(); }, [cargar]);
 
   const subir = async (e) => {
@@ -75,10 +78,10 @@ function Evidencias({ prueba, bloqueada }) {
     setSubiendo(true);
     for (const f of archivos) {
       if (f.size > 25 * 1024 * 1024) { notificationService.error(`${f.name}: excede 25 MB.`); continue; }
-      const ruta = `${cliente.id}/${prueba.id}/${Date.now()}-${f.name.replace(/[^\w.\-]+/g, '_')}`;
+      const ruta = `${cliente.id}/${padre.id}/${Date.now()}-${f.name.replace(/[^\w.\-]+/g, '_')}`;
       const up = await supabase.storage.from('evidencias').upload(ruta, f, { contentType: f.type || 'application/octet-stream' });
       if (up.error) { notificationService.error(`${f.name}: ${up.error.message}`); continue; }
-      const ins = await supabase.from('evidences').insert({ test_id: prueba.id, file_path: ruta, file_name: f.name, mime_type: f.type, size_bytes: f.size });
+      const ins = await supabase.from('evidences').insert({ [campo]: padre.id, file_path: ruta, file_name: f.name, mime_type: f.type, size_bytes: f.size });
       if (ins.error) notificationService.error(`${f.name}: ${ins.error.message}`);
     }
     setSubiendo(false);
@@ -97,7 +100,7 @@ function Evidencias({ prueba, bloqueada }) {
     cargar();
   };
 
-  if (!prueba?.id) return <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Guarda la prueba para poder adjuntar evidencia.</div>;
+  if (!padre?.id) return <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Guarda primero el registro para poder adjuntar evidencia.</div>;
   return (
     <div>
       {lista.length === 0 && <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 8 }}>Sin evidencia adjunta.</div>}

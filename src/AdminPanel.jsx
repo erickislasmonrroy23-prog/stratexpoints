@@ -310,7 +310,7 @@ function AccesosTab({ yo }) {
   const cargar = async () => {
     setCargando(true);
     const [u, c, a] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, email, role, is_super_admin, all_clients, job_title').order('full_name'),
+      supabase.from('profiles').select('id, full_name, email, role, is_super_admin, all_clients, portal_mode, job_title').order('full_name'),
       supabase.from('clients').select('id, name, color, logo_url, is_internal, status').order('is_internal', { ascending: false }).order('name'),
       supabase.from('client_access').select('user_id, client_id'),
     ]);
@@ -332,6 +332,15 @@ function AccesosTab({ yo }) {
     if (error) return notificationService.error(error.message);
     setUsuarios((l) => l.map((x) => (x.id === u.id ? { ...x, all_clients: !u.all_clients } : x)));
     notificationService.success(!u.all_clients ? `${u.full_name || u.email} ahora ve todos los expedientes.` : `${u.full_name || u.email} ahora solo ve los expedientes que le asignes.`);
+  };
+
+  const alternarPortal = async (u) => {
+    setGuardando('p:' + u.id);
+    const { error } = await supabase.from('profiles').update({ portal_mode: !u.portal_mode }).eq('id', u.id);
+    setGuardando(null);
+    if (error) return notificationService.error(error.message);
+    setUsuarios((l) => l.map((x) => (x.id === u.id ? { ...x, portal_mode: !u.portal_mode } : x)));
+    notificationService.success(!u.portal_mode ? `${u.full_name || u.email} verá el portal simplificado del cliente.` : `${u.full_name || u.email} verá la plataforma completa.`);
   };
 
   const alternar = async (u, c) => {
@@ -366,6 +375,7 @@ function AccesosTab({ yo }) {
             <thead>
               <tr>
                 <th style={{ textAlign: 'left', padding: 12, fontSize: 12, color: 'var(--text3)', fontWeight: 600, position: 'sticky', left: 0, background: 'var(--bg3)', zIndex: 2, minWidth: 220 }}>Persona</th>
+                <th style={{ padding: 12, fontSize: 12, color: 'var(--text3)', fontWeight: 600, background: 'var(--bg3)', minWidth: 96 }} title="Usuario del cliente: ve un portal simplificado con sus planes de acción y riesgos">Vista portal</th>
                 <th style={{ padding: 12, fontSize: 12, color: 'var(--text3)', fontWeight: 600, background: 'var(--bg3)', minWidth: 100 }}>Acceso total</th>
                 {clientes.map((c) => (
                   <th key={c.id} style={{ padding: '10px 8px', fontSize: 11.5, color: 'var(--text2)', fontWeight: 600, background: 'var(--bg3)', minWidth: 100 }}>
@@ -384,6 +394,15 @@ function AccesosTab({ yo }) {
                     <td style={{ padding: '10px 12px', borderTop: '1px solid var(--border)', position: 'sticky', left: 0, background: 'var(--bg2)', zIndex: 1 }}>
                       <div style={{ fontWeight: 600, fontSize: 14 }}>{u.full_name || u.email}</div>
                       <div style={{ fontSize: 12, color: 'var(--text3)' }}>{rol(u)} · {admin ? 've todo' : total ? 'todos los expedientes' : n ? `${n} expediente(s)` : 'sin acceso'}</div>
+                    </td>
+                    <td style={{ textAlign: 'center', borderTop: '1px solid var(--border)' }}>
+                      {admin ? <span style={{ fontSize: 12, color: 'var(--text3)' }}>—</span> : (
+                        <button role="switch" aria-checked={!!u.portal_mode} aria-label={`Vista portal para ${u.full_name || u.email}`}
+                          disabled={guardando === 'p:' + u.id} onClick={() => alternarPortal(u)}
+                          style={{ width: 44, height: 26, borderRadius: 99, border: 'none', cursor: 'pointer', position: 'relative', background: u.portal_mode ? 'var(--primary)' : 'var(--border)', transition: 'background .2s' }}>
+                          <span style={{ position: 'absolute', top: 3, left: u.portal_mode ? 21 : 3, width: 20, height: 20, borderRadius: 99, background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,.25)', transition: 'left .2s' }} />
+                        </button>
+                      )}
                     </td>
                     <td style={{ textAlign: 'center', borderTop: '1px solid var(--border)' }}>
                       {admin ? <span style={{ fontSize: 12, color: 'var(--text3)' }}>Siempre</span> : (
@@ -415,6 +434,7 @@ function AccesosTab({ yo }) {
       )}
       <p style={{ ...lead, marginTop: 14, marginBottom: 0, fontSize: 12 }}>
         Los usuarios nuevos se crean <strong>sin acceso</strong>: después de darlos de alta, asígnales aquí sus expedientes.
+        Activa <strong>Vista portal</strong> para personal de tus clientes: verán solo su semáforo, sus planes de acción (con carga de evidencia) y sus riesgos principales.
         El rol (Lector / Editor / Administrador) define qué pueden hacer dentro de los expedientes que ven.
       </p>
     </div>
