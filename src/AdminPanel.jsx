@@ -9,7 +9,7 @@ import { BRAND } from './brand.js';
 import { TabBar } from './SharedUI.jsx';
 
 const card = { padding: 28, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14 };
-const h3 = { fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 20, color: 'var(--text)', marginBottom: 6 };
+const h3 = { fontFamily: 'var(--font-display)', fontWeight: 600, letterSpacing: '-0.02em', fontSize: 20, color: 'var(--text)', marginBottom: 6 };
 const lead = { fontSize: 13, color: 'var(--text3)', marginBottom: 20, lineHeight: 1.6, maxWidth: '66ch' };
 
 /* ───────────── Identidad institucional ───────────── */
@@ -76,7 +76,7 @@ function IdentityTab({ org, onSaved }) {
           <div><label className="sp-label">Misión</label><textarea className="sp-input" rows={3} value={form.mission} onChange={set('mission')} /></div>
           <div><label className="sp-label">Visión</label><textarea className="sp-input" rows={3} value={form.vision} onChange={set('vision')} /></div>
           <div><label className="sp-label">Valores</label><textarea className="sp-input" rows={3} value={form.values} onChange={set('values')} placeholder="Integridad, rigor técnico, confidencialidad…" /></div>
-          <button className="sp-btn" onClick={save} disabled={saving} style={{ background: 'var(--primary)', color: 'var(--bg2)', alignSelf: 'flex-start', padding: '11px 22px' }}>
+          <button className="sp-btn" onClick={save} disabled={saving} style={{ background: 'var(--primary)', color: '#fff', alignSelf: 'flex-start', padding: '11px 22px' }}>
             {saving ? 'Guardando…' : 'Guardar identidad'}
           </button>
         </div>
@@ -184,7 +184,7 @@ function SecurityTab({ orgId }) {
         <form onSubmit={changePassword} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div><label className="sp-label">Nueva contraseña</label><input className="sp-input" type="password" value={pwd.a} onChange={(e) => setPwd({ ...pwd, a: e.target.value })} autoComplete="new-password" /></div>
           <div><label className="sp-label">Confirmar contraseña</label><input className="sp-input" type="password" value={pwd.b} onChange={(e) => setPwd({ ...pwd, b: e.target.value })} autoComplete="new-password" /></div>
-          <button className="sp-btn" type="submit" disabled={savingPwd} style={{ background: 'var(--primary)', color: 'var(--bg2)', alignSelf: 'flex-start', padding: '11px 22px' }}>
+          <button className="sp-btn" type="submit" disabled={savingPwd} style={{ background: 'var(--primary)', color: '#fff', alignSelf: 'flex-start', padding: '11px 22px' }}>
             {savingPwd ? 'Guardando…' : 'Cambiar contraseña'}
           </button>
         </form>
@@ -210,7 +210,7 @@ function SecurityTab({ orgId }) {
               <label className="sp-label">Código de 6 dígitos</label>
               <input className="sp-input" inputMode="numeric" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} style={{ fontSize: 18, letterSpacing: 4, width: 150 }} />
               <div style={{ display: 'flex', gap: 10 }}>
-                <button className="sp-btn" type="submit" disabled={busy || code.length < 6} style={{ background: 'var(--primary)', color: 'var(--bg2)' }}>Verificar</button>
+                <button className="sp-btn" type="submit" disabled={busy || code.length < 6} style={{ background: 'var(--primary)', color: '#fff' }}>Verificar</button>
                 <button className="sp-btn" type="button" onClick={() => setSetup({ qr: null, secret: '', factorId: '' })} style={{ background: 'transparent', color: 'var(--text3)', border: '1px solid var(--border)' }}>Cancelar</button>
               </div>
             </form>
@@ -314,7 +314,7 @@ export default function AdminPanel({ profile, onBack }) {
 
       <main style={{ maxWidth: 1160, margin: '0 auto', padding: '32px 24px 64px' }}>
         <div style={{ marginBottom: 24 }}>
-          <h1 className="page-title" style={{ fontSize: 30 }}>Administración</h1>
+          <h1 className="page-title">Administración</h1>
           <p className="page-subtitle">Usuarios del despacho, identidad institucional y seguridad de acceso.</p>
         </div>
 

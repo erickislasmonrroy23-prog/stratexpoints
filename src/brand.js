@@ -9,33 +9,33 @@ export const BRAND = {
   // Coloca el logo oficial en /public/brand/logo-cyc.png (si no existe, se muestra el monograma)
   logo: '/brand/logo-cyc.png',
   fonts: {
-    display: "'Marcellus', 'Hoefler Text', Georgia, serif",
-    body: "'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif",
+    display: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Helvetica Neue', Arial, sans-serif",
+    body: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Helvetica Neue', Arial, sans-serif",
   },
 };
 
-// Paleta tomada del logo oficial: azul pizarra (#394556) y gris plata del anillo (#AEB3BF)
+// Paleta estilo Apple (Human Interface Guidelines): grises neutros, un solo acento y colores de sistema.
 export const PALETTE = {
   light: {
-    '--bg': '#F1F3F6', '--bg2': '#FFFFFF', '--bg3': '#E6E9EE', '--border': '#D5DAE1',
-    '--text': '#1F2733', '--text2': '#394556', '--text3': '#647083',
-    '--primary': '#394556', '--primary-light': '#E4E8EE',
-    '--accent': '#5E6B80', '--accent-light': '#ECEEF2',
-    '--teal': '#3E6E78', '--teal-light': '#E2EEF0',
-    '--gold': '#5E6B80', '--gold-light': '#ECEEF2',
-    '--green': '#2F7D4F', '--green-light': '#E3F1E8',
-    '--red': '#B3261E', '--red-light': '#F9E5E3',
-    '--violet': '#5B4A8A', '--violet-light': '#ECE8F4',
+    '--bg': '#F5F5F7', '--bg2': '#FFFFFF', '--bg3': '#F2F2F7', '--border': '#E5E5EA',
+    '--text': '#1D1D1F', '--text2': '#424245', '--text3': '#6E6E73',
+    '--primary': '#0071E3', '--primary-light': '#E8F1FC',
+    '--accent': '#0071E3', '--accent-light': '#E8F1FC',
+    '--teal': '#0A84A5', '--teal-light': '#E3F3F7',
+    '--gold': '#C93400', '--gold-light': '#FFF1E6',
+    '--green': '#248A3D', '--green-light': '#E7F6EA',
+    '--red': '#D70015', '--red-light': '#FDEBEC',
+    '--violet': '#8944AB', '--violet-light': '#F4ECF8',
   },
   dark: {
-    '--bg': '#141A23', '--bg2': '#1B232E', '--bg3': '#232D3A', '--border': '#323D4C',
-    '--text': '#E8EBF0', '--text2': '#C6CDD7', '--text3': '#929CAB',
-    '--primary': '#B9C3D3', '--primary-light': '#2A3442',
-    '--accent': '#AEB3BF', '--accent-light': '#2A3038',
-    '--teal': '#7FB2B9', '--teal-light': '#173236',
-    '--gold': '#AEB3BF', '--gold-light': '#2A3038',
-    '--green': '#6BC08D', '--green-light': '#12301F',
-    '--red': '#F08A80', '--red-light': '#3A1714',
-    '--violet': '#A99BD6', '--violet-light': '#241F38',
+    '--bg': '#000000', '--bg2': '#1C1C1E', '--bg3': '#2C2C2E', '--border': '#38383A',
+    '--text': '#F5F5F7', '--text2': '#D1D1D6', '--text3': '#98989D',
+    '--primary': '#0A84FF', '--primary-light': '#0A2A4D',
+    '--accent': '#0A84FF', '--accent-light': '#0A2A4D',
+    '--teal': '#64D2FF', '--teal-light': '#0C2B36',
+    '--gold': '#FF9F0A', '--gold-light': '#3A2A0E',
+    '--green': '#30D158', '--green-light': '#0F2E17',
+    '--red': '#FF453A', '--red-light': '#3A1311',
+    '--violet': '#BF5AF2', '--violet-light': '#2D1838',
   },
 };

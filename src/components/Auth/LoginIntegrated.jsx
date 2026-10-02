@@ -32,10 +32,10 @@ const Status = ({ type, text }) => (
   }}>{text}</div>
 );
 
-const inputStyle = { padding: '13px 14px', fontSize: 14, borderRadius: 8 };
+const inputStyle = { padding: '14px 16px', fontSize: 16, borderRadius: 12 };
 const primaryBtn = (loading) => ({
-  width: '100%', padding: '14px 20px', borderRadius: 8, fontSize: 15, fontWeight: 600,
-  background: 'var(--primary)', color: 'var(--bg2)', opacity: loading ? 0.7 : 1,
+  width: '100%', padding: '14px 20px', borderRadius: 980, fontSize: 16, fontWeight: 500,
+  background: 'var(--primary)', color: '#fff', opacity: loading ? 0.7 : 1,
   cursor: loading ? 'not-allowed' : 'pointer',
 });
 
@@ -103,20 +103,20 @@ export const LoginIntegrated = ({ mfaPending = false, onVerified }) => {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', background: 'var(--bg)' }}>
       <aside className="login-aside" style={{
-        flex: '1 1 50%', background: '#2B3442', color: '#E8EBF0',
+        flex: '1 1 50%', background: '#000', color: '#F5F5F7',
         padding: 'clamp(40px, 6vw, 72px)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
       }}>
         <BrandLogo size={44} light />
         <div style={{ maxWidth: 520 }}>
-          <div style={{ width: 48, height: 2, background: '#AEB3BF', marginBottom: 28 }} />
-          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 'clamp(34px, 3.6vw, 48px)', lineHeight: 1.12, marginBottom: 20 }}>
+          <div style={{ width: 40, height: 3, borderRadius: 3, background: '#0A84FF', marginBottom: 28 }} />
+          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, letterSpacing: '-0.03em', fontSize: 'clamp(36px, 3.8vw, 56px)', lineHeight: 1.05, marginBottom: 20 }}>
             {BRAND.tagline}
           </h1>
-          <p style={{ fontSize: 16, lineHeight: 1.65, color: 'rgba(230,237,241,.72)', maxWidth: '52ch' }}>
+          <p style={{ fontSize: 16, lineHeight: 1.65, color: 'rgba(245,245,247,.62)', maxWidth: '52ch' }}>
             Mapa estratégico, OKRs, indicadores e iniciativas del despacho, con análisis asistido por IA.
           </p>
         </div>
-        <div style={{ fontSize: 12, color: 'rgba(230,237,241,.5)' }}>
+        <div style={{ fontSize: 12, color: 'rgba(245,245,247,.4)' }}>
           {BRAND.legalName}. Uso interno y confidencial.
         </div>
       </aside>

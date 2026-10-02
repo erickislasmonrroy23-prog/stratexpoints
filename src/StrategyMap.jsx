@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { supabase } from './supabase.js';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Modal } from './forms.jsx';
@@ -75,6 +76,19 @@ const perspectives = [
 ];
 
 export default function StrategyMap({ onCreateObjective, onDeleteObjective, onUpdateObjective }) {
+  // Exposición al riesgo por objetivo (máximo residual de riesgos activos vinculados)
+  const [exposicion, setExposicion] = useState({});
+  useEffect(() => {
+    let vivo = true;
+    supabase.from('risks').select('objective_id, residual_risk, inherent_risk').eq('status', 'activo').not('objective_id', 'is', null)
+      .then(({ data }) => {
+        if (!vivo || !data) return;
+        const m = {};
+        data.forEach((r) => { const v = r.residual_risk ?? r.inherent_risk ?? 0; m[r.objective_id] = { max: Math.max(m[r.objective_id]?.max || 0, v), n: (m[r.objective_id]?.n || 0) + 1 }; });
+        setExposicion(m);
+      });
+    return () => { vivo = false; };
+  }, []);
   const [newObj, setNewObj] = useState('');
   const [adding, setAdding] = useState(false);
   const [selectedPersp, setSelectedPersp] = useState(1);
@@ -284,7 +298,7 @@ export default function StrategyMap({ onCreateObjective, onDeleteObjective, onUp
                            <span style={{ transform: 'rotate(-90deg)', whiteSpace: 'nowrap', fontSize: 10, fontWeight: 800, color: 'var(--violet)', textTransform: 'uppercase', letterSpacing: 1, display: 'block' }}>🧠 Capital Humano</span>
                         </div>
                         <div style={{ flex: 1, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', padding: '12px 16px' }}>
-                          {humanCapitalObjs.length === 0 ? <span style={{ color: 'var(--text3)', fontSize: 11, fontStyle: 'italic', opacity: 0.5, paddingLeft: 8 }}>-</span> : humanCapitalObjs.map(o => <ObjectiveCard key={o.id} objective={o} perspective={persp} onDelete={onDeleteObjective} onSelect={setSelectedObjective} />)}
+                          {humanCapitalObjs.length === 0 ? <span style={{ color: 'var(--text3)', fontSize: 11, fontStyle: 'italic', opacity: 0.5, paddingLeft: 8 }}>-</span> : humanCapitalObjs.map(o => <ObjectiveCard key={o.id} riesgo={exposicion[o.id]} objective={o} perspective={persp} onDelete={onDeleteObjective} onSelect={setSelectedObjective} />)}
                         </div>
                       </div>
                       <div className="map-lane" style={{ display: 'flex', borderBottom: '1px dashed var(--border)', minHeight: 130, backgroundColor: persp.bg }}>
@@ -292,7 +306,7 @@ export default function StrategyMap({ onCreateObjective, onDeleteObjective, onUp
                            <span style={{ transform: 'rotate(-90deg)', whiteSpace: 'nowrap', fontSize: 10, fontWeight: 800, color: 'var(--violet)', textTransform: 'uppercase', letterSpacing: 1, display: 'block' }}>💻 TI</span>
                         </div>
                         <div style={{ flex: 1, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', padding: '12px 16px' }}>
-                          {itObjs.length === 0 ? <span style={{ color: 'var(--text3)', fontSize: 11, fontStyle: 'italic', opacity: 0.5, paddingLeft: 8 }}>-</span> : itObjs.map(o => <ObjectiveCard key={o.id} objective={o} perspective={persp} onDelete={onDeleteObjective} onSelect={setSelectedObjective} />)}
+                          {itObjs.length === 0 ? <span style={{ color: 'var(--text3)', fontSize: 11, fontStyle: 'italic', opacity: 0.5, paddingLeft: 8 }}>-</span> : itObjs.map(o => <ObjectiveCard key={o.id} riesgo={exposicion[o.id]} objective={o} perspective={persp} onDelete={onDeleteObjective} onSelect={setSelectedObjective} />)}
                         </div>
                       </div>
                       <div className="map-lane" style={{ display: 'flex', minHeight: 130, backgroundColor: persp.bg }}>
@@ -300,20 +314,20 @@ export default function StrategyMap({ onCreateObjective, onDeleteObjective, onUp
                            <span style={{ transform: 'rotate(-90deg)', whiteSpace: 'nowrap', fontSize: 10, fontWeight: 800, color: 'var(--violet)', textTransform: 'uppercase', letterSpacing: 1, display: 'block' }}>🏢 Infraestructura</span>
                         </div>
                         <div style={{ flex: 1, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', padding: '12px 16px' }}>
-                          {infraObjs.length === 0 ? <span style={{ color: 'var(--text3)', fontSize: 11, fontStyle: 'italic', opacity: 0.5, paddingLeft: 8 }}>-</span> : infraObjs.map(o => <ObjectiveCard key={o.id} objective={o} perspective={persp} onDelete={onDeleteObjective} onSelect={setSelectedObjective} />)}
+                          {infraObjs.length === 0 ? <span style={{ color: 'var(--text3)', fontSize: 11, fontStyle: 'italic', opacity: 0.5, paddingLeft: 8 }}>-</span> : infraObjs.map(o => <ObjectiveCard key={o.id} riesgo={exposicion[o.id]} objective={o} perspective={persp} onDelete={onDeleteObjective} onSelect={setSelectedObjective} />)}
                         </div>
                       </div>
                     </div>
                   ) : (
                     <>
                       <div className="map-lane" style={{ flex: 1, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', alignContent: 'center', justifyContent: 'center', padding: '16px 8px', borderRight: '1px dashed var(--border)', backgroundColor: persp.bg }}>
-                        {customerObjs.length === 0 ? <span style={{ color: 'var(--text3)', fontSize: 11, fontStyle: 'italic', opacity: 0.5 }}>-</span> : customerObjs.map(o => <ObjectiveCard key={o.id} objective={o} perspective={persp} onDelete={onDeleteObjective} onSelect={setSelectedObjective} />)}
+                        {customerObjs.length === 0 ? <span style={{ color: 'var(--text3)', fontSize: 11, fontStyle: 'italic', opacity: 0.5 }}>-</span> : customerObjs.map(o => <ObjectiveCard key={o.id} riesgo={exposicion[o.id]} objective={o} perspective={persp} onDelete={onDeleteObjective} onSelect={setSelectedObjective} />)}
                       </div>
                       <div className="map-lane" style={{ flex: 1, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', alignContent: 'center', justifyContent: 'center', padding: '16px 8px', borderRight: '1px dashed var(--border)', backgroundColor: persp.bg }}>
-                        {prodObjs.length === 0 ? <span style={{ color: 'var(--text3)', fontSize: 11, fontStyle: 'italic', opacity: 0.5 }}>-</span> : prodObjs.map(o => <ObjectiveCard key={o.id} objective={o} perspective={persp} onDelete={onDeleteObjective} onSelect={setSelectedObjective} />)}
+                        {prodObjs.length === 0 ? <span style={{ color: 'var(--text3)', fontSize: 11, fontStyle: 'italic', opacity: 0.5 }}>-</span> : prodObjs.map(o => <ObjectiveCard key={o.id} riesgo={exposicion[o.id]} objective={o} perspective={persp} onDelete={onDeleteObjective} onSelect={setSelectedObjective} />)}
                       </div>
                       <div className="map-lane" style={{ flex: 1, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', alignContent: 'center', justifyContent: 'center', padding: '16px 8px', backgroundColor: persp.bg }}>
-                        {expObjs.length === 0 ? <span style={{ color: 'var(--text3)', fontSize: 11, fontStyle: 'italic', opacity: 0.5 }}>-</span> : expObjs.map(o => <ObjectiveCard key={o.id} objective={o} perspective={persp} onDelete={onDeleteObjective} onSelect={setSelectedObjective} />)}
+                        {expObjs.length === 0 ? <span style={{ color: 'var(--text3)', fontSize: 11, fontStyle: 'italic', opacity: 0.5 }}>-</span> : expObjs.map(o => <ObjectiveCard key={o.id} riesgo={exposicion[o.id]} objective={o} perspective={persp} onDelete={onDeleteObjective} onSelect={setSelectedObjective} />)}
                       </div>
                     </>
                   )}
