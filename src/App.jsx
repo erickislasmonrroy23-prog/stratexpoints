@@ -53,6 +53,7 @@ const ModuloIniciativas = lazy(() => import("./ModuloIniciativas.jsx"));
 const ModuloRiesgos = lazy(() => import("./ModuloRiesgos.jsx"));
 const ModuloExpedientes = lazy(() => import("./ModuloExpedientes.jsx"));
 const PortalCliente = lazy(() => import("./PortalCliente.jsx"));
+const ModuloPlanAuditoria = lazy(() => import("./ModuloPlanAuditoria.jsx"));
 import { activarExpediente } from "./ModuloExpedientes.jsx";
 
 const ModuleSkeleton = () => (
@@ -349,6 +350,7 @@ function CommandPalette({onNavigate,onClose,data}){
     {icon:"📊",label:"KPIs — Indicadores + Bowling + Prediccion",module:"kpis"},
     {icon:"🚀",label:"Iniciativas — Lista + Kanban + Simulador",module:"iniciativas"},
     {icon:"🗂️",label:"Expedientes — Portafolio de clientes",module:"expedientes"},
+    {icon:"🗓️",label:"Plan de auditoría — Programa anual y board pack trimestral",module:"plan"},
     {icon:"🛡️",label:"Riesgos y controles — Mapa de calor, controles y planes de acción",module:"riesgos"},
     {icon:"🤖",label:"Inteligencia IA — Chat + IA + Docs",module:"ia"},
     {icon:"📈",label:"Analitica — Dashboard + Radar + Benchmark",module:"analitica"},
@@ -663,6 +665,7 @@ function MainApp({ onLogout, onSuperAdmin }){
         {id:"analitica",  icon:"📈", label: 'Analítica 360'} ] },
     { title: 'Controlar', items: [
         {id:"riesgos",    icon:"🛡️", label: 'Riesgos y controles'},
+        {id:"plan",       icon:"🗓️", label: 'Plan de auditoría'},
         {id:"alertas",    icon:"🔔", label: 'Alertas'} ] },
     { title: 'Reportar', items: [
         {id:"reportes",   icon:"📤", label: 'Reportes'},
@@ -791,6 +794,7 @@ function MainApp({ onLogout, onSuperAdmin }){
               }}/>}
               {activeModule==="riesgos"&&<ModuloRiesgos />}
               {activeModule==="expedientes"&&<ModuloExpedientes />}
+              {activeModule==="plan"&&<ModuloPlanAuditoria />}
               {activeModule==="iniciativas"&&<ModuloIniciativas onModal={function(m){if(!can("create","initiatives"))return;setModal(m);}} onDelete={handleDeleteInitiative} />}
               {activeModule==="ia"&&<ModuloIA />}
               {activeModule==="analitica"&&<ModuloAnalitica />}
