@@ -30,10 +30,6 @@ serve(async (req) => {
     const { data: me } = await admin.from('profiles').select('role, is_super_admin').eq('id', user.id).single();
     const isAdmin = !!me && (me.is_super_admin === true || ['admin', 'Admin', 'super_admin'].includes(me.role));
     if (!isAdmin) return json({ error: 'Solo un administrador puede eliminar usuarios' }, 403);
-    try {
-      const payload = JSON.parse(atob((authHeader.replace(/^Bearer\s+/i, '').split('.')[1] || '').replace(/-/g, '+').replace(/_/g, '/')));
-      if (payload.aal !== 'aal2') return json({ error: 'Se requiere verificación en dos pasos para administrar usuarios' }, 403);
-    } catch { return json({ error: 'Token inválido' }, 401); }
 
     const { userId } = await req.json();
     if (!userId) return json({ error: 'userId es requerido' }, 400);

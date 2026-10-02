@@ -51,17 +51,6 @@ serve(async (req) => {
       });
     }
 
-    // Administración solo con sesión verificada en dos pasos (aal2)
-    try {
-      const payload = JSON.parse(atob((authHeader.replace(/^Bearer\s+/i, '').split('.')[1] || '').replace(/-/g, '+').replace(/_/g, '/')));
-      if (payload.aal !== 'aal2') {
-        return new Response(JSON.stringify({ error: 'Se requiere verificación en dos pasos para administrar usuarios' }), {
-          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-    } catch {
-      return new Response(JSON.stringify({ error: 'Token inválido' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
 
     const { userId, newPassword } = await req.json();
 
