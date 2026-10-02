@@ -51,6 +51,8 @@ const ModuloOKRs = lazy(() => import("./ModuloOKRs.jsx"));
 const ModuloKPIs = lazy(() => import("./ModuloKPIs.jsx"));
 const ModuloIniciativas = lazy(() => import("./ModuloIniciativas.jsx"));
 const ModuloRiesgos = lazy(() => import("./ModuloRiesgos.jsx"));
+const ModuloExpedientes = lazy(() => import("./ModuloExpedientes.jsx"));
+import { activarExpediente } from "./ModuloExpedientes.jsx";
 
 const ModuleSkeleton = () => (
   <div className="animate-pulse" style={{ display: "flex", flexDirection: "column", gap: 16, padding: 24 }}>
@@ -345,6 +347,7 @@ function CommandPalette({onNavigate,onClose,data}){
     {icon:"🎯",label:"OKRs — Lista y Generador IA",module:"okrs"},
     {icon:"📊",label:"KPIs — Indicadores + Bowling + Prediccion",module:"kpis"},
     {icon:"🚀",label:"Iniciativas — Lista + Kanban + Simulador",module:"iniciativas"},
+    {icon:"🗂️",label:"Expedientes — Portafolio de clientes",module:"expedientes"},
     {icon:"🛡️",label:"Riesgos y controles — Mapa de calor, controles y planes de acción",module:"riesgos"},
     {icon:"🤖",label:"Inteligencia IA — Chat + IA + Docs",module:"ia"},
     {icon:"📈",label:"Analitica — Dashboard + Radar + Benchmark",module:"analitica"},
@@ -389,6 +392,55 @@ function CommandPalette({onNavigate,onClose,data}){
 // Para mejorar la mantenibilidad y seguir los principios de Clean Code, se podría refactorizar
 // extrayendo lógica a hooks personalizados (ej. useModals, usePaymentStatus, useRealtime)
 // y componentes más pequeños.
+function SelectorExpediente({ onAdministrar }) {
+  const actual = useStore(function(s){ return s.currentClient; });
+  const clientes = useStore(function(s){ return s.clients; }) || [];
+  const [abierto, setAbierto] = useState(false);
+  const ref = useRef(null);
+  useEffect(function(){
+    function fuera(e){ if (ref.current && !ref.current.contains(e.target)) setAbierto(false); }
+    document.addEventListener("mousedown", fuera);
+    return function(){ document.removeEventListener("mousedown", fuera); };
+  }, []);
+  if (!actual) return null;
+  var activos = clientes.filter(function(c){ return c.status !== "cerrado"; });
+  var Punto = function(p){ return p.c.logo_url
+    ? <img src={p.c.logo_url} alt="" style={{width:20,height:20,borderRadius:6,objectFit:"contain",background:"#fff"}}/>
+    : <span style={{width:20,height:20,borderRadius:6,background:p.c.color,color:"#fff",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700}}>{(p.c.name||"?").charAt(0).toUpperCase()}</span>; };
+  return (
+    <div ref={ref} style={{position:"relative",marginLeft:8}}>
+      <button className="header-action" onClick={function(){ setAbierto(!abierto); }} aria-haspopup="listbox" aria-expanded={abierto}
+        title="Cambiar de expediente" style={{gap:8,paddingLeft:8,maxWidth:260}}>
+        <Punto c={actual}/>
+        <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontWeight:600}}>{actual.name}</span>
+        <span style={{fontSize:10,color:"var(--text3)"}}>▾</span>
+      </button>
+      {abierto && (
+        <div className="sp-card" role="listbox" style={{position:"absolute",top:"calc(100% + 8px)",left:0,width:300,padding:6,zIndex:300,boxShadow:"var(--shadow-lg)",maxHeight:380,overflowY:"auto"}}>
+          <div style={{fontSize:11,color:"var(--text3)",padding:"6px 10px"}}>Expedientes</div>
+          {activos.map(function(c){
+            var sel = c.id === actual.id;
+            return (
+              <button key={c.id} role="option" aria-selected={sel} onClick={function(){ setAbierto(false); if(!sel) activarExpediente(c.id); }}
+                style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"8px 10px",borderRadius:10,border:"none",cursor:"pointer",
+                  background:sel?"var(--primary)":"transparent",color:sel?"#fff":"var(--text)",textAlign:"left",fontSize:14}}>
+                <Punto c={c}/>
+                <span style={{flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</span>
+                {c.is_internal && <span style={{fontSize:10,opacity:.7}}>Interno</span>}
+              </button>
+            );
+          })}
+          <div style={{borderTop:"1px solid var(--border)",margin:"6px 0"}}/>
+          <button onClick={function(){ setAbierto(false); onAdministrar(); }}
+            style={{width:"100%",padding:"8px 10px",borderRadius:10,border:"none",cursor:"pointer",background:"transparent",color:"var(--primary)",textAlign:"left",fontSize:14}}>
+            Administrar expedientes…
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MainApp({ onLogout, onSuperAdmin }){
 
   // Consumimos el estado global, selectores y manejadores de Zustand
@@ -597,6 +649,7 @@ function MainApp({ onLogout, onSuperAdmin }){
 
   var NAV_GROUPS = [
     { title: 'Inicio', items: [
+        {id:"expedientes",icon:"🗂️", label: 'Expedientes'},
         {id:"home",       icon:"🏠", label: 'Tablero de mando'},
         {id:"centro",     icon:"⚡", label: 'Centro estratégico'} ] },
     { title: 'Planear', items: [
@@ -626,8 +679,9 @@ function MainApp({ onLogout, onSuperAdmin }){
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <button className="icon-btn" onClick={function(){setSidebarCollapsed(!sidebarCollapsed);}}>{sidebarCollapsed?"☰":"←"}</button>
           <div className="tour-step-logo" style={{display:"flex",alignItems:"center",padding:"0 4px"}}>
-            <BrandLogo size={30} showProduct />
+            <BrandLogo size={30} />
           </div>
+          <SelectorExpediente onAdministrar={function(){ setActiveModule("expedientes"); }} />
           <button className="tour-step-search" onClick={function(){setCmdOpen(true);}} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 12px",borderRadius:8,border:"1px solid var(--border)",background:"var(--bg3)",cursor:"pointer",color:"var(--text3)",fontSize:12,fontFamily:"var(--font-body)",marginLeft:4}}>
             <span>🔍</span><span>Buscar...</span>
             <kbd style={{fontSize:10,padding:"1px 6px",borderRadius:4,background:"var(--bg2)",border:"1px solid var(--border)",color:"var(--text3)"}}>⌘K</kbd>
@@ -735,6 +789,7 @@ function MainApp({ onLogout, onSuperAdmin }){
                 setModal("okr");
               }}/>}
               {activeModule==="riesgos"&&<ModuloRiesgos />}
+              {activeModule==="expedientes"&&<ModuloExpedientes />}
               {activeModule==="iniciativas"&&<ModuloIniciativas onModal={function(m){if(!can("create","initiatives"))return;setModal(m);}} onDelete={handleDeleteInitiative} />}
               {activeModule==="ia"&&<ModuloIA />}
               {activeModule==="analitica"&&<ModuloAnalitica />}
@@ -875,6 +930,12 @@ export default function App(){
       if (initialLang && !i18n.language.startsWith(initialLang.substring(0, 2))) {
           i18n.changeLanguage(initialLang);
       }
+
+      // Expedientes: catálogo y expediente activo (la base filtra todos los datos por este expediente)
+      const cl = await supabase.from("clients").select("*").order("is_internal", { ascending: false }).order("name");
+      const listaClientes = cl.data || [];
+      const actual = listaClientes.find(c => c.id === profileData.current_client_id) || listaClientes.find(c => c.is_internal) || null;
+      useStore.setState({ clients: listaClientes, currentClient: actual });
 
       setAuth(currentUser, profileData);
     } catch(e) {

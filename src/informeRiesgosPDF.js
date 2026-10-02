@@ -30,13 +30,15 @@ async function imagenComoDataURL(src) {
   } catch { return null; }
 }
 
-export async function generarInformeRiesgos({ datos, organizacion, autor }) {
+export async function generarInformeRiesgos({ datos, organizacion, cliente, autor }) {
   const doc = new jsPDF({ unit: 'mm', format: 'letter' });
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
   const M = 18;
   const logo = await imagenComoDataURL(organizacion?.logo_url || BRAND.logo);
-  const razon = organizacion?.name || BRAND.legalName;
+  const logoCliente = cliente && !cliente.is_internal ? await imagenComoDataURL(cliente.logo_url) : null;
+  const razon = cliente && !cliente.is_internal ? (cliente.legal_name || cliente.name) : (organizacion?.name || BRAND.legalName);
+  const apetito = cliente?.risk_appetite;
   const hoy = new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
 
   const activos = datos.riesgos.filter((r) => r.status === 'activo');
@@ -48,7 +50,8 @@ export async function generarInformeRiesgos({ datos, organizacion, autor }) {
 
   // ── Portada ──
   doc.setFillColor(245, 245, 247); doc.rect(0, 0, W, H, 'F');
-  if (logo) { try { doc.addImage(logo, 'PNG', W / 2 - 28, 46, 56, 56); } catch { /* formato no soportado */ } }
+  const logoPortada = logoCliente || logo;
+  if (logoPortada) { try { doc.addImage(logoPortada, logoPortada.includes('image/jpeg') ? 'JPEG' : 'PNG', W / 2 - 28, 46, 56, 56); } catch { /* formato no soportado */ } }
   doc.setTextColor(...TINTA); doc.setFont('helvetica', 'bold'); doc.setFontSize(26);
   doc.text('Informe de Riesgos y Controles', W / 2, 126, { align: 'center' });
   doc.setFont('helvetica', 'normal'); doc.setFontSize(13); doc.setTextColor(...GRIS);
@@ -56,6 +59,8 @@ export async function generarInformeRiesgos({ datos, organizacion, autor }) {
   doc.setDrawColor(...AZUL); doc.setLineWidth(0.8); doc.line(W / 2 - 12, 144, W / 2 + 12, 144);
   doc.setFontSize(11);
   doc.text(`Emitido el ${hoy}`, W / 2, 154, { align: 'center' });
+  if (logoCliente) { doc.setFontSize(10); doc.text(`Preparado por ${BRAND.legalName}`, W / 2, 168, { align: 'center' }); }
+  if (apetito) { doc.setFontSize(10); doc.text(`Apetito de riesgo aprobado: residual máximo ${apetito}`, W / 2, logoCliente ? 175 : 168, { align: 'center' }); }
   if (autor) doc.text(`Elaboró: ${autor}`, W / 2, 161, { align: 'center' });
   doc.setFontSize(9);
   doc.text('Marco de referencia: COSO ERM 2017 · COSO Control Interno 2013 · ISO 31000:2018', W / 2, H - 30, { align: 'center' });
@@ -97,6 +102,7 @@ export async function generarInformeRiesgos({ datos, organizacion, autor }) {
   doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5); doc.setTextColor(...TINTA);
   const conclusion = [
     `Se evaluaron ${activos.length} riesgos activos. Los controles vinculados reducen la exposición agregada en ${mitig}% respecto del riesgo inherente.`,
+    apetito ? (() => { const f = activos.filter((r) => res(r) > apetito).length; return f ? `${f} riesgo(s) se ubican fuera del apetito de riesgo aprobado (residual mayor a ${apetito}) y requieren respuesta de la Administración.` : `Todos los riesgos activos se encuentran dentro del apetito de riesgo aprobado (residual hasta ${apetito}).`; })() : '',
     criticos ? `Existen ${criticos} riesgo(s) en nivel crítico que requieren atención de la Dirección y del Comité de Auditoría.` : 'No se identifican riesgos residuales en nivel crítico.',
     sinControl ? `${sinControl} riesgo(s) activo(s) carecen de controles asignados; se recomienda diseñar actividades de control o documentar su aceptación.` : 'Todos los riesgos activos cuentan con al menos un control asignado.',
     inefectivos ? `${inefectivos} control(es) presentan deficiencias de operación o diseño; deben remediarse y volver a probarse.` : '',

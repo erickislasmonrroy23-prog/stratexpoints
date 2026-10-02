@@ -4,6 +4,7 @@ import { notificationService } from './services.js';
 import { useStore } from './store.js';
 import { TabBar, Modal, EmptyState, ConfirmationModal } from './SharedUI.jsx';
 import { generarInformeRiesgos } from './informeRiesgosPDF.js';
+import MatrizRCM from './MatrizRCM.jsx';
 
 /* ─────────────────────────────────────────────────────────────
    Módulo de Riesgos y Controles — Cabrera & Consultores
@@ -138,7 +139,7 @@ const th = { padding: '10px 12px', fontSize: 11, fontWeight: 700, color: 'var(--
 const td = { padding: '11px 12px', fontSize: 13, color: 'var(--text)', borderBottom: '1px solid var(--border)', verticalAlign: 'top' };
 
 /* ───────────── Matriz de calor ───────────── */
-function MatrizCalor({ riesgos, modo, seleccion, onSeleccion }) {
+function MatrizCalor({ riesgos, modo, seleccion, onSeleccion, apetito = 25 }) {
   // Residual: se ubica por su valor en la diagonal equivalente (probabilidad conservada, impacto ajustado)
   const celda = (r) => {
     if (modo === 'inherente') return [r.probability, r.impact];
@@ -165,7 +166,7 @@ function MatrizCalor({ riesgos, modo, seleccion, onSeleccion }) {
                 <button key={i} type="button" onClick={() => onSeleccion(activa ? null : `${p}-${i}`)}
                   aria-label={`Probabilidad ${p}, impacto ${i}: ${lista.length} riesgos`}
                   style={{
-                    aspectRatio: '1.4', borderRadius: 12, border: activa ? '2px solid var(--primary)' : '1px solid transparent',
+                    aspectRatio: '1.4', borderRadius: 12, border: activa ? '2px solid var(--primary)' : (p * i > apetito ? '1.5px dashed rgba(215,0,21,.45)' : '1px solid transparent'),
                     background: n.bg, color: n.color, cursor: lista.length ? 'pointer' : 'default',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
                     opacity: lista.length ? 1 : 0.55,
@@ -498,6 +499,8 @@ function AreasProcesos({ datos, puedeEditar, puedeBorrar, recargar }) {
 /* ───────────── Módulo principal ───────────── */
 export default function ModuloRiesgos() {
   const datos = useDatosRiesgo();
+  const cliente = useStore((s) => s.currentClient);
+  const apetito = cliente?.risk_appetite ?? 25;
   const can = useStore.use.can();
   const puedeEditar = can('update', 'risks');
   const puedeCrear = can('create', 'risks');
@@ -517,7 +520,7 @@ export default function ModuloRiesgos() {
     setGenerando(true);
     try {
       const st = useStore.getState();
-      await generarInformeRiesgos({ datos, organizacion: st.currentOrganization, autor: st.profile?.full_name || st.profile?.email });
+      await generarInformeRiesgos({ datos, organizacion: st.currentOrganization, cliente: st.currentClient, autor: st.profile?.full_name || st.profile?.email });
     } catch (e) { notificationService.error('No se pudo generar el informe: ' + e.message); }
     setGenerando(false);
   };
@@ -566,6 +569,7 @@ export default function ModuloRiesgos() {
   const sinControl = activos.filter((r) => controlesDe(r.id).length === 0).length;
   const controlesInefectivos = datos.controles.filter((c) => c.test_result === 'inefectivo' || c.status === 'no_operando').length;
   const planesVencidos = datos.planes.filter((p) => p.status !== 'cerrado' && p.due_date && p.due_date < hoy()).length;
+  const fueraApetito = activos.filter((r) => (r.residual_risk ?? r.inherent_risk) > apetito).length;
   const reduccion = (() => {
     const inh = activos.reduce((s, r) => s + (r.inherent_risk || 0), 0);
     const res = activos.reduce((s, r) => s + (r.residual_risk ?? r.inherent_risk ?? 0), 0);
@@ -603,7 +607,7 @@ export default function ModuloRiesgos() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap', marginBottom: 18 }}>
         <div>
           <h1 className="page-title">Riesgos y Controles</h1>
-          <p className="page-subtitle">Identificación, evaluación y respuesta al riesgo · COSO ERM 2017 · ISO 31000</p>
+          <p className="page-subtitle">{cliente ? `${cliente.name} · ` : ''}Identificación, evaluación y respuesta al riesgo · COSO ERM 2017 · ISO 31000</p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button className="sp-btn" onClick={revisarAlertas} disabled={revisando} title="Busca planes vencidos, controles sin probar y riesgos críticos sin respuesta"
@@ -624,6 +628,7 @@ export default function ModuloRiesgos() {
         style={{ marginBottom: 18 }}
         tabs={[
           { id: 'panorama', icon: '🧭', label: 'Panorama' },
+          { id: 'rcm', icon: '🧮', label: 'Matriz RCM' },
           { id: 'riesgos', icon: '⚠️', label: `Riesgos (${datos.riesgos.length})` },
           { id: 'controles', icon: '🛡️', label: `Controles (${datos.controles.length})` },
           { id: 'planes', icon: '📌', label: `Planes de acción (${datos.planes.filter((p) => p.status !== 'cerrado').length})` },
@@ -638,6 +643,7 @@ export default function ModuloRiesgos() {
             <Tarjeta etiqueta="Riesgos activos" valor={activos.length} nota={`${datos.riesgos.length} en total`} />
             <Tarjeta etiqueta="Críticos (residual)" valor={criticos} color={criticos ? 'var(--red)' : undefined} nota="Puntaje 17–25" />
             <Tarjeta etiqueta="Altos (residual)" valor={altos} color={altos ? 'var(--gold)' : undefined} nota="Puntaje 10–16" />
+            <Tarjeta etiqueta="Fuera de apetito" valor={fueraApetito} color={fueraApetito ? 'var(--red)' : undefined} nota={`Residual mayor a ${apetito}`} />
             <Tarjeta etiqueta="Sin control asignado" valor={sinControl} color={sinControl ? 'var(--gold)' : undefined} nota="Riesgos activos" />
             <Tarjeta etiqueta="Controles con falla" valor={controlesInefectivos} color={controlesInefectivos ? 'var(--red)' : undefined} nota="Inefectivos o no operando" />
             <Tarjeta etiqueta="Planes vencidos" valor={planesVencidos} color={planesVencidos ? 'var(--red)' : undefined} nota={`Mitigación lograda: ${reduccion}%`} />
@@ -668,8 +674,9 @@ export default function ModuloRiesgos() {
                     ))}
                   </div>
                 </div>
-                <MatrizCalor riesgos={activos} modo={modoMatriz} seleccion={celda} onSeleccion={(c) => { setCelda(c); if (c) setTab('riesgos'); }} />
+                <MatrizCalor apetito={apetito} riesgos={activos} modo={modoMatriz} seleccion={celda} onSeleccion={(c) => { setCelda(c); if (c) setTab('riesgos'); }} />
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 14 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text2)' }}><span style={{ width: 12, height: 10, borderRadius: 3, border: '1.5px dashed rgba(215,0,21,.6)' }} />Fuera de apetito (&gt; {apetito})</span>
                   {NIVELES.map((n) => <span key={n.label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text2)' }}><span style={{ width: 10, height: 10, borderRadius: 99, background: n.solido }} />{n.label}</span>)}
                 </div>
               </div>
@@ -751,7 +758,7 @@ export default function ModuloRiesgos() {
                       <td style={{ ...td, fontSize: 12, color: 'var(--text2)' }}>{categoriaDe(r.category_id)}</td>
                       <td style={{ ...td, whiteSpace: 'nowrap' }}>{r.probability}×{r.impact}</td>
                       <td style={td}><Nivel valor={r.inherent_risk} compacto /></td>
-                      <td style={td}><Nivel valor={r.residual_risk} /></td>
+                      <td style={td}><Nivel valor={r.residual_risk} />{(r.residual_risk ?? r.inherent_risk) > apetito && <div style={{ fontSize: 10.5, color: 'var(--red)', marginTop: 3, fontWeight: 600 }}>Fuera de apetito</div>}</td>
                       <td style={td}>{controlesDe(r.id).length || <span style={{ color: 'var(--gold)' }}>0</span>}</td>
                       <td style={td}>{ESTADO_RIESGO[r.status]}</td>
                       <td style={{ ...td, whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
@@ -848,6 +855,12 @@ export default function ModuloRiesgos() {
             </div>
           )}
         </div>
+      )}
+
+      {tab === 'rcm' && (
+        <MatrizRCM datos={datos} cliente={cliente}
+          onAbrirRiesgo={(r) => setModal({ tipo: 'riesgo', item: r })}
+          onAbrirControl={(c) => setModal({ tipo: 'control', item: c })} />
       )}
 
       {tab === 'procesos' && <AreasProcesos datos={datos} puedeEditar={puedeEditar} puedeBorrar={puedeBorrar} recargar={datos.recargar} />}
