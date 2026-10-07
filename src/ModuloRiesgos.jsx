@@ -5,6 +5,7 @@ import { useStore } from './store.js';
 import { TabBar, Modal, EmptyState, ConfirmationModal } from './SharedUI.jsx';
 import { generarInformeRiesgos } from './informeRiesgosPDF.js';
 import MatrizRCM from './MatrizRCM.jsx';
+import ImportarMatriz from './ImportarMatriz.jsx';
 import { SugerirRiesgos, SugerirControles, redactarHallazgo } from './IAAuditor.jsx';
 import PruebasControl, { Evidencias } from './PruebasControl.jsx';
 import { estadoKRI } from './PortalCliente.jsx';
@@ -690,6 +691,7 @@ export default function ModuloRiesgos() {
           <p className="page-subtitle">{cliente ? `${cliente.name} · ` : ''}Identificación, evaluación y respuesta al riesgo · COSO ERM 2017 · ISO 31000</p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {puedeCrear && <button className="sp-btn solo-edicion" onClick={() => setModal({ tipo: 'importar' })} style={{ background: 'var(--bg2)', color: 'var(--text)', border: '1px solid var(--border)' }}>📥 Importar / plantillas</button>}
           <button className="sp-btn" onClick={revisarAlertas} disabled={revisando} title="Busca planes vencidos, controles sin probar y riesgos críticos sin respuesta"
             style={{ background: 'var(--bg2)', color: 'var(--text)', border: '1px solid var(--border)' }}>
             {revisando ? 'Revisando…' : '🔔 Revisar alertas'}
@@ -736,8 +738,8 @@ export default function ModuloRiesgos() {
                 desc="Empieza por definir las áreas y subprocesos, después registra los riesgos con su probabilidad e impacto, y vincula los controles que los mitigan."
                 action={puedeCrear ? (
                   <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-                    <button className="sp-btn" onClick={() => setTab('procesos')} style={{ background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border)' }}>1 · Definir áreas</button>
-                    <button className="sp-btn" onClick={() => setModal({ tipo: 'riesgo' })} style={{ background: 'var(--primary)', color: '#fff' }}>2 · Registrar primer riesgo</button>
+                    <button className="sp-btn" onClick={() => setModal({ tipo: 'importar' })} style={{ background: 'var(--primary)', color: '#fff' }}>📥 Importar Excel o usar plantilla de industria</button>
+                    <button className="sp-btn" onClick={() => setModal({ tipo: 'riesgo' })} style={{ background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border)' }}>Capturar manualmente</button>
                   </div>
                 ) : null} />
             </div>
@@ -955,6 +957,9 @@ export default function ModuloRiesgos() {
       {/* ── Modales ── */}
       <Modal isOpen={modal?.tipo === 'riesgo'} onClose={cerrarModal} title={modal?.item ? `Riesgo ${modal.item.code || ''}` : 'Nuevo riesgo'} maxWidth={820}>
         {modal?.tipo === 'riesgo' && <FormRiesgo riesgo={modal.item} datos={datos} puedeEditar={modal.item ? puedeEditar : puedeCrear} onCerrar={cerrarModal} onGuardado={trasGuardar} />}
+      </Modal>
+      <Modal isOpen={modal?.tipo === 'importar'} onClose={cerrarModal} title="Importar matriz de riesgos y controles" maxWidth={900}>
+        {modal?.tipo === 'importar' && <ImportarMatriz onCerrar={() => { cerrarModal(); setTab('rcm'); }} onImportado={datos.recargar} />}
       </Modal>
       <Modal isOpen={modal?.tipo === 'ia_riesgos'} onClose={cerrarModal} title="Sugerir riesgos con IA" maxWidth={760}>
         {modal?.tipo === 'ia_riesgos' && <SugerirRiesgos datos={datos} onCerrar={cerrarModal} onAgregado={trasGuardar} />}
