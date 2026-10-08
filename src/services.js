@@ -262,7 +262,7 @@ export const geminiService = {
     const res = await fetch(
       'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
       { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
-        body: JSON.stringify({ model: 'gemini-2.0-flash', messages, max_tokens: 2048, temperature: 0.7 }) }
+        body: JSON.stringify({ model: 'gemini-2.5-flash', messages, max_tokens: 2048, temperature: 0.7 }) }
     );
     if (!res.ok) {
       const e = await res.json().catch(() => ({}));
@@ -282,7 +282,7 @@ export const groqService = {
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
-      body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages, max_tokens: 2048, temperature: 0.7 }),
+      body: JSON.stringify({ model: 'openai/gpt-oss-120b', messages, max_tokens: 2048, temperature: 0.7 }),
     });
     if (!res.ok) {
       const e = await res.json().catch(() => ({}));

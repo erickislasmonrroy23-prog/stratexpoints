@@ -93,7 +93,12 @@ export default function StrategyMap({ onCreateObjective, onDeleteObjective, onUp
   const [adding, setAdding] = useState(false);
   const [selectedPersp, setSelectedPersp] = useState(1);
   const [selectedTheme, setSelectedTheme] = useState('auto');
-  const [mapTitle, setMapTitle] = useState(() => localStorage.getItem('sp-map-title') || 'Mapa Estratégico Corporativo');
+  const clienteMapa = useStore(state => state.currentClient);
+  const claveTitulo = 'sp-map-title:' + (clienteMapa?.id || 'general');
+  const [mapTitle, setMapTitle] = useState(() => {
+    try { return localStorage.getItem('sp-map-title:' + (useStore.getState().currentClient?.id || 'general')) || ''; } catch { return ''; }
+  });
+  const tituloMostrado = mapTitle || `Mapa Estratégico ${clienteMapa && !clienteMapa.is_internal ? '· ' + clienteMapa.name + ' · Horizonte 5 años' : 'Corporativo'}`;
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const mapRef = useRef(null);
@@ -127,7 +132,7 @@ export default function StrategyMap({ onCreateObjective, onDeleteObjective, onUp
 
   const handleTitleBlur = () => {
     setIsEditingTitle(false);
-    localStorage.setItem('sp-map-title', mapTitle);
+    try { localStorage.setItem(claveTitulo, mapTitle); } catch { /* sin almacenamiento */ }
   };
 
   const exportPDF = async () => {
@@ -162,7 +167,7 @@ export default function StrategyMap({ onCreateObjective, onDeleteObjective, onUp
       const yOffset = (pdfPageHeight - finalHeight) / 2;
       
       pdf.addImage(imgData, 'PNG', xOffset, yOffset, finalWidth, finalHeight);
-      pdf.save(`${mapTitle.replace(/\s+/g, '_')}.pdf`);
+      pdf.save(`${tituloMostrado.replace(/\s+/g, '_')}.pdf`);
     } catch (err) {
       notificationService.error("Error al generar el PDF: " + err.message);
     }
@@ -218,7 +223,7 @@ export default function StrategyMap({ onCreateObjective, onDeleteObjective, onUp
               />
             ) : (
               <h2 onClick={() => setIsEditingTitle(true)} style={{ fontSize: 28, fontWeight: 900, color: 'var(--text)', margin: 0, letterSpacing: '-0.5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, justifyContent: 'center' }} title="Clic para editar título">
-                {mapTitle}
+                {tituloMostrado}
                 <span style={{ fontSize: 14, opacity: 0.5 }} data-html2canvas-ignore>✏️</span>
               </h2>
             )}
