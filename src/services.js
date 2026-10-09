@@ -304,7 +304,8 @@ export const aiChain = {
     if (groqService.isAvailable()) return 'Groq';
     return null;
   },
-  chat: async (messages) => {
+  chat: async (entrada) => {
+    const messages = normalizarMensajes(entrada);
     // 1) IA en el servidor (llaves ocultas). Si aún no tiene llave, se usa la cadena local de respaldo.
     try { return await iaServidor(messages); }
     catch (e) { if (e.codigo !== 'sin_llave') throw e; logger.warn('[AI] Servidor sin llave; usando respaldo local.'); }
@@ -763,7 +764,15 @@ protegerServicio(organizationService, { soloAdmin: true });
 
 
 // ── IA en el servidor (Edge Function "ia"): las llaves nunca llegan al navegador ──
+const MODOS_IA = ['sugerir_riesgos', 'sugerir_controles', 'redactar_hallazgo'];
+// Acepta texto suelto, un mensaje o una lista de mensajes; todo se convierte a lista de mensajes
+export function normalizarMensajes(m) {
+  if (Array.isArray(m)) return m.filter(Boolean).map((x) => (typeof x === 'string' ? { role: 'user', content: x } : x));
+  if (m && typeof m === 'object' && m.content) return [m];
+  return [{ role: 'user', content: String(m ?? '') }];
+}
 export async function iaServidor(messagesOModo, datos = {}) {
+  if (!(typeof messagesOModo === 'string' && MODOS_IA.includes(messagesOModo))) messagesOModo = normalizarMensajes(messagesOModo);
   const body = Array.isArray(messagesOModo) ? { modo: 'chat', messages: messagesOModo } : { modo: messagesOModo, ...datos };
   const { data, error } = await supabase.functions.invoke('ia', { body });
   if (error) {
